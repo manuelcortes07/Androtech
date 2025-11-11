@@ -1,7 +1,7 @@
- AndroppleDigisys
+ Androtech
 
  Descripción del proyecto
-AndroppleDigisys es un sistema web diseñado para digitalizar la gestión de clientes y reparaciones de la empresa Andropple.  
+Androtechs es un sistema web diseñado para digitalizar la gestión de clientes y reparaciones de la empresa Andropple.  
 El objetivo es sustituir el uso de hojas de papel y Excel por una herramienta centralizada, accesible y moderna que permita:
 - Registrar clientes y reparaciones.
 - Controlar el estado de cada reparación (pendiente, en proceso, terminado, entregado).
@@ -16,17 +16,10 @@ Este proyecto forma parte del módulo de Proyecto Final del CFGM de Sistemas Mic
  Tecnologías utilizadas
 - Lenguaje principal: Python (Flask o Django)
 - Base de datos: MySQL / MariaDB
-- Frontend: HTML, CSS, JavaScript
-- Entorno de virtualización: Proxmox
-- Contenedores: Docker Desktop + Docker Compose
-- Sistema operativo servidor: Linux (Ubuntu Server o Debian)
-- Gestión de repositorio: GitHub
-
-
 
  Metodología de desarrollo
 
-Para el desarrollo de AndroppleDigisys se utiliza una metodología ágil tipo Scrum, adaptada al trabajo individual.
+Para el desarrollo de Androtech se utiliza una metodología ágil tipo Scrum, adaptada al trabajo individual.
 
  Fases principales (Sprints):
 1. Análisis: estudio de la empresa y detección de necesidades.
