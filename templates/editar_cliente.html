@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Editar Cliente</h2>
+
+<form method="POST">
+    <label>Nombre:</label>
+    <input type="text" name="nombre" class="form-control" value="{{ cliente.nombre }}" required>
+
+    <label>Teléfono:</label>
+    <input type="text" name="telefono" class="form-control" value="{{ cliente.telefono }}">
+
+    <label>Email:</label>
+    <input type="email" name="email" class="form-control" value="{{ cliente.email }}">
+
+    <label>Dirección:</label>
+    <input type="text" name="direccion" class="form-control" value="{{ cliente.direccion }}">
+
+    <br>
+    <button class="btn btn-primary">Actualizar</button>
+</form>
+
+{% endblock %}

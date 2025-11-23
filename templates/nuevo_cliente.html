@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Nuevo Cliente</h2>
+
+<form method="POST" action="/clientes/nuevo">
+    <label>Nombre:</label>
+    <input type="text" name="nombre" class="form-control" required>
+
+    <label>Teléfono:</label>
+    <input type="text" name="telefono" class="form-control">
+
+    <label>Email:</label>
+    <input type="email" name="email" class="form-control">
+
+    <label>Dirección:</label>
+    <input type="text" name="direccion" class="form-control">
+
+    <br>
+    <button class="btn btn-success">Guardar</button>
+</form>
+
+{% endblock %}

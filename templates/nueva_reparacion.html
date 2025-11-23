@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Nueva Reparación</h2>
+
+<form method="POST">
+    <label>Cliente:</label>
+    <select name="cliente_id" class="form-control" required>
+        {% for c in clientes %}
+        <option value="{{ c.id }}">{{ c.nombre }}</option>
+        {% endfor %}
+    </select>
+
+    <label>Dispositivo:</label>
+    <input type="text" name="dispositivo" class="form-control" required>
+
+    <label>Descripción:</label>
+    <textarea name="descripcion" class="form-control"></textarea>
+
+    <label>Estado:</label>
+    <select name="estado" class="form-control">
+        <option>Pendiente</option>
+        <option>En proceso</option>
+        <option>Terminado</option>
+        <option>Entregado</option>
+    </select>
+
+    <label>Precio estimado (€):</label>
+    <input type="number" name="precio" class="form-control" step="0.01">
+
+    <br>
+    <button class="btn btn-success">Crear Reparación</button>
+</form>
+
+{% endblock %}

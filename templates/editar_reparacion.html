@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Editar Reparación</h2>
+
+<form method="POST">
+
+    <label>Cliente:</label>
+    <select name="cliente_id" class="form-control">
+        {% for c in clientes %}
+        <option value="{{ c.id }}" {% if c.id == reparacion.cliente_id %}selected{% endif %}>
+            {{ c.nombre }}
+        </option>
+        {% endfor %}
+    </select>
+
+    <label>Dispositivo:</label>
+    <input type="text" name="dispositivo" class="form-control" value="{{ reparacion.dispositivo }}" required>
+
+    <label>Descripción:</label>
+    <textarea name="descripcion" class="form-control">{{ reparacion.descripcion }}</textarea>
+
+    <label>Estado:</label>
+    <select name="estado" class="form-control">
+        <option {% if reparacion.estado == "Pendiente" %}selected{% endif %}>Pendiente</option>
+        <option {% if reparacion.estado == "En proceso" %}selected{% endif %}>En proceso</option>
+        <option {% if reparacion.estado == "Terminado" %}selected{% endif %}>Terminado</option>
+        <option {% if reparacion.estado == "Entregado" %}selected{% endif %}>Entregado</option>
+    </select>
+
+    <label>Precio (€):</label>
+    <input type="number" name="precio" class="form-control" step="0.01" value="{{ reparacion.precio }}">
+
+    <br>
+    <button class="btn btn-primary">Guardar Cambios</button>
+</form>
+
+{% endblock %}
