@@ -1,22 +1,24 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, url_for
 import sqlite3
+from datetime import datetime
 
 app = Flask(__name__)
 
+# CONEXIÓN A LA BASE DE DATOS
 def get_db():
     conn = sqlite3.connect("database/andro_tech.db")
     conn.row_factory = sqlite3.Row
     return conn
 
+# PÁGINA PRINCIPAL
 @app.route("/")
 def index():
     return render_template("index.html")
 
-if __name__ == "__main__":
-    app.run(debug=True)
 
-#LISTAR CLIENTES
+#  SECCIÓN CLIENTES
 
+# LISTAR CLIENTES
 @app.route("/clientes")
 def clientes():
     conn = get_db()
@@ -24,8 +26,8 @@ def clientes():
     conn.close()
     return render_template("clientes.html", clientes=clientes)
 
-#CREAR CLIENTE
 
+# CREAR CLIENTE
 @app.route("/clientes/nuevo", methods=["GET", "POST"])
 def nuevo_cliente():
     if request.method == "POST":
@@ -42,12 +44,12 @@ def nuevo_cliente():
         conn.commit()
         conn.close()
 
-        return redirect("/clientes")
+        return redirect(url_for("clientes"))
 
     return render_template("nuevo_cliente.html")
 
-#EDITAR CLIENTE
 
+# EDITAR CLIENTE
 @app.route("/clientes/editar/<int:id>", methods=["GET", "POST"])
 def editar_cliente(id):
     conn = get_db()
@@ -66,25 +68,29 @@ def editar_cliente(id):
         conn.commit()
         conn.close()
 
-        return redirect("/clientes")
+        return redirect(url_for("clientes"))
 
     cliente = conn.execute("SELECT * FROM clientes WHERE id=?", (id,)).fetchone()
     conn.close()
 
     return render_template("editar_cliente.html", cliente=cliente)
 
-#BORRAR CLIENTE
 
+# BORRAR CLIENTE
 @app.route("/clientes/borrar/<int:id>")
 def borrar_cliente(id):
     conn = get_db()
     conn.execute("DELETE FROM clientes WHERE id=?", (id,))
     conn.commit()
     conn.close()
-    return redirect("/clientes")
+    return redirect(url_for("clientes"))
 
-#LISTA DE REPARACIONES
 
+# =========================================
+#  🔸 SECCIÓN REPARACIONES
+# =========================================
+
+# LISTAR REPARACIONES
 @app.route("/reparaciones")
 def reparaciones():
     conn = get_db()
@@ -97,8 +103,8 @@ def reparaciones():
     conn.close()
     return render_template("reparaciones.html", reparaciones=datos)
 
-#NUEVA REPARACION
 
+# NUEVA REPARACIÓN
 @app.route("/reparaciones/nueva", methods=["GET", "POST"])
 def nueva_reparacion():
     conn = get_db()
@@ -110,22 +116,24 @@ def nueva_reparacion():
         estado = request.form["estado"]
         precio = request.form["precio"]
 
+        fecha_entrada = datetime.now().strftime("%Y-%m-%d")
+
         conn.execute("""
             INSERT INTO reparaciones (cliente_id, dispositivo, descripcion, estado, fecha_entrada, precio)
-            VALUES (?, ?, ?, ?, DATE('now'), ?)
-        """, (cliente_id, dispositivo, descripcion, estado, precio))
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (cliente_id, dispositivo, descripcion, estado, fecha_entrada, precio))
         
         conn.commit()
         conn.close()
-        return redirect("/reparaciones")
+        return redirect(url_for("reparaciones"))
 
     clientes = conn.execute("SELECT * FROM clientes").fetchall()
     conn.close()
 
     return render_template("nueva_reparacion.html", clientes=clientes)
 
-#EDITAR REPARACION
 
+# EDITAR REPARACIÓN
 @app.route("/reparaciones/editar/<int:id>", methods=["GET", "POST"])
 def editar_reparacion(id):
     conn = get_db()
@@ -145,7 +153,7 @@ def editar_reparacion(id):
 
         conn.commit()
         conn.close()
-        return redirect("/reparaciones")
+        return redirect(url_for("reparaciones"))
 
     reparacion = conn.execute("SELECT * FROM reparaciones WHERE id=?", (id,)).fetchone()
     clientes = conn.execute("SELECT * FROM clientes").fetchall()
@@ -153,13 +161,16 @@ def editar_reparacion(id):
 
     return render_template("editar_reparacion.html", reparacion=reparacion, clientes=clientes)
 
-#BORRAR REPARACION
 
+# BORRAR REPARACIÓN
 @app.route("/reparaciones/borrar/<int:id>")
 def borrar_reparacion(id):
     conn = get_db()
     conn.execute("DELETE FROM reparaciones WHERE id=?", (id,))
     conn.commit()
     conn.close()
-    return redirect("/reparaciones")
+    return redirect(url_for("reparaciones"))
 
+#  EJECUCIÓN
+if __name__ == "__main__":
+    app.run(debug=True)
