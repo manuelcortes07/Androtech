@@ -1,35 +1,96 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Nueva Reparación</h2>
+<div class="row justify-content-center py-4">
+    <div class="col-xl-7 col-lg-8 col-md-10">
 
-<form method="POST">
-    <label>Cliente:</label>
-    <select name="cliente_id" class="form-control" required>
-        {% for c in clientes %}
-        <option value="{{ c.id }}">{{ c.nombre }}</option>
-        {% endfor %}
-    </select>
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between">
+                <div>
+                    <h4 class="mb-0">Nueva Reparación</h4>
+                    <small class="text-white-50">Registro de la reparación — completa los datos y crea la orden</small>
+                </div>
+                <div class="text-end">
+                    <small class="badge bg-light text-dark">Administración</small>
+                </div>
+            </div>
 
-    <label>Dispositivo:</label>
-    <input type="text" name="dispositivo" class="form-control" required>
+            <div class="card-body">
 
-    <label>Descripción:</label>
-    <textarea name="descripcion" class="form-control"></textarea>
+                <form action="/reparaciones/nueva" method="POST" class="needs-validation" novalidate>
+                    {# Si usas CSRF (Flask-WTF) descomenta la siguiente línea #}
+                    {# {{ csrf_token() }} #}
 
-    <label>Estado:</label>
-    <select name="estado" class="form-control">
-        <option>Pendiente</option>
-        <option>En proceso</option>
-        <option>Terminado</option>
-        <option>Entregado</option>
-    </select>
+                    <div class="mb-3">
+                        <label for="cliente_id" class="form-label fw-semibold">Cliente <span class="text-danger">*</span></label>
+                        <select id="cliente_id" name="cliente_id" class="form-select form-select-lg" required>
+                            <option value="" disabled selected>Selecciona un cliente...</option>
+                            {% for cliente in clientes %}
+                                <option value="{{ cliente.id }}">{{ cliente.nombre }}</option>
+                            {% else %}
+                                <option disabled>No hay clientes registrados</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">Selecciona el cliente relacionado con la reparación.</div>
+                    </div>
 
-    <label>Precio estimado (€):</label>
-    <input type="number" name="precio" class="form-control" step="0.01">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="dispositivo" class="form-label fw-semibold">Dispositivo <span class="text-danger">*</span></label>
+                            <input id="dispositivo" name="dispositivo" type="text" class="form-control" required placeholder="Ej: iPhone 12 - Pantalla rota">
+                            <div class="invalid-feedback">Introduce el dispositivo a reparar.</div>
+                        </div>
 
-    <br>
-    <button class="btn btn-success">Crear Reparación</button>
-</form>
+                        <div class="col-md-6">
+                            <label for="precio" class="form-label fw-semibold">Precio estimado (€)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">€</span>
+                                <input id="precio" name="precio" type="number" step="0.01" class="form-control" placeholder="Ej: 49.99">
+                            </div>
+                            <div class="form-text">Precio aproximado (puede actualizarse al confirmar la reparación).</div>
+                        </div>
+                    </div>
 
+                    <div class="mt-3">
+                        <label for="descripcion" class="form-label">Descripción del problema</label>
+                        <textarea id="descripcion" name="descripcion" rows="4" class="form-control" placeholder="Detalles adicionales que ayuden al diagnóstico"></textarea>
+                    </div>
+
+                    <div class="mt-3">
+                        <label for="estado" class="form-label fw-semibold">Estado</label>
+                        <select id="estado" name="estado" class="form-select">
+                            <option value="Pendiente">Pendiente</option>
+                            <option value="En proceso">En proceso</option>
+                            <option value="Terminado">Terminado</option>
+                            <option value="Entregado">Entregado</option>
+                        </select>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-12 col-md-6 mb-2 mb-md-0">
+                            <a href="/reparaciones" class="btn btn-secondary w-100">Cancelar</a>
+                        </div>
+
+                        <div class="col-6 col-md-3 d-none d-md-block">
+                            <button type="reset" class="btn btn-primary w-100">Limpiar</button>
+                        </div>
+
+                        <div class="col-6 col-md-3">
+                            <button type="submit" class="btn btn-success w-100">Crear Reparación</button>
+                        </div>
+                    </div>
+
+                </form>
+
+            </div>
+
+            <div class="card-footer bg-light small text-muted d-flex justify-content-between align-items-center">
+                <div><span class="text-danger">*</span> campos obligatorios</div>
+                <div>Diseñado para Bootstrap 5 — responsive</div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
 {% endblock %}

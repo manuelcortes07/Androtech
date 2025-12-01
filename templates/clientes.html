@@ -2,38 +2,222 @@
 {% block title %}Clientes{% endblock %}
 
 {% block content %}
-<h2 class="fw-bold mb-4">Clientes</h2>
+<div class="row justify-content-center py-4">
+    <div class="col-xl-10 col-lg-11 col-md-12">
 
-<a href="/clientes/nuevo" class="btn btn-primary mb-3">➕ Nuevo Cliente</a>
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between">
+                <div>
+                    <h4 class="mb-0">Listado de Clientes</h4>
+                    <small class="text-white-50">Gestión y administración de la lista de clientes</small>
+                </div>
+                <div class="text-end">
+                    <a href="/clientes/nuevo" class="btn btn-success btn-sm">➕ Nuevo Cliente</a>
+                </div>
+            </div>
 
-<table class="table table-hover align-middle">
-    <thead class="table-dark">
-        <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Teléfono</th>
-            <th>Email</th>
-            <th style="width: 180px;">Acciones</th>
-        </tr>
-    </thead>
+            <div class="card-body">
 
-    <tbody>
-    {% for c in clientes %}
-        <tr>
-            <td>{{ c.id }}</td>
-            <td>{{ c.nombre }}</td>
-            <td>{{ c.telefono }}</td>
-            <td>{{ c.email }}</td>
-            <td>
-                <a href="/clientes/editar/{{ c.id }}" class="btn btn-warning btn-sm me-1">Editar</a>
-                <a href="/clientes/borrar/{{ c.id }}" class="btn btn-danger btn-sm"
-                   onclick="return confirm('¿Seguro que deseas borrar este cliente?');">
-                    Borrar
-                </a>
-            </td>
-        </tr>
-    {% endfor %}
-    </tbody>
-</table>
+                <!-- Barra de herramientas: búsqueda y selección de tamaño de página -->
+                <div class="row mb-3 g-2 align-items-center">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-0"><i class="bi bi-search"></i></span>
+                            <input id="clientes-search" type="search" class="form-control" placeholder="Buscar por nombre o email...">
+                        </div>
+                    </div>
 
+                    <div class="col-md-3 ms-auto text-md-end">
+                        <label for="perPage" class="form-label small mb-0 me-2">Filas por página</label>
+                        <select id="perPage" class="form-select form-select-sm d-inline-block" style="width:auto;">
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-responsive" id="clientes-table-wrap">
+                    <table id="clientes-table" class="table table-striped table-hover align-middle mb-0">
+                        <thead class="table-secondary small text-uppercase text-secondary">
+                        <tr>
+                            <th style="width:90px;">ID</th>
+                            <th>Nombre</th>
+                            <th style="width:160px;">Teléfono</th>
+                            <th>Email</th>
+                            <th style="width:200px;">Acciones</th>
+                        </tr>
+                        </thead>
+
+                        <tbody>
+                        {% for c in clientes %}
+                        <tr>
+                            <td class="fw-semibold">{{ c.id }}</td>
+                            <td>{{ c.nombre }}</td>
+                            <td>
+                                {% if c.telefono %}
+                                    <span class="text-muted">{{ c.telefono }}</span>
+                                {% else %}
+                                    <span class="text-muted small">—</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ c.email if c.email else '-' }}</td>
+                            <td>
+                                <a href="/clientes/editar/{{ c.id }}" class="btn btn-warning btn-sm me-1">Editar</a>
+                                <a href="/clientes/borrar/{{ c.id }}" class="btn btn-danger btn-sm"
+                                   onclick="return confirm('¿Seguro que deseas borrar este cliente?');">Borrar</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Controles de paginación -->
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="text-muted small" id="clientes-info">Mostrando 0 - 0 de 0</div>
+                    <nav aria-label="Paginación clientes">
+                        <ul id="clientes-pagination" class="pagination pagination-sm mb-0"></ul>
+                    </nav>
+                </div>
+
+            </div>
+
+            <div class="card-footer bg-light small text-muted d-flex justify-content-between align-items-center">
+                <div>Mostrando <strong>{{ clientes|length }}</strong> clientes</div>
+                <div>Panel administrativo — AndroTech</div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        (function () {
+            // Elementos
+            const searchInput = document.getElementById('clientes-search');
+            const perPageSelect = document.getElementById('perPage');
+            const table = document.getElementById('clientes-table');
+            const tbody = table.querySelector('tbody');
+            const pagination = document.getElementById('clientes-pagination');
+            const info = document.getElementById('clientes-info');
+
+            // Obtener todas las filas (como array) y mantener el orden original
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+
+            // Estado
+            let filteredRows = rows.slice();
+            let currentPage = 1;
+
+            function formatCount(start, end, total) {
+                return `Mostrando ${start} - ${end} de ${total}`;
+            }
+
+            function renderPagination() {
+                const perPage = parseInt(perPageSelect.value, 10);
+                const total = filteredRows.length;
+                const pages = Math.max(1, Math.ceil(total / perPage));
+
+                // Ajusta la página actual si está fuera de rango
+                if (currentPage > pages) currentPage = pages;
+                if (currentPage < 1) currentPage = 1;
+
+                // Construye botones de paginación
+                pagination.innerHTML = '';
+
+                const createPageItem = (label, page, disabled = false, active = false) => {
+                    const li = document.createElement('li');
+                    li.className = 'page-item' + (disabled ? ' disabled' : '') + (active ? ' active' : '');
+                    const a = document.createElement('a');
+                    a.className = 'page-link';
+                    a.href = '#';
+                    a.dataset.page = page;
+                    a.textContent = label;
+                    a.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        if (!disabled) {
+                            currentPage = page;
+                            showPage();
+                        }
+                    });
+                    li.appendChild(a);
+                    return li;
+                };
+
+                // Previous
+                pagination.appendChild(createPageItem('«', Math.max(1, currentPage - 1), currentPage === 1));
+
+                // Rango inteligente de páginas (hasta 7)
+                let start = Math.max(1, currentPage - 3);
+                let end = Math.min(pages, currentPage + 3);
+                if (currentPage <= 4) end = Math.min(pages, 7);
+                if (currentPage > pages - 4) start = Math.max(1, pages - 6);
+
+                for (let p = start; p <= end; p++) {
+                    pagination.appendChild(createPageItem(p, p, false, p === currentPage));
+                }
+
+                // Next
+                pagination.appendChild(createPageItem('»', Math.min(pages, currentPage + 1), currentPage === pages));
+
+                // Actualiza texto de información
+                const startIndex = total === 0 ? 0 : ((currentPage - 1) * perPage) + 1;
+                const endIndex = Math.min(total, currentPage * perPage);
+                info.textContent = formatCount(startIndex, endIndex, total);
+            }
+
+            function showPage() {
+                const perPage = parseInt(perPageSelect.value, 10);
+                const start = (currentPage - 1) * perPage;
+                const end = start + perPage;
+
+                // Oculta todas
+                rows.forEach(row => row.style.display = 'none');
+
+                // Muestra las filas filtradas de la página
+                const pageRows = filteredRows.slice(start, end);
+                pageRows.forEach(r => r.style.display = 'table-row');
+
+                renderPagination();
+            }
+
+            function applyFilter() {
+                const q = (searchInput.value || '').trim().toLowerCase();
+
+                if (!q) {
+                    filteredRows = rows.slice();
+                } else {
+                    filteredRows = rows.filter(r => {
+                        const cols = r.querySelectorAll('td');
+                        const nombre = cols[1] ? cols[1].textContent.toLowerCase() : '';
+                        const email = cols[3] ? cols[3].textContent.toLowerCase() : '';
+                        return nombre.includes(q) || email.includes(q);
+                    });
+                }
+
+                // Vuelve a la primera página después de filtrar
+                currentPage = 1;
+                showPage();
+            }
+
+            // Eventos
+            searchInput.addEventListener('input', function () {
+                applyFilter();
+            });
+
+            perPageSelect.addEventListener('change', function () {
+                currentPage = 1;
+                showPage();
+            });
+
+            // Inicializa
+            applyFilter();
+
+        })();
+    </script>
 {% endblock %}

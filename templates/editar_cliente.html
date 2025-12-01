@@ -3,9 +3,13 @@
 {% block content %}
 <h2>Editar Cliente</h2>
 
-<form method="POST">
+<form method="POST" class="needs-validation" novalidate>
+
+    {# Si usas Flask-WTF / CSRF, descomenta la siguiente línea: #}
+    {# {{ csrf_token() }} #}
     <label>Nombre:</label>
     <input type="text" name="nombre" class="form-control" value="{{ cliente.nombre }}" required>
+    <div class="invalid-feedback">Por favor introduce el nombre completo del cliente.</div>
 
     <label>Teléfono:</label>
     <input type="text" name="telefono" class="form-control" value="{{ cliente.telefono }}">
