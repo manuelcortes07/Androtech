@@ -1,0 +1,169 @@
+/*
+  static/css/style.css
+  Estilos personalizados para AndroTech
+  - No sobrescribe Bootstrap, solo añade mejoras y utilidades
+  - Estructura documentada
+*/
+
+/* 1. Variables de color --------------------------------------------------*/
+:root{
+  --primary: #0d6efd;
+  --primary-600: #0b5ed7;
+  --success: #198754;
+  --muted: #6c757d;
+  --bg-light: #f8f9fa;
+  --surface: #ffffff;
+  --soft-shadow: rgba(33,37,41,0.06);
+  --deep-shadow: rgba(33,37,41,0.12);
+  --text-dark: #212529;
+  --radius: 0.6rem;
+  --kpi-gradient: linear-gradient(135deg, rgba(13,110,253,0.06), rgba(25,135,84,0.03));
+}
+
+
+/* 2. Animaciones ---------------------------------------------------------*/
+@keyframes fadeInGlobal {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseSoft {
+  0% { transform: scale(1); }
+  50%{ transform: scale(1.03); }
+  100%{ transform: scale(1); }
+}
+
+/* Aplicar fade-in general sin sobrescribir Bootstrap */
+body{
+  animation: fadeInGlobal .45s ease both;
+  background-color: var(--bg-light);
+  color: var(--text-dark);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+
+/* 3. Hero principal ------------------------------------------------------*/
+.hero{ text-align:center; padding:3.2rem 0; }
+.logo-hero{ height:84px; width:auto; display:inline-block; margin-bottom:1rem; }
+.hero .display-5{ font-weight:700; letter-spacing:-0.4px; margin-bottom:.4rem; }
+.hero .lead{ color:var(--muted); max-width:820px; margin:0 auto 1.2rem; }
+
+/* subtle underline accent below hero title */
+.hero .display-5::after{
+  content:''; display:block; width:86px; height:3px; background:var(--primary); margin:12px auto 0; border-radius:2px; opacity:.95;
+}
+
+/* 4. Cards y estadísticas -----------------------------------------------*/
+.card{
+  border-radius: var(--radius);
+}
+
+/* Card subtle elevation default */
+.card.shadow-sm{ box-shadow: 0 6px 18px var(--soft-shadow); }
+
+/* Hover avanzado para tarjetas: shadow grande + elevate */
+.quick-card, .card.quick-card{
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.quick-card:hover, .card.quick-card:hover{
+  transform: translateY(-6px);
+  box-shadow: 0 18px 40px var(--deep-shadow);
+}
+
+/* KPI small cards */
+.kpi-card{ background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(253,253,253,0.98)); border:0; }
+.kpi-card .kpi-icon{ font-size:1.6rem; padding:.45rem; border-radius:.5rem; background:rgba(0,0,0,0.03); }
+.kpi-card:hover{ transform: translateY(-3px); box-shadow:0 14px 32px rgba(33,37,41,0.06); }
+
+/* subtle gradient variant for KPI */
+.kpi-gradient{
+  background: var(--kpi-gradient);
+}
+
+/* 5. Botones personalizados --------------------------------------------*/
+/* Mejorar hover sin cambiar colores base de Bootstrap */
+.btn{
+  transition: box-shadow .18s ease, transform .12s ease, filter .12s ease;
+}
+.btn:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(13,110,253,0.08);
+  filter: saturate(1.03);
+}
+
+/* Variantes sutiles */
+.btn.btn-primary:hover{ box-shadow: 0 14px 36px rgba(13,110,253,0.10); }
+.btn.btn-success:hover{ box-shadow: 0 14px 36px rgba(25,135,84,0.08); }
+
+/* large CTA */
+.btn-lg{ padding: .7rem 1.25rem; border-radius: .5rem; }
+
+/* 6. Navbar mejorado ----------------------------------------------------*/
+.navbar{
+  transition: box-shadow .25s ease, background-color .25s ease;
+}
+.navbar{ box-shadow: 0 2px 6px rgba(33,37,41,0.04); }
+.navbar.navbar-scrolled{ box-shadow: 0 8px 30px rgba(33,37,41,0.08); backdrop-filter: blur(4px); }
+
+/* Brand spacing */
+.navbar .navbar-brand img{ height:38px; margin-right:.6rem; }
+
+/* 7. Iconos con animación ----------------------------------------------*/
+.bi{ transition: transform .18s ease, opacity .18s ease; will-change: transform; }
+.bi:hover{ transform: scale(1.08); opacity: .95; }
+.feature-list i{ font-size:1.05rem; color:var(--primary); }
+
+/* 8. Utilidades ---------------------------------------------------------*/
+.muted-small{ color:var(--muted); font-size:.92rem; }
+.card .small-muted{ color:var(--muted); }
+.table thead.table-secondary{ background: rgba(0,0,0,0.03); }
+
+/* subtle divider */
+.soft-divider{ height:1px; background: rgba(33,37,41,0.04); margin:1.25rem 0; }
+
+/* center container sections */
+.center-max{ max-width:1100px; margin:0 auto; }
+
+/* 9. Media queries (responsive) ----------------------------------------*/
+@media (max-width: 991.98px){
+  .hero{ padding:2rem 0; }
+  .logo-hero{ height:68px; }
+  .display-5{ font-size:1.6rem; }
+}
+
+@media (max-width: 575.98px){
+  .hero{ padding:1.4rem 0; }
+  .logo-hero{ height:56px; }
+  .quick-card .card-body p, .quick-card .card-body small{ font-size:.88rem; }
+  .kpi-card .h5{ font-size:1rem; }
+}
+
+/* Accessibility: focus states */
+.btn:focus{ box-shadow: 0 0 0 .18rem rgba(13,110,253,0.12); }
+
+/* small helpers */
+.text-primary-soft{ color: rgba(13,110,253,0.85); }
+
+/* ---------------------------------------------------------------
+   Estilos específicos trasladados desde templates/index.html
+   (anulaciones / ajustes locales para la página principal)
+   --------------------------------------------------------------- */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.hero { animation: fadeIn .9s ease both; padding-top: 3rem; padding-bottom: 2rem; }
+
+.quick-card { transition: transform .18s ease, box-shadow .18s ease; cursor: pointer; }
+.quick-card:hover { transform: translateY(-6px); box-shadow: 0 10px 25px rgba(13,110,253,0.12); }
+
+.kpi-card { border-radius: .6rem; transition: transform .12s ease; }
+.kpi-icon { font-size: 1.6rem; opacity: .95; }
+
+.feature-list i { color: var(--primary); margin-right: .6rem; transition: transform .12s ease; }
+.feature-list li:hover i { transform: translateX(4px); }
+
+.logo-hero { height: 72px; width: auto; }
+

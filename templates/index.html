@@ -2,30 +2,197 @@
 
 {% block content %}
 
-<div class="text-center py-5">
-
-    <img src="{{ url_for('static', filename='img/logo.png') }}" 
-         alt="Logo AndroTech" 
-         class="mb-4" 
-         style="width: 180px;">
-
-    <h1 class="display-5 fw-bold mb-3">Sistema de Gestión — AndroTech</h1>
-
-    <p class="lead text-muted mb-4">
-        Panel profesional para administrar clientes, reparaciones y el flujo de trabajo del taller técnico.
-    </p>
-
-    <div class="d-flex justify-content-center gap-3 mt-4">
-        <a href="/clientes" class="btn btn-primary btn-lg px-4">
-            <i class="bi bi-people-fill"></i> Clientes
-        </a>
-
-        <a href="/reparaciones" class="btn btn-success btn-lg px-4">
-            <i class="bi bi-tools"></i> Reparaciones
-        </a>
+<!-- HERO -->
+<section class="hero text-center">
+    <div class="container">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="AndroTech" class="logo-hero mb-3">
+        <h1 class="display-5 fw-bold mb-2">Sistema de Gestión — AndroTech</h1>
+        <p class="lead text-muted mb-4">Panel profesional para administrar clientes, reparaciones y el flujo de trabajo técnico de tu taller.</p>
     </div>
+</section>
 
-</div>
+<!-- ACCESOS RÁPIDOS -->
+<section class="container mb-4">
+    <div class="row g-3 justify-content-center">
+
+        <div class="col-sm-8 col-md-6 col-lg-4">
+            <div class="card quick-card h-100 shadow-sm">
+                <div class="card-body d-flex flex-column align-items-start">
+                    <div class="d-flex align-items-center w-100 justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <div class="display-6 text-primary me-3"><i class="bi bi-people-fill" style="font-size:2.1rem"></i></div>
+                            <div>
+                                <h5 class="mb-0">Clientes</h5>
+                                <small class="text-muted">Gestiona y consulta tus clientes</small>
+                            </div>
+                        </div>
+                        <a href="/clientes" class="btn btn-primary btn-sm">Entrar</a>
+                    </div>
+                    <p class="mt-3 text-muted small">Añade, edita o elimina clientes y consulta su historial.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-8 col-md-6 col-lg-4">
+            <div class="card quick-card h-100 shadow-sm">
+                <div class="card-body d-flex flex-column align-items-start">
+                    <div class="d-flex align-items-center w-100 justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <div class="display-6 text-success me-3"><i class="bi bi-tools" style="font-size:2.1rem"></i></div>
+                            <div>
+                                <h5 class="mb-0">Reparaciones</h5>
+                                <small class="text-muted">Crea, edita y sigue reparaciones</small>
+                            </div>
+                        </div>
+                        <a href="/reparaciones" class="btn btn-success btn-sm">Entrar</a>
+                    </div>
+                    <p class="mt-3 text-muted small">Controla estados, precios y genera facturas cuando corresponda.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<!-- ESTADÍSTICAS (KPI) -->
+<section class="container mb-4">
+    <div class="row g-3">
+
+        <div class="col-6 col-md-3">
+            <div class="card kpi-card shadow-sm p-3">
+                <div class="d-flex align-items-center">
+                    <div class="me-3 bg-light rounded-3 p-2"><i class="bi bi-people kpi-icon"></i></div>
+                    <div>
+                        <div class="small text-muted">Clientes registrados</div>
+                        <div class="h5 fw-bold">124</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="card kpi-card shadow-sm p-3">
+                <div class="d-flex align-items-center">
+                    <div class="me-3 bg-light rounded-3 p-2"><i class="bi bi-wrench kpi-icon text-info"></i></div>
+                    <div>
+                        <div class="small text-muted">Reparaciones activas</div>
+                        <div class="h5 fw-bold">18</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="card kpi-card shadow-sm p-3">
+                <div class="d-flex align-items-center">
+                    <div class="me-3 bg-light rounded-3 p-2"><i class="bi bi-check2-square kpi-icon text-success"></i></div>
+                    <div>
+                        <div class="small text-muted">Reparaciones terminadas</div>
+                        <div class="h5 fw-bold">72</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="card kpi-card shadow-sm p-3">
+                <div class="d-flex align-items-center">
+                    <div class="me-3 bg-light rounded-3 p-2"><i class="bi bi-currency-euro kpi-icon text-warning"></i></div>
+                    <div>
+                        <div class="small text-muted">Ingresos estimados</div>
+                        <div class="h5 fw-bold">€ 5.480</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<!-- FUNCIONALIDADES -->
+<section class="container mb-5">
+    <div class="row">
+        <div class="col-lg-7">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="card-title">¿Qué puedes hacer en AndroTech?</h5>
+                    <p class="text-muted">Herramientas diseñadas para que tu taller técnico trabaje de forma eficiente y organizada.</p>
+
+                    <ul class="list-unstyled feature-list">
+                        <li class="mb-2"><i class="bi bi-person-plus-fill"></i> Registrar clientes</li>
+                        <li class="mb-2"><i class="bi bi-gear-wide-connected"></i> Crear y editar reparaciones</li>
+                        <li class="mb-2"><i class="bi bi-clock-history"></i> Consultar estados en tiempo real</li>
+                        <li class="mb-2"><i class="bi bi-receipt"></i> Generar facturas y presupuestos</li>
+                        <li class="mb-2"><i class="bi bi-journal-text"></i> Historial técnico completo</li>
+                        <li class="mb-2"><i class="bi bi-grid-1x2-fill"></i> Gestión centralizada del taller</li>
+                    </ul>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5 d-none d-lg-block">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body d-flex align-items-center justify-content-center">
+                    <div class="text-center text-muted">
+                        <i class="bi bi-telephone-fill" style="font-size:3rem"></i>
+                        <p class="mt-3 mb-0">Soporte y documentación disponible para ayudarte a configurar el sistema.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- MAPA: ubicación del taller (iframe de Google Maps - cambia por tu ubicación) -->
+<section class="container mb-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="mb-3">Ubicación del taller</h6>
+                    <div class="ratio ratio-16x9 rounded" style="overflow:hidden;">
+                        <iframe
+                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3048.373803646332!2d-3.703790584607508!3d40.41677597936306!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd4229a7f4b2a1b7%3A0x4b4b5c4f3f2d6b2!2sMadrid%2C%20España!5e0!3m2!1ses!2ses!4v1600000000000!5m2!1ses!2ses"
+                            width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="container mb-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="text-center text-muted small py-3">
+                <strong>AndroTech</strong> · <span id="footer-year"></span> · Proyecto académico 2º SMR
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- Pequeño script para animar iconos al cargar y poner año en footer -->
+<script>
+        document.addEventListener('DOMContentLoaded', function () {
+                // Insertar año en el footer
+                const fy = document.getElementById('footer-year');
+                if (fy) fy.textContent = new Date().getFullYear();
+
+                // Animación de iconos KPI y lista de features
+                const icons = document.querySelectorAll('.kpi-icon, .feature-list i');
+                icons.forEach((el, idx) => {
+                        el.style.transform = 'translateY(6px)';
+                        el.style.opacity = 0;
+                        setTimeout(() => {
+                                el.style.transition = 'transform .35s ease, opacity .35s ease';
+                                el.style.transform = 'translateY(0)';
+                                el.style.opacity = 1;
+                        }, 120 * idx);
+                });
+        });
+</script>
 
 {% endblock %}
 
