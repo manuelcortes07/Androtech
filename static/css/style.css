@@ -167,3 +167,31 @@ body{
 
 .logo-hero { height: 72px; width: auto; }
 
+/* About section styling */
+.about-image-container { transition: transform .25s ease, box-shadow .25s ease; }
+.about-image-container:hover { transform: translateY(-6px); box-shadow: 0 14px 40px var(--deep-shadow); }
+
+.about-values { list-style: none; }
+.about-icon { 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  width: 36px; 
+  height: 36px; 
+  background: rgba(13, 110, 253, 0.1); 
+  border-radius: .4rem; 
+  color: var(--primary); 
+  font-size: 1.1rem; 
+  flex-shrink: 0;
+  transition: transform .2s ease, background-color .2s ease;
+}
+.about-values li:hover .about-icon { 
+  transform: scale(1.12); 
+  background: rgba(13, 110, 253, 0.15); 
+}
+.about-values h6 { color: var(--text-dark); font-weight: 600; }
+
+/* Wave separator SVG styling */
+.wave-separator { margin: 0; padding: 0; line-height: 0; overflow: hidden; }
+.wave-separator svg { display: block; width: 100%; height: auto; }
+

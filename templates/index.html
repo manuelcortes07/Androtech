@@ -11,6 +11,13 @@
     </div>
 </section>
 
+<!-- Wave Separator 1 -->
+<div class="wave-separator">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120">
+        <path fill="#ffffff" d="M0,80 C480,160 960,0 1440,80 V120 H0 Z"></path>
+    </svg>
+</div>
+
 <!-- ACCESOS RÁPIDOS -->
 <section class="container mb-4">
     <div class="row g-3 justify-content-center">
@@ -54,6 +61,13 @@
     </div>
 </section>
 
+<!-- Wave Separator 2 -->
+<div class="wave-separator">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120">
+        <path fill="#f8f9fa" d="M0,40 C480,140 960,0 1440,60 V120 H0 Z"></path>
+    </svg>
+</div>
+
 <!-- ESTADÍSTICAS (KPI) -->
 <section class="container mb-4">
     <div class="row g-3">
@@ -64,7 +78,7 @@
                     <div class="me-3 bg-light rounded-3 p-2"><i class="bi bi-people kpi-icon"></i></div>
                     <div>
                         <div class="small text-muted">Clientes registrados</div>
-                        <div class="h5 fw-bold">124</div>
+                        <div class="h5 fw-bold">{{ total_clientes }}</div>
                     </div>
                 </div>
             </div>
@@ -76,7 +90,7 @@
                     <div class="me-3 bg-light rounded-3 p-2"><i class="bi bi-wrench kpi-icon text-info"></i></div>
                     <div>
                         <div class="small text-muted">Reparaciones activas</div>
-                        <div class="h5 fw-bold">18</div>
+                        <div class="h5 fw-bold">{{ activas }}</div>
                     </div>
                 </div>
             </div>
@@ -88,7 +102,7 @@
                     <div class="me-3 bg-light rounded-3 p-2"><i class="bi bi-check2-square kpi-icon text-success"></i></div>
                     <div>
                         <div class="small text-muted">Reparaciones terminadas</div>
-                        <div class="h5 fw-bold">72</div>
+                        <div class="h5 fw-bold">{{ terminadas }}</div>
                     </div>
                 </div>
             </div>
@@ -100,7 +114,7 @@
                     <div class="me-3 bg-light rounded-3 p-2"><i class="bi bi-currency-euro kpi-icon text-warning"></i></div>
                     <div>
                         <div class="small text-muted">Ingresos estimados</div>
-                        <div class="h5 fw-bold">€ 5.480</div>
+                        <div class="h5 fw-bold">€ {{ ingresos }}</div>
                     </div>
                 </div>
             </div>
@@ -144,6 +158,58 @@
     </div>
 </section>
 
+<!-- SOBRE ANDROTECH -->
+<section class="container mb-5">
+    <div class="row align-items-center g-4">
+        <!-- Columna 1: Imagen -->
+        <div class="col-lg-5">
+            <div class="about-image-container rounded overflow-hidden shadow-sm">
+                <img src="{{ url_for('static', filename='img/about.jpg') }}" alt="AndroTech - Taller técnico profesional" class="img-fluid w-100" style="object-fit: cover; height: 380px;">
+            </div>
+        </div>
+
+        <!-- Columna 2: Contenido -->
+        <div class="col-lg-7">
+            <div>
+                <h2 class="h3 fw-bold mb-2">Sobre AndroTech</h2>
+                <p class="text-muted mb-4">Tu solución completa para la gestión profesional de un taller técnico de reparaciones. Diseñado con la experiencia de talleres reales, para optimizar tiempos y mejorar la organización.</p>
+
+                <!-- Valores del taller -->
+                <ul class="list-unstyled about-values">
+                    <li class="mb-3 d-flex align-items-start">
+                        <div class="about-icon me-3"><i class="bi bi-check-circle-fill"></i></div>
+                        <div>
+                            <h6 class="mb-1">Atención profesional</h6>
+                            <small class="text-muted">Equipos capacitados para diagnosticar y resolver cualquier inconveniente técnico.</small>
+                        </div>
+                    </li>
+                    <li class="mb-3 d-flex align-items-start">
+                        <div class="about-icon me-3"><i class="bi bi-lightning-fill"></i></div>
+                        <div>
+                            <h6 class="mb-1">Reparaciones rápidas</h6>
+                            <small class="text-muted">Procesos optimizados para entrega ágil sin comprometer calidad.</small>
+                        </div>
+                    </li>
+                    <li class="mb-3 d-flex align-items-start">
+                        <div class="about-icon me-3"><i class="bi bi-search"></i></div>
+                        <div>
+                            <h6 class="mb-1">Diagnósticos precisos</h6>
+                            <small class="text-muted">Metodología rigurosa para identificar raíces de problemas técnicos.</small>
+                        </div>
+                    </li>
+                    <li class="d-flex align-items-start">
+                        <div class="about-icon me-3"><i class="bi bi-shield-check"></i></div>
+                        <div>
+                            <h6 class="mb-1">Garantía en servicios</h6>
+                            <small class="text-muted">Confianza y respaldo en cada reparación realizada en el taller.</small>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- MAPA: ubicación del taller (iframe de Google Maps - cambia por tu ubicación) -->
 <section class="container mb-4">
     <div class="row">
@@ -161,6 +227,13 @@
         </div>
     </div>
 </section>
+
+<!-- Wave Separator 3 -->
+<div class="wave-separator">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120">
+        <path fill="#ffffff" d="M0,80 C480,160 960,0 1440,80 V120 H0 Z"></path>
+    </svg>
+</div>
 
 <!-- Footer -->
 <footer class="container mb-5">
@@ -192,6 +265,21 @@
                         }, 120 * idx);
                 });
         });
+</script>
+
+<!-- ScrollReveal para animaciones de scroll reveal -->
+<script src="https://unpkg.com/scrollreveal"></script>
+
+<script>
+        // ScrollReveal config
+        ScrollReveal().reveal('.hero', { delay: 120, distance: '20px', duration: 800 });
+        ScrollReveal().reveal('.quick-card', { interval: 120, distance: '20px', origin: 'bottom' });
+        ScrollReveal().reveal('.kpi-card', { interval: 100, distance: '20px', origin: 'bottom' });
+        ScrollReveal().reveal('.feature-list li', { interval: 80, distance: '12px', origin: 'left' });
+        ScrollReveal().reveal('.card.shadow-sm', { interval: 120 });
+        ScrollReveal().reveal('.about-image-container', { delay: 120, distance: '30px', origin: 'left' });
+        ScrollReveal().reveal('.about-values li', { interval: 100, distance: '15px', origin: 'bottom' });
+        ScrollReveal().reveal('footer', { distance: '20px' });
 </script>
 
 {% endblock %}

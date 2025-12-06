@@ -13,7 +13,38 @@ def get_db():
 # PÁGINA PRINCIPAL
 @app.route("/")
 def index():
-    return render_template("index.html")
+    conn = get_db()
+
+    # Total clientes
+    total_clientes = conn.execute("SELECT COUNT(*) FROM clientes").fetchone()[0]
+
+    # Reparaciones activas
+    activas = conn.execute("""
+        SELECT COUNT(*) FROM reparaciones
+        WHERE estado != 'Terminado' AND estado != 'Entregado'
+    """).fetchone()[0]
+
+    # Reparaciones terminadas
+    terminadas = conn.execute("""
+        SELECT COUNT(*) FROM reparaciones
+        WHERE estado = 'Terminado' OR estado = 'Entregado'
+    """).fetchone()[0]
+
+    # Ingresos estimados
+    ingresos = conn.execute("""
+        SELECT IFNULL(SUM(precio), 0) FROM reparaciones
+    """).fetchone()[0]
+
+    conn.close()
+
+    return render_template(
+        "index.html",
+        total_clientes=total_clientes,
+        activas=activas,
+        terminadas=terminadas,
+        ingresos=ingresos
+    )
+
 
 
 #  SECCIÓN CLIENTES
