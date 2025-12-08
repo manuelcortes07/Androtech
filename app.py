@@ -202,6 +202,49 @@ def borrar_reparacion(id):
     conn.close()
     return redirect(url_for("reparaciones"))
 
+# =========================================
+# 🔸 SECCIÓN CONTACTO
+# =========================================
+
+@app.route("/contacto", methods=["GET", "POST"])
+def contacto():
+    if request.method == "POST":
+        nombre = request.form["nombre"]
+        email = request.form["email"]
+        telefono = request.form["telefono"]
+        tipo = request.form["tipo"]
+        mensaje = request.form["mensaje"]
+
+        # Aquí simplemente imprimimos los datos en consola
+        # (luego lo cambiamos por enviar email real si quieres)
+        print("\n --- NUEVO MENSAJE DE CONTACTO ---")
+        print("Nombre:", nombre)
+        print("Email:", email)
+        print("Teléfono:", telefono)
+        print("Tipo:", tipo)
+        print("Mensaje:", mensaje)
+        print("----------------------------------\n")
+
+        return render_template("contacto_exito.html", nombre=nombre)
+
+    return render_template("contacto.html")
+
+# =========================================
+# 🔸 SECCIÓN SOBRE NOSOTROS
+# =========================================
+
+@app.route("/sobre")
+def sobre():
+    return render_template("sobre_nosotros.html")
+
+# =========================================
+# 🔸 SECCIÓN SERVICIOS
+# =========================================
+
+@app.route("/servicios")
+def servicios():
+    return render_template("servicios.html")
+
 #  EJECUCIÓN
 if __name__ == "__main__":
     app.run(debug=True)

@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Servicios{% endblock %}
+
+{% block content %}
+
+<!-- HERO PEQUEÑO -->
+<section class="hero text-center mb-5">
+    <div class="container">
+        <div style="font-size: 3.5rem; color: var(--primary); margin-bottom: 1rem;">
+            <i class="bi bi-tools"></i>
+        </div>
+        <h1 class="display-5 fw-bold mb-2">Servicios del Taller</h1>
+        <p class="lead text-muted">Conoce todo lo que ofrece AndroTech</p>
+    </div>
+</section>
+
+<!-- SECCIÓN: NUESTROS SERVICIOS -->
+<section class="container mb-5">
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <h2 class="h3 fw-bold">Nuestros Servicios</h2>
+            <p class="text-muted">Soluciones técnicas profesionales para todos tus dispositivos</p>
+        </div>
+    </div>
+
+    <div class="row g-4 services-section">
+        <!-- Servicio 1: Reparación de móviles -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm border-0 service-card h-100">
+                <div class="card-body text-center py-4">
+                    <div class="mb-3" style="font-size: 3rem; color: var(--primary);">
+                        <i class="bi bi-phone"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Reparación de Móviles</h5>
+                    <p class="text-muted small">
+                        Reparamos cualquier tipo de smartphone, desde pantallas rotas hasta problemas de software.
+                    </p>
+                    <small class="text-primary fw-600">Desde 25€</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Servicio 2: Reparación de ordenadores -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm border-0 service-card h-100">
+                <div class="card-body text-center py-4">
+                    <div class="mb-3" style="font-size: 3rem; color: var(--success);">
+                        <i class="bi bi-laptop"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Reparación de Ordenadores</h5>
+                    <p class="text-muted small">
+                        Diagnóstico y reparación de laptops y PCs. Reemplazo de componentes y optimización.
+                    </p>
+                    <small class="text-success fw-600">Desde 35€</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Servicio 3: Sustitución de pantallas -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm border-0 service-card h-100">
+                <div class="card-body text-center py-4">
+                    <div class="mb-3" style="font-size: 3rem; color: #ffc107;">
+                        <i class="bi bi-display"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Sustitución de Pantallas</h5>
+                    <p class="text-muted small">
+                        Cambio de pantallas rotas o defectuosas en móviles, tablets y laptops con garantía.
+                    </p>
+                    <small class="text-warning fw-600">Desde 40€</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Servicio 4: Cambio de baterías -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm border-0 service-card h-100">
+                <div class="card-body text-center py-4">
+                    <div class="mb-3" style="font-size: 3rem; color: #17a2b8;">
+                        <i class="bi bi-lightning-charge"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Cambio de Baterías</h5>
+                    <p class="text-muted small">
+                        Sustituimos baterías desgastadas por componentes originales de calidad garantizada.
+                    </p>
+                    <small class="text-info fw-600">Desde 20€</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Servicio 5: Limpieza interna -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm border-0 service-card h-100">
+                <div class="card-body text-center py-4">
+                    <div class="mb-3" style="font-size: 3rem; color: #6f42c1;">
+                        <i class="bi bi-wind"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Limpieza Interna</h5>
+                    <p class="text-muted small">
+                        Limpieza profesional de polvo, restos y componentes dañados para mejorar rendimiento.
+                    </p>
+                    <small class="text-purple fw-600">Desde 15€</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Servicio 6: Recuperación de datos -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm border-0 service-card h-100">
+                <div class="card-body text-center py-4">
+                    <div class="mb-3" style="font-size: 3rem; color: #dc3545;">
+                        <i class="bi bi-cloud-arrow-down"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Recuperación de Datos</h5>
+                    <p class="text-muted small">
+                        Recuperación segura de datos de dispositivos dañados, con garantía de confidencialidad.
+                    </p>
+                    <small class="text-danger fw-600">Desde 50€</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- SECCIÓN: ¿QUÉ INCLUYE CADA SERVICIO? -->
+<section class="container mb-5">
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <h2 class="h3 fw-bold">¿Qué Incluye Cada Servicio?</h2>
+            <p class="text-muted">Garantía total en cada reparación realizada</p>
+        </div>
+    </div>
+
+    <div class="row what-includes-section">
+        <div class="col-lg-8 offset-lg-2">
+            <ul class="list-unstyled">
+                <li class="mb-3 d-flex align-items-start">
+                    <i class="bi bi-check-circle-fill text-success me-3" style="font-size: 1.3rem; flex-shrink: 0;"></i>
+                    <div>
+                        <h6 class="fw-bold mb-1">Diagnóstico gratuito</h6>
+                        <p class="text-muted small">Análisis completo del dispositivo sin costo, indicándote qué necesita reparación.</p>
+                    </div>
+                </li>
+
+                <li class="mb-3 d-flex align-items-start">
+                    <i class="bi bi-check-circle-fill text-success me-3" style="font-size: 1.3rem; flex-shrink: 0;"></i>
+                    <div>
+                        <h6 class="fw-bold mb-1">Garantía de 3 meses</h6>
+                        <p class="text-muted small">Todos nuestros servicios incluyen garantía de calidad por 3 meses tras la reparación.</p>
+                    </div>
+                </li>
+
+                <li class="mb-3 d-flex align-items-start">
+                    <i class="bi bi-check-circle-fill text-success me-3" style="font-size: 1.3rem; flex-shrink: 0;"></i>
+                    <div>
+                        <h6 class="fw-bold mb-1">Presupuesto transparente</h6>
+                        <p class="text-muted small">Te mostramos el presupuesto antes de comenzar la reparación. Sin costos ocultos.</p>
+                    </div>
+                </li>
+
+                <li class="mb-3 d-flex align-items-start">
+                    <i class="bi bi-check-circle-fill text-success me-3" style="font-size: 1.3rem; flex-shrink: 0;"></i>
+                    <div>
+                        <h6 class="fw-bold mb-1">Piezas de calidad</h6>
+                        <p class="text-muted small">Utilizamos componentes originales o de calidad certificada para todas las reparaciones.</p>
+                    </div>
+                </li>
+
+                <li class="mb-3 d-flex align-items-start">
+                    <i class="bi bi-check-circle-fill text-success me-3" style="font-size: 1.3rem; flex-shrink: 0;"></i>
+                    <div>
+                        <h6 class="fw-bold mb-1">Seguimiento del estado</h6>
+                        <p class="text-muted small">Podrás consultar en cualquier momento el estado de tu dispositivo durante la reparación.</p>
+                    </div>
+                </li>
+
+                <li class="d-flex align-items-start">
+                    <i class="bi bi-check-circle-fill text-success me-3" style="font-size: 1.3rem; flex-shrink: 0;"></i>
+                    <div>
+                        <h6 class="fw-bold mb-1">Entrega rápida</h6>
+                        <p class="text-muted small">La mayoría de reparaciones se completan en 24-48 horas. Consulta tiempos específicos.</p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- ScrollReveal para animaciones -->
+<script src="https://unpkg.com/scrollreveal"></script>
+<script>
+    ScrollReveal().reveal('.services-section .service-card', { interval: 100, distance: '20px', origin: 'bottom' });
+    ScrollReveal().reveal('.what-includes-section', { delay: 120, distance: '30px', origin: 'bottom' });
+</script>
+
+{% endblock %}

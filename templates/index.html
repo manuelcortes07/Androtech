@@ -210,6 +210,117 @@
     </div>
 </section>
 
+<!-- TESTIMONIOS DE CLIENTES -->
+<section class="container mb-5">
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <h2 class="h3 fw-bold mb-2">Opiniones de nuestros clientes</h2>
+            <p class="text-muted">Lo que dicen sobre la calidad de nuestro servicio.</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Testimonio 1 -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card testimonial-card shadow-sm border-0 h-100">
+                <div class="card-body d-flex flex-column">
+                    <!-- Icono de comillas -->
+                    <div class="mb-3">
+                        <i class="bi bi-quote" style="font-size: 1.8rem; color: var(--primary); opacity: 0.3;"></i>
+                    </div>
+
+                    <!-- Texto de reseña -->
+                    <p class="text-muted mb-4 flex-grow-1">Excelente servicio, personal muy profesional y rápido. Repararon mi dispositivo en 48 horas y quedó como nuevo. Muy recomendado.</p>
+
+                    <!-- Rating -->
+                    <div class="mb-3">
+                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
+                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
+                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
+                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
+                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
+                    </div>
+
+                    <!-- Avatar y nombre -->
+                    <div class="d-flex align-items-center">
+                        <img src="{{ url_for('static', filename='img/user1.jpg') }}" alt="Cliente 1" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover; margin-right: 12px;">
+                        <div>
+                            <h6 class="mb-0">Carlos Martínez</h6>
+                            <small class="text-muted">Cliente verificado</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Testimonio 2 -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card testimonial-card shadow-sm border-0 h-100">
+                <div class="card-body d-flex flex-column">
+                    <!-- Icono de comillas -->
+                    <div class="mb-3">
+                        <i class="bi bi-quote" style="font-size: 1.8rem; color: var(--primary); opacity: 0.3;"></i>
+                    </div>
+
+                    <!-- Texto de reseña -->
+                    <p class="text-muted mb-4 flex-grow-1">Taller de confianza, con garantía en todos los servicios. El diagnóstico fue preciso y el precio justo. Volveré sin dudarlo.</p>
+
+                    <!-- Rating -->
+                    <div class="mb-3">
+                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
+                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
+                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
+                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
+                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
+                    </div>
+
+                    <!-- Avatar y nombre -->
+                    <div class="d-flex align-items-center">
+                        <img src="{{ url_for('static', filename='img/user2.jpg') }}" alt="Cliente 2" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover; margin-right: 12px;">
+                        <div>
+                            <h6 class="mb-0">Elena García</h6>
+                            <small class="text-muted">Cliente verificado</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Testimonio 3 -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card testimonial-card shadow-sm border-0 h-100">
+                <div class="card-body d-flex flex-column">
+                    <!-- Icono de comillas -->
+                    <div class="mb-3">
+                        <i class="bi bi-quote" style="font-size: 1.8rem; color: var(--primary); opacity: 0.3;"></i>
+                    </div>
+
+                    <!-- Texto de reseña -->
+                    <p class="text-muted mb-4 flex-grow-1">Increíble atención al cliente. Solucionaron mi problema técnico de manera profesional y meticulosa. Equipo excepcional.</p>
+
+                    <!-- Rating -->
+                    <div class="mb-3">
+                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
+                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
+                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
+                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
+                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
+                    </div>
+
+                    <!-- Avatar y nombre -->
+                    <div class="d-flex align-items-center">
+                        <img src="{{ url_for('static', filename='img/user3.jpg') }}" alt="Cliente 3" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover; margin-right: 12px;">
+                        <div>
+                            <h6 class="mb-0">Jorge Fernández</h6>
+                            <small class="text-muted">Cliente verificado</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- MAPA: ubicación del taller (iframe de Google Maps - cambia por tu ubicación) -->
 <section class="container mb-4">
     <div class="row">
@@ -235,24 +346,9 @@
     </svg>
 </div>
 
-<!-- Footer -->
-<footer class="container mb-5">
-    <div class="row">
-        <div class="col-12">
-            <div class="text-center text-muted small py-3">
-                <strong>AndroTech</strong> · <span id="footer-year"></span> · Proyecto académico 2º SMR
-            </div>
-        </div>
-    </div>
-</footer>
-
-<!-- Pequeño script para animar iconos al cargar y poner año en footer -->
+<!-- Pequeño script para animar iconos al cargar -->
 <script>
         document.addEventListener('DOMContentLoaded', function () {
-                // Insertar año en el footer
-                const fy = document.getElementById('footer-year');
-                if (fy) fy.textContent = new Date().getFullYear();
-
                 // Animación de iconos KPI y lista de features
                 const icons = document.querySelectorAll('.kpi-icon, .feature-list i');
                 icons.forEach((el, idx) => {
@@ -279,7 +375,8 @@
         ScrollReveal().reveal('.card.shadow-sm', { interval: 120 });
         ScrollReveal().reveal('.about-image-container', { delay: 120, distance: '30px', origin: 'left' });
         ScrollReveal().reveal('.about-values li', { interval: 100, distance: '15px', origin: 'bottom' });
-        ScrollReveal().reveal('footer', { distance: '20px' });
+        ScrollReveal().reveal('.testimonial-card', { interval: 100, distance: '20px', origin: 'bottom' });
+        ScrollReveal().reveal('.footer-col', { interval: 100, distance: '15px', origin: 'bottom' });
 </script>
 
 {% endblock %}

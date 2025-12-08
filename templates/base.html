@@ -42,6 +42,18 @@
                     <a class="nav-link" href="/reparaciones">Reparaciones</a>
                 </li>
 
+                <li class="nav-item">
+                    <a class="nav-link" href="/servicios">Servicios</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="/sobre">Sobre Nosotros</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="/contacto">Contacto</a>
+                </li>
+
             </ul>
         </div>
 
@@ -92,6 +104,59 @@
                 }, false)
             })
     })();
+</script>
+
+<!-- Footer Global -->
+<footer class="bg-light border-top mt-5 py-5">
+    <div class="container">
+        <div class="row g-4 mb-4">
+            <!-- Columna 1: Sobre AndroTech -->
+            <div class="col-md-4 footer-col">
+                <h6 class="fw-bold mb-3">Sobre AndroTech</h6>
+                <p class="text-muted small">Sistema de gestión profesional para talleres técnicos. Optimiza tu flujo de trabajo y mejora la organización.</p>
+            </div>
+
+            <!-- Columna 2: Enlaces útiles -->
+            <div class="col-md-4 footer-col">
+                <h6 class="fw-bold mb-3">Enlaces útiles</h6>
+                <ul class="list-unstyled small">
+                    <li class="mb-2"><a href="/" class="text-decoration-none text-muted"><i class="bi bi-house-fill me-2"></i>Inicio</a></li>
+                    <li class="mb-2"><a href="/clientes" class="text-decoration-none text-muted"><i class="bi bi-people-fill me-2"></i>Clientes</a></li>
+                    <li class="mb-2"><a href="/reparaciones" class="text-decoration-none text-muted"><i class="bi bi-tools me-2"></i>Reparaciones</a></li>
+                </ul>
+            </div>
+
+            <!-- Columna 3: Contacto -->
+            <div class="col-md-4 footer-col">
+                <h6 class="fw-bold mb-3">Contacto</h6>
+                <ul class="list-unstyled small text-muted">
+                    <li class="mb-2"><i class="bi bi-geo-alt-fill me-2"></i>Calle Técnica 123, Madrid 28001</li>
+                    <li class="mb-2"><i class="bi bi-telephone-fill me-2"></i>+34 912 345 678</li>
+                    <li class="mb-2"><i class="bi bi-envelope-fill me-2"></i>contacto@androtech.es</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Línea divisoria -->
+        <hr class="my-4">
+
+        <!-- Línea final -->
+        <div class="row">
+            <div class="col-12 text-center">
+                <p class="text-muted small mb-0">&copy; <span id="footer-year"></span> AndroTech · Proyecto académico 2º SMR</p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- Script para insertar año dinámico en footer -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const footerYear = document.getElementById('footer-year');
+        if (footerYear) {
+            footerYear.textContent = new Date().getFullYear();
+        }
+    });
 </script>
 
 </body>

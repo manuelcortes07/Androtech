@@ -191,6 +191,82 @@ body{
 }
 .about-values h6 { color: var(--text-dark); font-weight: 600; }
 
+/* Testimonial cards styling */
+.testimonial-card { 
+  transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease;
+  background: linear-gradient(180deg, rgba(255,255,255,0.99), rgba(248,249,250,0.98));
+}
+.testimonial-card:hover { 
+  transform: translateY(-6px); 
+  box-shadow: 0 14px 40px var(--deep-shadow);
+  background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,249,250,0.99));
+}
+
+.testimonial-card .bi-quote { transition: opacity .25s ease; }
+.testimonial-card:hover .bi-quote { opacity: 0.5; }
+
+/* Footer styling */
+footer { background-color: var(--bg-light); }
+footer h6 { color: var(--text-dark); letter-spacing: -0.3px; }
+footer a { transition: color .18s ease; }
+footer a:hover { color: var(--primary) !important; }
+.footer-col { transition: transform .18s ease; }
+.footer-col:hover { transform: translateY(-2px); }
+
+/* Contact form styling */
+.contact-card { transition: transform .2s ease, box-shadow .2s ease; }
+.contact-card:hover { transform: translateY(-4px); box-shadow: 0 12px 35px var(--soft-shadow); }
+
+.contact-card .card-header { border-bottom: 0; }
+.contact-card .form-label { color: var(--text-dark); font-weight: 500; }
+.contact-card .form-control, .contact-card .form-select { 
+  border: 1px solid rgba(33,37,41,0.1); 
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+.contact-card .form-control:focus, .contact-card .form-select:focus { 
+  border-color: var(--primary); 
+  box-shadow: 0 0 0 .18rem rgba(13,110,253,0.12); 
+}
+
+.contact-card .btn { transition: transform .12s ease, box-shadow .12s ease; }
+.contact-card .btn:hover { transform: translateY(-2px); }
+
+/* Success card styling */
+.success-card { background: linear-gradient(180deg, rgba(255,255,255,0.99), rgba(248,249,250,0.98)); }
+
+/* About (Sobre Nosotros) page styling */
+.value-card { 
+  transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease;
+  background: linear-gradient(180deg, rgba(255,255,255,0.99), rgba(248,249,250,0.98));
+}
+.value-card:hover { 
+  transform: translateY(-6px); 
+  box-shadow: 0 14px 40px var(--deep-shadow);
+  background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,249,250,0.99));
+}
+
+.team-card { 
+  transition: transform .2s ease, box-shadow .2s ease;
+  overflow: hidden;
+}
+.team-card:hover { 
+  transform: translateY(-6px); 
+  box-shadow: 0 14px 40px var(--deep-shadow);
+}
+.team-card img { transition: transform .3s ease; }
+.team-card:hover img { transform: scale(1.05); }
+
+/* Services page styling */
+.service-card { 
+  transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease;
+  background: linear-gradient(180deg, rgba(255,255,255,0.99), rgba(248,249,250,0.98));
+}
+.service-card:hover { 
+  transform: translateY(-8px); 
+  box-shadow: 0 16px 45px var(--deep-shadow);
+  background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,249,250,0.99));
+}
+
 /* Wave separator SVG styling */
 .wave-separator { margin: 0; padding: 0; line-height: 0; overflow: hidden; }
 .wave-separator svg { display: block; width: 100%; height: auto; }
