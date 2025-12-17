@@ -1,8 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 import sqlite3
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
 
 app = Flask(__name__)
+app.secret_key = 'tu_clave_secreta_muy_segura_aqui'  # Cambia esto por una clave segura en producción
 
 # CONEXIÓN A LA BASE DE DATOS
 def get_db():
@@ -10,8 +13,69 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
+# DECORADOR PARA REQUERIR LOGIN
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'usuario' not in session:
+            flash('Debes iniciar sesión para acceder a esta página.', 'danger')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# DECORADOR PARA REQUERIR ROL ESPECÍFICO (OPCIONAL)
+def role_required(rol_requerido):
+    def decorator(f):
+        @wraps(f)
+        @login_required
+        def decorated_function(*args, **kwargs):
+            if session.get('rol') != rol_requerido:
+                flash('No tienes permisos para acceder a esta página.', 'danger')
+                return redirect(url_for('index'))
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+# =========================================
+# 🔸 AUTENTICACIÓN
+# =========================================
+
+# LOGIN
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        usuario = request.form["usuario"]
+        contraseña = request.form["contraseña"]
+
+        conn = get_db()
+        user = conn.execute("SELECT * FROM usuarios WHERE usuario = ?", (usuario,)).fetchone()
+        conn.close()
+
+        if user and check_password_hash(user["contraseña"], contraseña):
+            session["usuario"] = user["usuario"]
+            session["rol"] = user["rol"]
+            flash(f"Bienvenido, {user['usuario']}!", "success")
+            return redirect(url_for("index"))
+        else:
+            flash("Usuario o contraseña incorrectos.", "danger")
+
+    return render_template("login.html")
+
+# LOGOUT
+@app.route("/logout")
+@login_required
+def logout():
+    session.clear()
+    flash("Has cerrado sesión correctamente.", "info")
+    return redirect(url_for("login"))
+
+# =========================================
+# 🔸 PÁGINAS PROTEGIDAS
+# =========================================
+
 # PÁGINA PRINCIPAL
 @app.route("/")
+@login_required
 def index():
     conn = get_db()
 
@@ -51,6 +115,7 @@ def index():
 
 # LISTAR CLIENTES
 @app.route("/clientes")
+@login_required
 def clientes():
     conn = get_db()
     clientes = conn.execute("SELECT * FROM clientes").fetchall()
@@ -123,6 +188,7 @@ def borrar_cliente(id):
 
 # LISTAR REPARACIONES
 @app.route("/reparaciones")
+@login_required
 def reparaciones():
     conn = get_db()
     sql = """
@@ -242,8 +308,31 @@ def sobre():
 # =========================================
 
 @app.route("/servicios")
+@login_required
 def servicios():
     return render_template("servicios.html")
+
+# =========================================
+# 🔸 FUNCIÓN PARA CREAR USUARIO ADMIN INICIAL
+# =========================================
+# Descomenta y ejecuta esta función UNA VEZ para crear el usuario admin
+# Luego vuelve a comentarla para evitar recrearlo
+# def crear_admin_inicial():
+#     conn = get_db()
+#     hashed_password = generate_password_hash("admin123")  # Cambia la contraseña
+#     try:
+#         conn.execute("""
+#             INSERT INTO usuarios (usuario, contraseña, rol)
+#             VALUES (?, ?, ?)
+#         """, ("admin", hashed_password, "admin"))
+#         conn.commit()
+#         print("Usuario admin creado exitosamente.")
+#     except sqlite3.IntegrityError:
+#         print("El usuario admin ya existe.")
+#     conn.close()
+
+# Para ejecutar: descomenta la línea siguiente y corre el script
+# crear_admin_inicial()
 
 #  EJECUCIÓN
 if __name__ == "__main__":
