@@ -77,39 +77,58 @@ def logout():
 @app.route("/")
 @login_required
 def index():
+    # Redirigir al dashboard si hay sesión
+    return redirect(url_for("dashboard"))
+
+# =========================================
+# 🔸 DASHBOARD
+# =========================================
+
+@app.route("/dashboard")
+@login_required
+def dashboard():
     conn = get_db()
 
-    # Total clientes
+    # Estadísticas principales
     total_clientes = conn.execute("SELECT COUNT(*) FROM clientes").fetchone()[0]
-
-    # Reparaciones activas
-    activas = conn.execute("""
+    reparaciones_activas = conn.execute("""
         SELECT COUNT(*) FROM reparaciones
         WHERE estado != 'Terminado' AND estado != 'Entregado'
     """).fetchone()[0]
-
-    # Reparaciones terminadas
-    terminadas = conn.execute("""
+    reparaciones_terminadas = conn.execute("""
         SELECT COUNT(*) FROM reparaciones
         WHERE estado = 'Terminado' OR estado = 'Entregado'
     """).fetchone()[0]
-
-    # Ingresos estimados
     ingresos = conn.execute("""
         SELECT IFNULL(SUM(precio), 0) FROM reparaciones
     """).fetchone()[0]
 
+    # Calcular porcentajes para las barras de progreso
+    total_reparaciones = reparaciones_activas + reparaciones_terminadas
+    porcentaje_activas = round((reparaciones_activas / total_reparaciones * 100), 1) if total_reparaciones > 0 else 0
+    porcentaje_terminadas = round((reparaciones_terminadas / total_reparaciones * 100), 1) if total_reparaciones > 0 else 0
+
+    # Últimas 5 reparaciones con información del cliente
+    ultimas_reparaciones = conn.execute("""
+        SELECT reparaciones.*, clientes.nombre AS cliente
+        FROM reparaciones
+        LEFT JOIN clientes ON clientes.id = reparaciones.cliente_id
+        ORDER BY reparaciones.id DESC
+        LIMIT 5
+    """).fetchall()
+
     conn.close()
 
     return render_template(
-        "index.html",
+        "dashboard.html",
         total_clientes=total_clientes,
-        activas=activas,
-        terminadas=terminadas,
-        ingresos=ingresos
+        reparaciones_activas=reparaciones_activas,
+        reparaciones_terminadas=reparaciones_terminadas,
+        ingresos=ingresos,
+        porcentaje_activas=porcentaje_activas,
+        porcentaje_terminadas=porcentaje_terminadas,
+        ultimas_reparaciones=ultimas_reparaciones
     )
-
-
 
 #  SECCIÓN CLIENTES
 
@@ -174,6 +193,7 @@ def editar_cliente(id):
 
 # BORRAR CLIENTE
 @app.route("/clientes/borrar/<int:id>")
+@role_required('admin')
 def borrar_cliente(id):
     conn = get_db()
     conn.execute("DELETE FROM clientes WHERE id=?", (id,))
@@ -261,6 +281,7 @@ def editar_reparacion(id):
 
 # BORRAR REPARACIÓN
 @app.route("/reparaciones/borrar/<int:id>")
+@role_required('admin')
 def borrar_reparacion(id):
     conn = get_db()
     conn.execute("DELETE FROM reparaciones WHERE id=?", (id,))
@@ -311,6 +332,37 @@ def sobre():
 @login_required
 def servicios():
     return render_template("servicios.html")
+
+# =========================================
+# 🔸 CONSULTA PÚBLICA DE REPARACIONES
+# =========================================
+
+@app.route("/consulta", methods=["GET", "POST"])
+def consulta():
+    reparaciones = []
+    error = None
+
+    if request.method == "POST":
+        telefono = request.form.get("telefono")
+
+        if not telefono:
+            error = "Por favor, introduce un número de teléfono."
+        else:
+            conn = get_db()
+            reparaciones = conn.execute("""
+                SELECT reparaciones.id, reparaciones.dispositivo, reparaciones.estado,
+                       reparaciones.fecha_entrada, reparaciones.precio
+                FROM reparaciones
+                JOIN clientes ON clientes.id = reparaciones.cliente_id
+                WHERE clientes.telefono = ?
+                ORDER BY reparaciones.fecha_entrada DESC
+            """, (telefono,)).fetchall()
+            conn.close()
+
+            if not reparaciones:
+                error = f"No se encontraron reparaciones para el teléfono {telefono}."
+
+    return render_template("consulta.html", reparaciones=reparaciones, error=error)
 
 # =========================================
 # 🔸 FUNCIÓN PARA CREAR USUARIO ADMIN INICIAL

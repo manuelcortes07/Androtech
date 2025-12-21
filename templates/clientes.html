@@ -65,8 +65,10 @@
                             <td>{{ c.email if c.email else '-' }}</td>
                             <td>
                                 <a href="/clientes/editar/{{ c.id }}" class="btn btn-warning btn-sm me-1">Editar</a>
+                                {% if session.rol == 'admin' %}
                                 <a href="/clientes/borrar/{{ c.id }}" class="btn btn-danger btn-sm"
                                    onclick="return confirm('¿Seguro que deseas borrar este cliente?');">Borrar</a>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}

@@ -44,8 +44,10 @@
                             <td>{{ r.fecha_entrada }}</td>
                             <td>
                                 <a href="/reparaciones/editar/{{ r.id }}" class="btn btn-warning btn-sm me-1">Editar</a>
+                                {% if session.rol == 'admin' %}
                                 <a href="/reparaciones/borrar/{{ r.id }}" class="btn btn-danger btn-sm"
                                    onclick="return confirm('¿Seguro que deseas borrar esta reparación?');">Borrar</a>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}

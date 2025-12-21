@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}Consulta de Reparación{% endblock %}
+
+{% block content %}
+
+<!-- HERO PEQUEÑO -->
+<section class="hero text-center py-5">
+    <div class="container">
+        <div class="display-6 text-primary mb-3">
+            <i class="bi bi-search" style="font-size: 3rem;"></i>
+        </div>
+        <h1 class="display-5 fw-bold mb-2">Consulta de Reparación</h1>
+        <p class="lead text-muted mb-4">Introduce el ID de tu reparación para consultar su estado actual.</p>
+    </div>
+</section>
+
+<!-- Wave Separator -->
+<div class="wave-separator">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120">
+        <path fill="#ffffff" d="M0,80 C480,160 960,0 1440,80 V120 H0 Z"></path>
+    </svg>
+</div>
+
+<!-- FORMULARIO DE CONSULTA -->
+<section class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0" data-sr="enter bottom over 0.6s">
+                <div class="card-body p-5">
+                    <h3 class="card-title text-center mb-4 fw-bold">Buscar Reparación</h3>
+
+                    <form method="POST" class="needs-validation" novalidate>
+                        <div class="mb-4">
+                            <label for="id_reparacion" class="form-label fw-semibold">
+                                <i class="bi bi-hash me-2"></i>ID de Reparación
+                            </label>
+                            <input type="number"
+                                   class="form-control form-control-lg"
+                                   id="id_reparacion"
+                                   name="id_reparacion"
+                                   required
+                                   placeholder="Ejemplo: 123"
+                                   min="1">
+                            <div class="invalid-feedback">
+                                Por favor introduce un ID válido.
+                            </div>
+                            <div class="form-text">
+                                Introduce el número de ID que te proporcionaron al dejar tu dispositivo.
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg fw-semibold">
+                                <i class="bi bi-search me-2"></i>Consultar Estado
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- RESULTADO DE LA CONSULTA -->
+{% if reparacion %}
+<section class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <div class="card shadow-lg border-0" data-sr="enter bottom over 0.6s">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        Reparación Encontrada - ID: {{ reparacion.id }}
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-4">
+                        <!-- Dispositivo -->
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-phone text-primary me-3" style="font-size: 1.5rem;"></i>
+                                <div>
+                                    <h6 class="mb-1 fw-semibold">Dispositivo</h6>
+                                    <p class="mb-0 text-muted">{{ reparacion.dispositivo }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Estado -->
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-info-circle text-info me-3" style="font-size: 1.5rem;"></i>
+                                <div>
+                                    <h6 class="mb-1 fw-semibold">Estado</h6>
+                                    <span class="badge
+                                        {% if reparacion.estado == 'Terminado' %}bg-success
+                                        {% elif reparacion.estado == 'En Progreso' %}bg-info
+                                        {% elif reparacion.estado == 'Pendiente' %}bg-warning
+                                        {% else %}bg-secondary{% endif %} fs-6">
+                                        {{ reparacion.estado }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fecha de Entrada -->
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-calendar-check text-success me-3" style="font-size: 1.5rem;"></i>
+                                <div>
+                                    <h6 class="mb-1 fw-semibold">Fecha de Entrada</h6>
+                                    <p class="mb-0 text-muted">{{ reparacion.fecha_entrada or 'No especificada' }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Precio -->
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-cash text-warning me-3" style="font-size: 1.5rem;"></i>
+                                <div>
+                                    <h6 class="mb-1 fw-semibold">Precio Estimado</h6>
+                                    <p class="mb-0 text-muted">
+                                        {% if reparacion.precio %}
+                                            {{ "%.2f"|format(reparacion.precio) }} €
+                                        {% else %}
+                                            Pendiente de calcular
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- MENSAJE DE ERROR -->
+{% if error %}
+<section class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="alert alert-danger alert-dismissible fade show shadow" role="alert" data-sr="enter bottom over 0.6s">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <h5 class="alert-heading mb-1">Reparación No Encontrada</h5>
+                        <p class="mb-0">{{ error }}</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- INFORMACIÓN ADICIONAL -->
+<section class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <div class="card shadow-sm border-0 bg-light" data-sr="enter bottom over 0.6s">
+                <div class="card-body p-4 text-center">
+                    <i class="bi bi-info-circle text-primary mb-3" style="font-size: 2rem;"></i>
+                    <h5 class="card-title fw-semibold">¿No tienes el ID de tu reparación?</h5>
+                    <p class="card-text text-muted mb-3">
+                        Si has perdido el número de ID, puedes contactar con nosotros directamente
+                        para obtener información sobre tu reparación.
+                    </p>
+                    <a href="/contacto" class="btn btn-outline-primary">
+                        <i class="bi bi-envelope me-2"></i>Contactar Soporte
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+<!-- ScrollReveal para animaciones -->
+<script src="https://unpkg.com/scrollreveal@4.0.9/dist/scrollreveal.min.js"></script>
+<script>
+    ScrollReveal().reveal('[data-sr]', {
+        distance: '20px',
+        duration: 600,
+        easing: 'ease-in-out'
+    });
+</script>
+
+<!-- Script de validación de formularios (Bootstrap) -->
+<script>
+    (function () {
+        'use strict'
+
+        var forms = document.querySelectorAll('.needs-validation')
+
+        Array.prototype.slice.call(forms)
+            .forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    form.classList.add('was-validated')
+                }, false)
+            })
+    })();
+</script>
