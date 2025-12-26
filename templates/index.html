@@ -6,8 +6,12 @@
 <section class="hero text-center">
     <div class="container">
         <img src="{{ url_for('static', filename='img/logo.png') }}" alt="AndroTech" class="logo-hero mb-3">
-        <h1 class="display-5 fw-bold mb-2">Sistema de Gestión — AndroTech</h1>
-        <p class="lead text-muted mb-4">Panel profesional para administrar clientes, reparaciones y el flujo de trabajo técnico de tu taller.</p>
+        <h1 class="display-5 fw-bold mb-2">AndroTech - Tu Taller de Confianza</h1>
+        <p class="lead text-muted mb-4">Reparamos móviles, ordenadores y recuperamos datos. Consulta el estado de tu reparación al instante.</p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="/consulta" class="btn btn-primary btn-lg">Consultar reparación</a>
+            <a href="/servicios" class="btn btn-outline-primary btn-lg">Nuestros servicios</a>
+        </div>
     </div>
 </section>
 
@@ -15,56 +19,6 @@
 <div class="wave-separator">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120">
         <path fill="#ffffff" d="M0,80 C480,160 960,0 1440,80 V120 H0 Z"></path>
-    </svg>
-</div>
-
-<!-- ACCESOS RÁPIDOS -->
-<section class="container mb-4">
-    <div class="row g-3 justify-content-center">
-
-        <div class="col-sm-8 col-md-6 col-lg-4">
-            <div class="card quick-card h-100 shadow-sm">
-                <div class="card-body d-flex flex-column align-items-start">
-                    <div class="d-flex align-items-center w-100 justify-content-between">
-                        <div class="d-flex align-items-center">
-                            <div class="display-6 text-primary me-3"><i class="bi bi-people-fill" style="font-size:2.1rem"></i></div>
-                            <div>
-                                <h5 class="mb-0">Clientes</h5>
-                                <small class="text-muted">Gestiona y consulta tus clientes</small>
-                            </div>
-                        </div>
-                        <a href="/clientes" class="btn btn-primary btn-sm">Entrar</a>
-                    </div>
-                    <p class="mt-3 text-muted small">Añade, edita o elimina clientes y consulta su historial.</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-sm-8 col-md-6 col-lg-4">
-            <div class="card quick-card h-100 shadow-sm">
-                <div class="card-body d-flex flex-column align-items-start">
-                    <div class="d-flex align-items-center w-100 justify-content-between">
-                        <div class="d-flex align-items-center">
-                            <div class="display-6 text-success me-3"><i class="bi bi-tools" style="font-size:2.1rem"></i></div>
-                            <div>
-                                <h5 class="mb-0">Reparaciones</h5>
-                                <small class="text-muted">Crea, edita y sigue reparaciones</small>
-                            </div>
-                        </div>
-                        <a href="/reparaciones" class="btn btn-success btn-sm">Entrar</a>
-                    </div>
-                    <p class="mt-3 text-muted small">Controla estados, precios y genera facturas cuando corresponda.</p>
-                </div>
-            </div>
-        </div>
-
-    </div>
-</section>
-
-<!-- Wave Separator 2 -->
-<div class="wave-separator">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120">
-        <path fill="#f8f9fa" d="M0,40 C480,140 960,0 1440,60 V120 H0 Z"></path>
     </svg>
 </div>
 
@@ -77,7 +31,7 @@
                 <div class="d-flex align-items-center">
                     <div class="me-3 bg-light rounded-3 p-2"><i class="bi bi-people kpi-icon"></i></div>
                     <div>
-                        <div class="small text-muted">Clientes registrados</div>
+                        <div class="small text-muted">Clientes atendidos</div>
                         <div class="h5 fw-bold">{{ total_clientes }}</div>
                     </div>
                 </div>
@@ -89,7 +43,7 @@
                 <div class="d-flex align-items-center">
                     <div class="me-3 bg-light rounded-3 p-2"><i class="bi bi-wrench kpi-icon text-info"></i></div>
                     <div>
-                        <div class="small text-muted">Reparaciones activas</div>
+                        <div class="small text-muted">Reparaciones en proceso</div>
                         <div class="h5 fw-bold">{{ activas }}</div>
                     </div>
                 </div>
@@ -101,7 +55,7 @@
                 <div class="d-flex align-items-center">
                     <div class="me-3 bg-light rounded-3 p-2"><i class="bi bi-check2-square kpi-icon text-success"></i></div>
                     <div>
-                        <div class="small text-muted">Reparaciones terminadas</div>
+                        <div class="small text-muted">Reparaciones completadas</div>
                         <div class="h5 fw-bold">{{ terminadas }}</div>
                     </div>
                 </div>
@@ -123,22 +77,22 @@
     </div>
 </section>
 
-<!-- FUNCIONALIDADES -->
+<!-- NUESTROS SERVICIOS -->
 <section class="container mb-5">
     <div class="row">
         <div class="col-lg-7">
             <div class="card shadow-sm border-0">
                 <div class="card-body">
-                    <h5 class="card-title">¿Qué puedes hacer en AndroTech?</h5>
-                    <p class="text-muted">Herramientas diseñadas para que tu taller técnico trabaje de forma eficiente y organizada.</p>
+                    <h5 class="card-title">Nuestros Servicios</h5>
+                    <p class="text-muted">Ofrecemos soluciones completas para la reparación y mantenimiento de tus dispositivos tecnológicos.</p>
 
                     <ul class="list-unstyled feature-list">
-                        <li class="mb-2"><i class="bi bi-person-plus-fill"></i> Registrar clientes</li>
-                        <li class="mb-2"><i class="bi bi-gear-wide-connected"></i> Crear y editar reparaciones</li>
-                        <li class="mb-2"><i class="bi bi-clock-history"></i> Consultar estados en tiempo real</li>
-                        <li class="mb-2"><i class="bi bi-receipt"></i> Generar facturas y presupuestos</li>
-                        <li class="mb-2"><i class="bi bi-journal-text"></i> Historial técnico completo</li>
-                        <li class="mb-2"><i class="bi bi-grid-1x2-fill"></i> Gestión centralizada del taller</li>
+                        <li class="mb-2"><i class="bi bi-phone-fill"></i> Reparación de móviles y smartphones</li>
+                        <li class="mb-2"><i class="bi bi-laptop"></i> Reparación de ordenadores y laptops</li>
+                        <li class="mb-2"><i class="bi bi-hdd"></i> Recuperación de datos perdidos</li>
+                        <li class="mb-2"><i class="bi bi-shield-check"></i> Mantenimiento preventivo</li>
+                        <li class="mb-2"><i class="bi bi-search"></i> Diagnóstico técnico profesional</li>
+                        <li class="mb-2"><i class="bi bi-headset"></i> Soporte y asesoramiento personalizado</li>
                     </ul>
 
                 </div>
@@ -149,8 +103,8 @@
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-body d-flex align-items-center justify-content-center">
                     <div class="text-center text-muted">
-                        <i class="bi bi-telephone-fill" style="font-size:3rem"></i>
-                        <p class="mt-3 mb-0">Soporte y documentación disponible para ayudarte a configurar el sistema.</p>
+                        <i class="bi bi-tools" style="font-size:3rem"></i>
+                        <p class="mt-3 mb-0">Equipos especializados y herramientas de última generación para garantizar la calidad de nuestros servicios.</p>
                     </div>
                 </div>
             </div>

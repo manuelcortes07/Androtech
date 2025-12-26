@@ -53,7 +53,7 @@
                     <div class="text-muted small">Reparaciones Activas</div>
                     <div class="progress mt-2" style="height: 4px;">
                         <!-- stylelint-disable-next-line -->
-                        <div class="progress-bar bg-warning" style="width: {{ porcentaje_activas }}%"></div>
+                        <div class="progress-bar bg-warning progress-dynamic" data-width="{{ porcentaje_activas }}"></div>
                     </div>
                 </div>
             </div>
@@ -70,7 +70,7 @@
                     <div class="text-muted small">Reparaciones Terminadas</div>
                     <div class="progress mt-2" style="height: 4px;">
                         <!-- stylelint-disable-next-line -->
-                        <div class="progress-bar bg-success" style="width: {{ porcentaje_terminadas }}%"></div>
+                        <div class="progress-bar bg-success progress-dynamic" data-width="{{ porcentaje_terminadas }}"></div>
                     </div>
                 </div>
             </div>
@@ -269,6 +269,15 @@
 </section>
 
 {% endblock %}
+
+<!-- Script para progress bars dinámicas -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.progress-dynamic').forEach(bar => {
+            bar.style.width = bar.dataset.width + '%';
+        });
+    });
+</script>
 
 <!-- ScrollReveal para animaciones -->
 <script src="https://unpkg.com/scrollreveal@4.0.9/dist/scrollreveal.min.js"></script>

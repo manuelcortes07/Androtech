@@ -271,3 +271,17 @@ footer a:hover { color: var(--primary) !important; }
 .wave-separator { margin: 0; padding: 0; line-height: 0; overflow: hidden; }
 .wave-separator svg { display: block; width: 100%; height: auto; }
 
+/* Timeline styling for consulta page */
+.timeline-line {
+    border-top: 2px solid;
+    margin: 0;
+}
+
+.line-active {
+    border-color: #198754;
+}
+
+.line-inactive {
+    border-color: #6c757d;
+}
+

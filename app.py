@@ -55,7 +55,7 @@ def login():
             session["usuario"] = user["usuario"]
             session["rol"] = user["rol"]
             flash(f"Bienvenido, {user['usuario']}!", "success")
-            return redirect(url_for("index"))
+            return redirect(url_for("dashboard"))
         else:
             flash("Usuario o contraseña incorrectos.", "danger")
 
@@ -75,10 +75,14 @@ def logout():
 
 # PÁGINA PRINCIPAL
 @app.route("/")
-@login_required
 def index():
-    # Redirigir al dashboard si hay sesión
-    return redirect(url_for("dashboard"))
+    conn = get_db()
+    total_clientes = conn.execute("SELECT COUNT(*) FROM clientes").fetchone()[0]
+    activas = conn.execute("SELECT COUNT(*) FROM reparaciones WHERE estado != 'Terminado' AND estado != 'Entregado'").fetchone()[0]
+    terminadas = conn.execute("SELECT COUNT(*) FROM reparaciones WHERE estado = 'Terminado' OR estado = 'Entregado'").fetchone()[0]
+    ingresos = conn.execute("SELECT COALESCE(SUM(precio), 0) FROM reparaciones WHERE estado = 'Terminado' OR estado = 'Entregado'").fetchone()[0]
+    conn.close()
+    return render_template("index.html", total_clientes=total_clientes, activas=activas, terminadas=terminadas, ingresos=ingresos)
 
 # =========================================
 # 🔸 DASHBOARD
@@ -144,6 +148,7 @@ def clientes():
 
 # CREAR CLIENTE
 @app.route("/clientes/nuevo", methods=["GET", "POST"])
+@login_required
 def nuevo_cliente():
     if request.method == "POST":
         nombre = request.form["nombre"]
@@ -166,6 +171,7 @@ def nuevo_cliente():
 
 # EDITAR CLIENTE
 @app.route("/clientes/editar/<int:id>", methods=["GET", "POST"])
+@login_required
 def editar_cliente(id):
     conn = get_db()
 
@@ -223,6 +229,7 @@ def reparaciones():
 
 # NUEVA REPARACIÓN
 @app.route("/reparaciones/nueva", methods=["GET", "POST"])
+@login_required
 def nueva_reparacion():
     conn = get_db()
 
@@ -252,6 +259,7 @@ def nueva_reparacion():
 
 # EDITAR REPARACIÓN
 @app.route("/reparaciones/editar/<int:id>", methods=["GET", "POST"])
+@login_required
 def editar_reparacion(id):
     conn = get_db()
 
@@ -329,7 +337,6 @@ def sobre():
 # =========================================
 
 @app.route("/servicios")
-@login_required
 def servicios():
     return render_template("servicios.html")
 

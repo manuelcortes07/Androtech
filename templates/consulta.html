@@ -26,7 +26,7 @@
 <section class="container mb-5">
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-6">
-            <div class="card shadow-lg border-0" data-sr="enter bottom over 0.6s">
+            <div class="card shadow-sm" data-sr="enter bottom over 0.6s">
                 <div class="card-body p-5">
                     <h3 class="card-title text-center mb-4 fw-bold">Buscar Reparación</h3>
 
@@ -67,8 +67,13 @@
 <section class="container mb-5">
     <div class="row justify-content-center">
         <div class="col-md-10 col-lg-8">
-            <div class="card shadow-lg border-0" data-sr="enter bottom over 0.6s">
-                <div class="card-header bg-success text-white">
+            <div class="card shadow-sm" data-sr="enter bottom over 0.6s">
+                <div class="card-header 
+                    {% if reparacion.estado == 'Entregado' %}bg-success
+                    {% elif reparacion.estado == 'Terminado' %}bg-success
+                    {% elif reparacion.estado == 'En proceso' %}bg-primary
+                    {% elif reparacion.estado == 'Pendiente' %}bg-warning
+                    {% else %}bg-secondary{% endif %} text-white">
                     <h4 class="mb-0">
                         <i class="bi bi-check-circle-fill me-2"></i>
                         Reparación Encontrada - ID: {{ reparacion.id }}
@@ -94,8 +99,9 @@
                                 <div>
                                     <h6 class="mb-1 fw-semibold">Estado</h6>
                                     <span class="badge
-                                        {% if reparacion.estado == 'Terminado' %}bg-success
-                                        {% elif reparacion.estado == 'En Progreso' %}bg-info
+                                        {% if reparacion.estado == 'Entregado' %}bg-success
+                                        {% elif reparacion.estado == 'Terminado' %}bg-success
+                                        {% elif reparacion.estado == 'En proceso' %}bg-primary
                                         {% elif reparacion.estado == 'Pendiente' %}bg-warning
                                         {% else %}bg-secondary{% endif %} fs-6">
                                         {{ reparacion.estado }}
@@ -120,7 +126,7 @@
                             <div class="d-flex align-items-center">
                                 <i class="bi bi-cash text-warning me-3" style="font-size: 1.5rem;"></i>
                                 <div>
-                                    <h6 class="mb-1 fw-semibold">Precio Estimado</h6>
+                                    <h6 class="mb-1 fw-semibold">Precio</h6>
                                     <p class="mb-0 text-muted">
                                         {% if reparacion.precio %}
                                             {{ "%.2f"|format(reparacion.precio) }} €
@@ -129,6 +135,60 @@
                                         {% endif %}
                                     </p>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TIMELINE DE PROGRESO -->
+                    {% set linea1_activa = reparacion.estado in ['Pendiente', 'En proceso', 'Terminado', 'Entregado'] %}
+                    {% set linea2_activa = reparacion.estado in ['En proceso', 'Terminado', 'Entregado'] %}
+                    {% set linea3_activa = reparacion.estado in ['Terminado', 'Entregado'] %}
+                    <div class="mt-4" data-sr="enter bottom over 0.6s">
+                        <h6 class="fw-semibold mb-3">Progreso de la Reparación</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <!-- Paso 1: Recibido -->
+                            <div class="text-center flex-fill">
+                                <div class="mb-2">
+                                    <i class="bi bi-check-circle-fill text-success" style="font-size: 2rem;"></i>
+                                </div>
+                                <h6 class="small fw-semibold">Recibido</h6>
+                                <p class="small text-muted">Dispositivo recibido</p>
+                            </div>
+                            <!-- Línea 1 -->
+                            <div class="flex-grow-1 mx-2">
+                                <hr class="timeline-line {{ 'line-active' if linea1_activa else 'line-inactive' }}">
+                            </div>
+                            <!-- Paso 2: Diagnóstico -->
+                            <div class="text-center flex-fill">
+                                <div class="mb-2">
+                                    <i class="bi {% if reparacion.estado in ['En proceso', 'Terminado', 'Entregado'] %}bi-check-circle-fill text-success{% else %}bi-circle text-muted{% endif %}" style="font-size: 2rem;"></i>
+                                </div>
+                                <h6 class="small fw-semibold">Diagnóstico</h6>
+                                <p class="small text-muted">Evaluación técnica</p>
+                            </div>
+                            <!-- Línea 2 -->
+                            <div class="flex-grow-1 mx-2">
+                                <hr class="timeline-line {{ 'line-active' if linea2_activa else 'line-inactive' }}">
+                            </div>
+                            <!-- Paso 3: Reparación -->
+                            <div class="text-center flex-fill">
+                                <div class="mb-2">
+                                    <i class="bi {% if reparacion.estado in ['Terminado', 'Entregado'] %}bi-check-circle-fill text-success{% else %}bi-circle text-muted{% endif %}" style="font-size: 2rem;"></i>
+                                </div>
+                                <h6 class="small fw-semibold">Reparación</h6>
+                                <p class="small text-muted">Trabajo en curso</p>
+                            </div>
+                            <!-- Línea 3 -->
+                            <div class="flex-grow-1 mx-2">
+                                <hr class="timeline-line {{ 'line-active' if linea3_activa else 'line-inactive' }}">
+                            </div>
+                            <!-- Paso 4: Listo para recoger -->
+                            <div class="text-center flex-fill">
+                                <div class="mb-2">
+                                    <i class="bi {% if reparacion.estado == 'Entregado' %}bi-check-circle-fill text-success{% else %}bi-circle text-muted{% endif %}" style="font-size: 2rem;"></i>
+                                </div>
+                                <h6 class="small fw-semibold">Listo para recoger</h6>
+                                <p class="small text-muted">Disponible para recogida</p>
                             </div>
                         </div>
                     </div>
@@ -176,6 +236,17 @@
                     </a>
                 </div>
             </div>
+        </div>
+    </div>
+</section>
+
+<!-- BOTÓN VOLVER AL INICIO -->
+<section class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <a href="/" class="btn btn-secondary btn-lg">
+                <i class="bi bi-house me-2"></i>Volver al Inicio
+            </a>
         </div>
     </div>
 </section>
