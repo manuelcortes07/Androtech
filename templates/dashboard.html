@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - AndroTech{% endblock %}
+{% block title %}Panel de Administración - AndroTech{% endblock %}
 
 {% block content %}
 
 <!-- HERO DASHBOARD -->
-<section class="hero text-center">
+<section class="hero text-center py-5">
     <div class="container">
         <div class="display-6 text-primary mb-3">
             <i class="bi bi-speedometer2" style="font-size: 3rem;"></i>
         </div>
-        <h1 class="display-5 fw-bold mb-2">Panel de Control</h1>
-        <p class="lead text-muted mb-4">Bienvenido de vuelta, {{ session.usuario }}. Aquí tienes un resumen de tu taller.</p>
+        <h1 class="display-5 fw-bold mb-2">Panel de Administración</h1>
+        <p class="lead text-muted mb-4">Resumen general del estado del taller. Aquí tienes toda la información necesaria para gestionar tu negocio.</p>
     </div>
 </section>
 
@@ -22,7 +22,7 @@
     </svg>
 </div>
 
-<!-- ESTADÍSTICAS KPI -->
+<!-- KPIs PRINCIPALES -->
 <section class="container mb-5">
     <div class="row g-4 justify-content-center">
 
@@ -34,7 +34,7 @@
                         <i class="bi bi-people-fill"></i>
                     </div>
                     <div class="h2 mb-1">{{ total_clientes }}</div>
-                    <div class="text-muted small">Total Clientes</div>
+                    <div class="text-muted small">Total de Clientes</div>
                     <div class="progress mt-2" style="height: 4px;">
                         <div class="progress-bar bg-primary" style="width: 100%"></div>
                     </div>
@@ -52,7 +52,6 @@
                     <div class="h2 mb-1">{{ reparaciones_activas }}</div>
                     <div class="text-muted small">Reparaciones Activas</div>
                     <div class="progress mt-2" style="height: 4px;">
-                        <!-- stylelint-disable-next-line -->
                         <div class="progress-bar bg-warning progress-dynamic" data-width="{{ porcentaje_activas }}"></div>
                     </div>
                 </div>
@@ -69,7 +68,6 @@
                     <div class="h2 mb-1">{{ reparaciones_terminadas }}</div>
                     <div class="text-muted small">Reparaciones Terminadas</div>
                     <div class="progress mt-2" style="height: 4px;">
-                        <!-- stylelint-disable-next-line -->
                         <div class="progress-bar bg-success progress-dynamic" data-width="{{ porcentaje_terminadas }}"></div>
                     </div>
                 </div>
@@ -92,6 +90,81 @@
             </div>
         </div>
 
+    </div>
+</section>
+
+<!-- MENSAJE CONTEXTUAL -->
+<section class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="alert alert-info alert-dismissible fade show" role="alert" data-sr="enter bottom over 0.6s">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-info-circle-fill me-3" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <h6 class="alert-heading mb-1">Estado del Taller</h6>
+                        <p class="mb-0">
+                            {% if reparaciones_activas > 0 %}
+                                Hoy tienes <strong>{{ reparaciones_activas }}</strong> reparaciones activas en proceso.
+                                {% if reparaciones_terminadas > 0 %}
+                                    Además, has completado <strong>{{ reparaciones_terminadas }}</strong> reparaciones esta semana.
+                                {% endif %}
+                            {% else %}
+                                No hay reparaciones activas en este momento. ¡Todo está al día!
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ACCIONES RÁPIDAS -->
+<section class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-lg border-0" data-sr="enter bottom over 0.6s">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="mb-0">
+                        <i class="bi bi-lightning-fill me-2"></i>Acciones Rápidas
+                    </h4>
+                    <small>Accede rápidamente a las funciones más utilizadas</small>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3">
+                        <!-- Nueva Reparación -->
+                        <div class="col-md-6 col-lg-3">
+                            <a href="/reparaciones/nueva" class="btn btn-success btn-lg w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4">
+                                <i class="bi bi-plus-circle-fill mb-2" style="font-size: 2rem;"></i>
+                                <span class="fw-semibold">Nueva Reparación</span>
+                            </a>
+                        </div>
+                        <!-- Nuevo Cliente -->
+                        <div class="col-md-6 col-lg-3">
+                            <a href="/clientes/nuevo" class="btn btn-primary btn-lg w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4">
+                                <i class="bi bi-person-plus-fill mb-2" style="font-size: 2rem;"></i>
+                                <span class="fw-semibold">Nuevo Cliente</span>
+                            </a>
+                        </div>
+                        <!-- Ver Reparaciones -->
+                        <div class="col-md-6 col-lg-3">
+                            <a href="/reparaciones" class="btn btn-warning btn-lg w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4">
+                                <i class="bi bi-tools mb-2" style="font-size: 2rem;"></i>
+                                <span class="fw-semibold">Ver Reparaciones</span>
+                            </a>
+                        </div>
+                        <!-- Ver Clientes -->
+                        <div class="col-md-6 col-lg-3">
+                            <a href="/clientes" class="btn btn-info btn-lg w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4">
+                                <i class="bi bi-people-fill mb-2" style="font-size: 2rem;"></i>
+                                <span class="fw-semibold">Ver Clientes</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 
@@ -189,82 +262,6 @@
                 </div>
             </div>
         </div>
-    </div>
-</section>
-
-<!-- ACCESOS RÁPIDOS -->
-<section class="container mb-5">
-    <div class="row g-4 justify-content-center">
-
-        <!-- Clientes -->
-        <div class="col-md-6 col-lg-4">
-            <div class="card quick-card h-100 shadow-sm" data-sr="enter bottom over 0.6s">
-                <div class="card-body d-flex flex-column align-items-start">
-                    <div class="d-flex align-items-center w-100 justify-content-between">
-                        <div class="d-flex align-items-center">
-                            <div class="display-6 text-primary me-3">
-                                <i class="bi bi-people-fill" style="font-size: 2.1rem;"></i>
-                            </div>
-                            <div>
-                                <h5 class="mb-0">Clientes</h5>
-                                <small class="text-muted">Gestiona tu base de clientes</small>
-                            </div>
-                        </div>
-                        <a href="/clientes" class="btn btn-primary btn-sm">Gestionar</a>
-                    </div>
-                    <p class="mt-3 text-muted small">
-                        Añade nuevos clientes, edita información existente y consulta el historial completo.
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Reparaciones -->
-        <div class="col-md-6 col-lg-4">
-            <div class="card quick-card h-100 shadow-sm" data-sr="enter bottom over 0.6s" data-sr-delay="100">
-                <div class="card-body d-flex flex-column align-items-start">
-                    <div class="d-flex align-items-center w-100 justify-content-between">
-                        <div class="d-flex align-items-center">
-                            <div class="display-6 text-success me-3">
-                                <i class="bi bi-tools" style="font-size: 2.1rem;"></i>
-                            </div>
-                            <div>
-                                <h5 class="mb-0">Reparaciones</h5>
-                                <small class="text-muted">Administra las reparaciones</small>
-                            </div>
-                        </div>
-                        <a href="/reparaciones" class="btn btn-success btn-sm">Gestionar</a>
-                    </div>
-                    <p class="mt-3 text-muted small">
-                        Crea nuevas reparaciones, actualiza estados y gestiona el flujo de trabajo.
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Servicios -->
-        <div class="col-md-6 col-lg-4">
-            <div class="card quick-card h-100 shadow-sm" data-sr="enter bottom over 0.6s" data-sr-delay="200">
-                <div class="card-body d-flex flex-column align-items-start">
-                    <div class="d-flex align-items-center w-100 justify-content-between">
-                        <div class="d-flex align-items-center">
-                            <div class="display-6 text-info me-3">
-                                <i class="bi bi-wrench" style="font-size: 2.1rem;"></i>
-                            </div>
-                            <div>
-                                <h5 class="mb-0">Servicios</h5>
-                                <small class="text-muted">Consulta nuestros servicios</small>
-                            </div>
-                        </div>
-                        <a href="/servicios" class="btn btn-info btn-sm">Ver Servicios</a>
-                    </div>
-                    <p class="mt-3 text-muted small">
-                        Explora todos los servicios que ofrecemos y nuestros precios competitivos.
-                    </p>
-                </div>
-            </div>
-        </div>
-
     </div>
 </section>
 

@@ -4,14 +4,14 @@
 
 {% block content %}
 
-<!-- HERO PEQUEÑO -->
+<!-- HERO CLIENTE -->
 <section class="hero text-center py-5">
     <div class="container">
         <div class="display-6 text-primary mb-3">
-            <i class="bi bi-search" style="font-size: 3rem;"></i>
+            <i class="bi bi-clipboard-check" style="font-size: 3rem;"></i>
         </div>
-        <h1 class="display-5 fw-bold mb-2">Consulta de Reparación</h1>
-        <p class="lead text-muted mb-4">Introduce el ID de tu reparación para consultar su estado actual.</p>
+        <h1 class="display-5 fw-bold mb-2">Consulta tu reparación</h1>
+        <p class="lead text-muted mb-4">Introduce tu número de reparación para ver el estado actual de tu dispositivo de forma sencilla y rápida.</p>
     </div>
 </section>
 
@@ -28,12 +28,12 @@
         <div class="col-md-8 col-lg-6">
             <div class="card shadow-sm" data-sr="enter bottom over 0.6s">
                 <div class="card-body p-5">
-                    <h3 class="card-title text-center mb-4 fw-bold">Buscar Reparación</h3>
+                    <h3 class="card-title text-center mb-4 fw-bold">Buscar tu Reparación</h3>
 
                     <form method="POST" class="needs-validation" novalidate>
                         <div class="mb-4">
                             <label for="id_reparacion" class="form-label fw-semibold">
-                                <i class="bi bi-hash me-2"></i>ID de Reparación
+                                <i class="bi bi-hash me-2"></i>Número de Reparación
                             </label>
                             <input type="number"
                                    class="form-control form-control-lg"
@@ -43,10 +43,10 @@
                                    placeholder="Ejemplo: 123"
                                    min="1">
                             <div class="invalid-feedback">
-                                Por favor introduce un ID válido.
+                                Por favor introduce un número válido.
                             </div>
                             <div class="form-text">
-                                Introduce el número de ID que te proporcionaron al dejar tu dispositivo.
+                                Introduce el número que aparece en tu resguardo o recibo de entrega.
                             </div>
                         </div>
 
@@ -68,7 +68,7 @@
     <div class="row justify-content-center">
         <div class="col-md-10 col-lg-8">
             <div class="card shadow-sm" data-sr="enter bottom over 0.6s">
-                <div class="card-header 
+                <div class="card-header
                     {% if reparacion.estado == 'Entregado' %}bg-success
                     {% elif reparacion.estado == 'Terminado' %}bg-success
                     {% elif reparacion.estado == 'En proceso' %}bg-primary
@@ -76,11 +76,22 @@
                     {% else %}bg-secondary{% endif %} text-white">
                     <h4 class="mb-0">
                         <i class="bi bi-check-circle-fill me-2"></i>
-                        Reparación Encontrada - ID: {{ reparacion.id }}
+                        Reparación Encontrada - Número: {{ reparacion.id }}
                     </h4>
                 </div>
                 <div class="card-body p-4">
                     <div class="row g-4">
+                        <!-- Cliente -->
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-person-circle text-info me-3" style="font-size: 1.5rem;"></i>
+                                <div>
+                                    <h6 class="mb-1 fw-semibold">Cliente</h6>
+                                    <p class="mb-0 text-muted">{{ reparacion.cliente or 'No especificado' }}</p>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Dispositivo -->
                         <div class="col-md-6">
                             <div class="d-flex align-items-center">
@@ -121,12 +132,12 @@
                             </div>
                         </div>
 
-                        <!-- Precio -->
-                        <div class="col-md-6">
+                        <!-- Precio Estimado -->
+                        <div class="col-md-12">
                             <div class="d-flex align-items-center">
                                 <i class="bi bi-cash text-warning me-3" style="font-size: 1.5rem;"></i>
                                 <div>
-                                    <h6 class="mb-1 fw-semibold">Precio</h6>
+                                    <h6 class="mb-1 fw-semibold">Precio Estimado</h6>
                                     <p class="mb-0 text-muted">
                                         {% if reparacion.precio %}
                                             {{ "%.2f"|format(reparacion.precio) }} €
@@ -139,55 +150,88 @@
                         </div>
                     </div>
 
+                    <!-- MENSAJE CONTEXTUAL SEGÚN ESTADO -->
+                    <div class="mt-4 p-3
+                        {% if reparacion.estado == 'Entregado' %}bg-success bg-opacity-10 border border-success
+                        {% elif reparacion.estado == 'Terminado' %}bg-success bg-opacity-10 border border-success
+                        {% elif reparacion.estado == 'En proceso' %}bg-primary bg-opacity-10 border border-primary
+                        {% elif reparacion.estado == 'Pendiente' %}bg-warning bg-opacity-10 border border-warning
+                        {% else %}bg-secondary bg-opacity-10 border border-secondary{% endif %} rounded">
+                        <div class="d-flex align-items-start">
+                            <i class="bi
+                                {% if reparacion.estado == 'Entregado' %}bi-check-circle-fill text-success
+                                {% elif reparacion.estado == 'Terminado' %}bi-check-circle-fill text-success
+                                {% elif reparacion.estado == 'En proceso' %}bi-gear-fill text-primary
+                                {% elif reparacion.estado == 'Pendiente' %}bi-clock-fill text-warning
+                                {% else %}bi-question-circle-fill text-secondary{% endif %} me-3" style="font-size: 1.5rem;"></i>
+                            <div>
+                                <h6 class="mb-1 fw-semibold">Estado Actual</h6>
+                                <p class="mb-0">
+                                    {% if reparacion.estado == 'Pendiente' %}
+                                        Tu dispositivo está en cola de revisión. Pronto comenzaremos a trabajar en él.
+                                    {% elif reparacion.estado == 'En proceso' %}
+                                        Tu dispositivo está siendo reparado. Te avisaremos cuando esté listo para recoger.
+                                    {% elif reparacion.estado == 'Terminado' %}
+                                        La reparación ha finalizado correctamente. Tu dispositivo está listo para recoger.
+                                    {% elif reparacion.estado == 'Entregado' %}
+                                        El dispositivo ha sido entregado. ¡Gracias por confiar en AndroTech!
+                                    {% else %}
+                                        Estado desconocido. Contacta con nosotros para más información.
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- TIMELINE DE PROGRESO -->
                     {% set linea1_activa = reparacion.estado in ['Pendiente', 'En proceso', 'Terminado', 'Entregado'] %}
                     {% set linea2_activa = reparacion.estado in ['En proceso', 'Terminado', 'Entregado'] %}
                     {% set linea3_activa = reparacion.estado in ['Terminado', 'Entregado'] %}
                     <div class="mt-4" data-sr="enter bottom over 0.6s">
-                        <h6 class="fw-semibold mb-3">Progreso de la Reparación</h6>
+                        <h6 class="fw-semibold mb-4">Progreso de la Reparación</h6>
                         <div class="d-flex justify-content-between align-items-center">
                             <!-- Paso 1: Recibido -->
-                            <div class="text-center flex-fill">
-                                <div class="mb-2">
-                                    <i class="bi bi-check-circle-fill text-success" style="font-size: 2rem;"></i>
+                            <div class="text-center flex-fill px-2">
+                                <div class="mb-3">
+                                    <i class="bi bi-check-circle-fill text-success" style="font-size: 2.5rem;"></i>
                                 </div>
-                                <h6 class="small fw-semibold">Recibido</h6>
+                                <h6 class="small fw-semibold mb-1">Recibido</h6>
                                 <p class="small text-muted">Dispositivo recibido</p>
                             </div>
                             <!-- Línea 1 -->
-                            <div class="flex-grow-1 mx-2">
+                            <div class="flex-grow-1 mx-3">
                                 <hr class="timeline-line {{ 'line-active' if linea1_activa else 'line-inactive' }}">
                             </div>
                             <!-- Paso 2: Diagnóstico -->
-                            <div class="text-center flex-fill">
-                                <div class="mb-2">
-                                    <i class="bi {% if reparacion.estado in ['En proceso', 'Terminado', 'Entregado'] %}bi-check-circle-fill text-success{% else %}bi-circle text-muted{% endif %}" style="font-size: 2rem;"></i>
+                            <div class="text-center flex-fill px-2">
+                                <div class="mb-3">
+                                    <i class="bi {% if reparacion.estado in ['En proceso', 'Terminado', 'Entregado'] %}bi-check-circle-fill text-success{% else %}bi-circle text-muted{% endif %}" style="font-size: 2.5rem;"></i>
                                 </div>
-                                <h6 class="small fw-semibold">Diagnóstico</h6>
+                                <h6 class="small fw-semibold mb-1">Diagnóstico</h6>
                                 <p class="small text-muted">Evaluación técnica</p>
                             </div>
                             <!-- Línea 2 -->
-                            <div class="flex-grow-1 mx-2">
+                            <div class="flex-grow-1 mx-3">
                                 <hr class="timeline-line {{ 'line-active' if linea2_activa else 'line-inactive' }}">
                             </div>
                             <!-- Paso 3: Reparación -->
-                            <div class="text-center flex-fill">
-                                <div class="mb-2">
-                                    <i class="bi {% if reparacion.estado in ['Terminado', 'Entregado'] %}bi-check-circle-fill text-success{% else %}bi-circle text-muted{% endif %}" style="font-size: 2rem;"></i>
+                            <div class="text-center flex-fill px-2">
+                                <div class="mb-3">
+                                    <i class="bi {% if reparacion.estado in ['Terminado', 'Entregado'] %}bi-check-circle-fill text-success{% else %}bi-circle text-muted{% endif %}" style="font-size: 2.5rem;"></i>
                                 </div>
-                                <h6 class="small fw-semibold">Reparación</h6>
+                                <h6 class="small fw-semibold mb-1">Reparación</h6>
                                 <p class="small text-muted">Trabajo en curso</p>
                             </div>
                             <!-- Línea 3 -->
-                            <div class="flex-grow-1 mx-2">
+                            <div class="flex-grow-1 mx-3">
                                 <hr class="timeline-line {{ 'line-active' if linea3_activa else 'line-inactive' }}">
                             </div>
                             <!-- Paso 4: Listo para recoger -->
-                            <div class="text-center flex-fill">
-                                <div class="mb-2">
-                                    <i class="bi {% if reparacion.estado == 'Entregado' %}bi-check-circle-fill text-success{% else %}bi-circle text-muted{% endif %}" style="font-size: 2rem;"></i>
+                            <div class="text-center flex-fill px-2">
+                                <div class="mb-3">
+                                    <i class="bi {% if reparacion.estado == 'Entregado' %}bi-check-circle-fill text-success{% else %}bi-circle text-muted{% endif %}" style="font-size: 2.5rem;"></i>
                                 </div>
-                                <h6 class="small fw-semibold">Listo para recoger</h6>
+                                <h6 class="small fw-semibold mb-1">Listo para recoger</h6>
                                 <p class="small text-muted">Disponible para recogida</p>
                             </div>
                         </div>
@@ -219,21 +263,29 @@
 </section>
 {% endif %}
 
-<!-- INFORMACIÓN ADICIONAL -->
+<!-- BLOQUE FINAL DE CONTACTO -->
 <section class="container mb-5">
     <div class="row justify-content-center">
         <div class="col-md-10 col-lg-8">
             <div class="card shadow-sm border-0 bg-light" data-sr="enter bottom over 0.6s">
                 <div class="card-body p-4 text-center">
-                    <i class="bi bi-info-circle text-primary mb-3" style="font-size: 2rem;"></i>
-                    <h5 class="card-title fw-semibold">¿No tienes el ID de tu reparación?</h5>
+                    <i class="bi bi-telephone text-primary mb-3" style="font-size: 2rem;"></i>
+                    <h5 class="card-title fw-semibold">¿Tienes dudas sobre tu reparación?</h5>
                     <p class="card-text text-muted mb-3">
-                        Si has perdido el número de ID, puedes contactar con nosotros directamente
-                        para obtener información sobre tu reparación.
+                        Estamos aquí para ayudarte. Contacta con nuestro equipo técnico.
                     </p>
-                    <a href="/contacto" class="btn btn-outline-primary">
-                        <i class="bi bi-envelope me-2"></i>Contactar Soporte
-                    </a>
+                    <div class="row g-3 justify-content-center">
+                        <div class="col-auto">
+                            <a href="tel:+34912345678" class="btn btn-outline-primary">
+                                <i class="bi bi-telephone me-2"></i>+34 912 345 678
+                            </a>
+                        </div>
+                        <div class="col-auto">
+                            <a href="mailto:contacto@androtech.es" class="btn btn-outline-primary">
+                                <i class="bi bi-envelope me-2"></i>contacto@androtech.es
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
