@@ -42,8 +42,8 @@
   100%{ transform: scale(1); }
 }
 
-/* Aplicar fade-in general con mejor timing - DESACTIVADO TEMPORALMENTE */
-/* body{
+/* Aplicar fade-in general con mejor timing */
+body{
   animation: fadeInGlobal 0.6s ease both; /* Más lento, natural */
   background-color: var(--bg-light);
   color: var(--text-dark);
@@ -51,17 +51,7 @@
   font-size: var(--font-size-base);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* REMOVIDO: padding-top: 76px - navbar no es fixed */
-  /* REMOVIDO: animation: fadeInGlobal - causaba contenido invisible */
-} */
-
-body {
-  background-color: var(--bg-light);
-  color: var(--text-dark);
-  line-height: var(--line-height-base);
-  font-size: var(--font-size-base);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  padding-top: 76px; /* Compensar navbar sticky (altura aproximada del navbar) */
 }
 
 /* 3. Hero principal refinado -------------------------------------------*/
@@ -842,12 +832,12 @@ ul, ol {
   100% { transform: rotate(360deg); }
 }
 
-/* Animaciones coherentes con ScrollReveal - DESACTIVADO TEMPORALMENTE */
-/* [data-sr] {
+/* Animaciones coherentes con ScrollReveal */
+[data-sr] {
   opacity: 0;
   transform: translateY(20px);
   transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-} */
+}
 
 [data-sr].sr-visible {
   opacity: 1;
@@ -1002,19 +992,6 @@ ul, ol {
 .interactive-element:active {
   transform: translateY(0);
   transition: transform 0.1s ease;
-}
-
-/* REGLA DE EMERGENCIA: Forzar visibilidad del texto */
-body, .container, .card, h1, h2, h3, h4, h5, h6, p, span, div, .card-body, .navbar, .btn {
-  color: #212529 !important; /* Color de texto oscuro forzado */
-}
-
-.text-muted, .lead {
-  color: #495057 !important; /* Color de texto secundario forzado */
-}
-
-.bg-light {
-  background-color: #f8f9fa !important; /* Fondo claro forzado */
 }
 
 /* Fin de PASO D3 - Microinteracciones de calidad */

@@ -346,30 +346,35 @@ def servicios():
 
 @app.route("/consulta", methods=["GET", "POST"])
 def consulta():
-    reparaciones = []
+    reparacion = None
     error = None
 
     if request.method == "POST":
-        telefono = request.form.get("telefono")
+        id_reparacion = request.form.get("id_reparacion")
 
-        if not telefono:
-            error = "Por favor, introduce un número de teléfono."
+        if not id_reparacion:
+            error = "Por favor, introduce un número de reparación."
         else:
-            conn = get_db()
-            reparaciones = conn.execute("""
-                SELECT reparaciones.id, reparaciones.dispositivo, reparaciones.estado,
-                       reparaciones.fecha_entrada, reparaciones.precio
-                FROM reparaciones
-                JOIN clientes ON clientes.id = reparaciones.cliente_id
-                WHERE clientes.telefono = ?
-                ORDER BY reparaciones.fecha_entrada DESC
-            """, (telefono,)).fetchall()
-            conn.close()
+            try:
+                id_reparacion = int(id_reparacion)
+                conn = get_db()
+                reparacion = conn.execute("""
+                    SELECT reparaciones.id, reparaciones.dispositivo, reparaciones.estado,
+                           reparaciones.fecha_entrada, reparaciones.precio, reparaciones.descripcion,
+                           clientes.nombre as cliente, clientes.telefono
+                    FROM reparaciones
+                    JOIN clientes ON clientes.id = reparaciones.cliente_id
+                    WHERE reparaciones.id = ?
+                """, (id_reparacion,)).fetchone()
+                conn.close()
 
-            if not reparaciones:
-                error = f"No se encontraron reparaciones para el teléfono {telefono}."
+                if not reparacion:
+                    error = f"No se encontró ninguna reparación con el número {id_reparacion}."
 
-    return render_template("consulta.html", reparaciones=reparaciones, error=error)
+            except ValueError:
+                error = "Por favor, introduce un número válido."
+
+    return render_template("consulta.html", reparacion=reparacion, error=error)
 
 # =========================================
 # 🔸 FUNCIÓN PARA CREAR USUARIO ADMIN INICIAL
