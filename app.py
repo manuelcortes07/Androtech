@@ -93,27 +93,75 @@ def index():
 @login_required
 def dashboard():
     conn = get_db()
-
-    # Estadísticas principales
+    
+    # ========== ESTADÍSTICAS GENERALES ==========
     total_clientes = conn.execute("SELECT COUNT(*) FROM clientes").fetchone()[0]
+    total_reparaciones = conn.execute("SELECT COUNT(*) FROM reparaciones").fetchone()[0]
+    
     reparaciones_activas = conn.execute("""
         SELECT COUNT(*) FROM reparaciones
         WHERE estado != 'Terminado' AND estado != 'Entregado'
     """).fetchone()[0]
+    
     reparaciones_terminadas = conn.execute("""
         SELECT COUNT(*) FROM reparaciones
         WHERE estado = 'Terminado' OR estado = 'Entregado'
     """).fetchone()[0]
-    ingresos = conn.execute("""
+    
+    # Ingresos totales
+    ingresos_total = conn.execute("""
         SELECT IFNULL(SUM(precio), 0) FROM reparaciones
+        WHERE precio IS NOT NULL
     """).fetchone()[0]
-
-    # Calcular porcentajes para las barras de progreso
-    total_reparaciones = reparaciones_activas + reparaciones_terminadas
-    porcentaje_activas = round((reparaciones_activas / total_reparaciones * 100), 1) if total_reparaciones > 0 else 0
-    porcentaje_terminadas = round((reparaciones_terminadas / total_reparaciones * 100), 1) if total_reparaciones > 0 else 0
-
-    # Últimas 5 reparaciones con información del cliente
+    
+    # ========== ESTADÍSTICAS DE ESTE MES ==========
+    hoy = datetime.now()
+    inicio_mes = datetime(hoy.year, hoy.month, 1)
+    
+    ingresos_mes = conn.execute("""
+        SELECT IFNULL(SUM(precio), 0) FROM reparaciones
+        WHERE fecha_entrada >= ? AND precio IS NOT NULL
+    """, (inicio_mes.strftime("%Y-%m-%d"),)).fetchone()[0]
+    
+    reparaciones_mes = conn.execute("""
+        SELECT COUNT(*) FROM reparaciones
+        WHERE fecha_entrada >= ?
+    """, (inicio_mes.strftime("%Y-%m-%d"),)).fetchone()[0]
+    
+    reparaciones_completadas_mes = conn.execute("""
+        SELECT COUNT(*) FROM reparaciones
+        WHERE (estado = 'Terminado' OR estado = 'Entregado')
+        AND fecha_entrada >= ?
+    """, (inicio_mes.strftime("%Y-%m-%d"),)).fetchone()[0]
+    
+    # ========== DISPOSITIVOS MÁS REPARADOS ==========
+    dispositivos_top = conn.execute("""
+        SELECT dispositivo, COUNT(*) as cantidad
+        FROM reparaciones
+        WHERE dispositivo IS NOT NULL AND dispositivo != ''
+        GROUP BY dispositivo
+        ORDER BY cantidad DESC
+        LIMIT 5
+    """).fetchall()
+    
+    # ========== ESTADOS MÁS COMUNES ==========
+    estados_distribucion = conn.execute("""
+        SELECT estado, COUNT(*) as cantidad
+        FROM reparaciones
+        GROUP BY estado
+        ORDER BY cantidad DESC
+    """).fetchall()
+    
+    # Convertir a dict para template
+    dispositivos_dict = [{"nombre": d[0], "cantidad": d[1]} for d in dispositivos_top] if dispositivos_top else []
+    estados_dict = [{"nombre": e[0], "cantidad": e[1]} for e in estados_distribucion] if estados_distribucion else []
+    
+    # Calcular porcentajes
+    total_rep = reparaciones_activas + reparaciones_terminadas
+    porcentaje_activas = round((reparaciones_activas / total_rep * 100), 1) if total_rep > 0 else 0
+    porcentaje_terminadas = round((reparaciones_terminadas / total_rep * 100), 1) if total_rep > 0 else 0
+    
+    # Últimas 5 reparaciones
     ultimas_reparaciones = conn.execute("""
         SELECT reparaciones.*, clientes.nombre AS cliente
         FROM reparaciones
@@ -121,18 +169,30 @@ def dashboard():
         ORDER BY reparaciones.id DESC
         LIMIT 5
     """).fetchall()
-
+    
     conn.close()
+    
+    # Calcular IVA en ingresos
+    iva_total = round(ingresos_total * 0.21, 2)
+    iva_mes = round(ingresos_mes * 0.21, 2)
 
     return render_template(
         "dashboard.html",
         total_clientes=total_clientes,
+        total_reparaciones=total_reparaciones,
         reparaciones_activas=reparaciones_activas,
         reparaciones_terminadas=reparaciones_terminadas,
-        ingresos=ingresos,
         porcentaje_activas=porcentaje_activas,
         porcentaje_terminadas=porcentaje_terminadas,
-        ultimas_reparaciones=ultimas_reparaciones
+        ingresos_total=round(ingresos_total, 2),
+        iva_total=iva_total,
+        ingresos_mes=round(ingresos_mes, 2),
+        iva_mes=iva_mes,
+        reparaciones_mes=reparaciones_mes,
+        reparaciones_completadas_mes=reparaciones_completadas_mes,
+        ultimas_reparaciones=ultimas_reparaciones,
+        dispositivos_top=dispositivos_dict,
+        estados_distribucion=estados_dict
     )
 
 #  SECCIÓN CLIENTES
