@@ -1,8 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
 import sqlite3
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
+from utils.pdf_generator import generar_presupuesto_pdf
 
 app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta_muy_segura_aqui'  # Cambia esto por una clave segura en producción
@@ -296,6 +297,60 @@ def borrar_reparacion(id):
     conn.commit()
     conn.close()
     return redirect(url_for("reparaciones"))
+
+
+# GENERAR PDF PRESUPUESTO
+@app.route("/reparaciones/pdf/<int:id>")
+@login_required
+def generar_pdf_presupuesto(id):
+    """
+    Genera y descarga un PDF con presupuesto o factura de una reparación.
+    Solo accesible por admin y técnicos.
+    """
+    # Obtener tipo de documento desde parámetro GET (default: presupuesto)
+    tipo_documento = request.args.get("tipo", "presupuesto").lower()
+    if tipo_documento not in ["presupuesto", "factura"]:
+        tipo_documento = "presupuesto"
+    
+    conn = get_db()
+    
+    # Obtener reparación y cliente
+    reparacion = conn.execute("""
+        SELECT r.*, c.nombre AS cliente_nombre, c.telefono AS cliente_telefono
+        FROM reparaciones r
+        LEFT JOIN clientes c ON c.id = r.cliente_id
+        WHERE r.id = ?
+    """, (id,)).fetchone()
+    
+    conn.close()
+    
+    if not reparacion:
+        flash('Reparación no encontrada.', 'danger')
+        return redirect(url_for('reparaciones'))
+    
+    # Convertir Row de sqlite3 a dict
+    reparacion_data = {
+        'id': reparacion['id'],
+        'dispositivo': reparacion['dispositivo'],
+        'estado': reparacion['estado'],
+        'fecha_entrada': reparacion['fecha_entrada'],
+        'precio': reparacion['precio'],
+        'descripcion': reparacion['descripcion'],
+        'cliente_nombre': reparacion['cliente_nombre'],
+        'cliente_telefono': reparacion['cliente_telefono'],
+    }
+    
+    # Generar PDF con tipo de documento
+    pdf_buffer = generar_presupuesto_pdf(reparacion_data, tipo_documento=tipo_documento)
+    
+    # Retornar como descarga
+    nombre_archivo = f"{tipo_documento}_reparacion_{id}.pdf"
+    return send_file(
+        pdf_buffer,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=nombre_archivo
+    )
 
 # =========================================
 # 🔸 SECCIÓN CONTACTO

@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS reparaciones (
     fecha_entrada TEXT,
     fecha_salida TEXT,
     precio REAL,
+    tipo_documento TEXT DEFAULT 'presupuesto',
     FOREIGN KEY (cliente_id) REFERENCES clientes(id)
 );
 """)

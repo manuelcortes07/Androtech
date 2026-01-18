@@ -44,6 +44,10 @@
                             <td>{{ r.fecha_entrada }}</td>
                             <td>
                                 <a href="/reparaciones/editar/{{ r.id }}" class="btn btn-warning btn-sm me-1">Editar</a>
+                                <div class="btn-group btn-group-sm me-1" role="group">
+                                    <a href="/reparaciones/pdf/{{ r.id }}?tipo=presupuesto" class="btn btn-outline-primary" target="_blank" title="Descargar presupuesto">📋 Presupuesto</a>
+                                    <a href="/reparaciones/pdf/{{ r.id }}?tipo=factura" class="btn btn-outline-success" target="_blank" title="Descargar factura">📄 Factura</a>
+                                </div>
                                 {% if session.rol == 'admin' %}
                                 <a href="/reparaciones/borrar/{{ r.id }}" class="btn btn-danger btn-sm"
                                    onclick="return confirm('¿Seguro que deseas borrar esta reparación?');">Borrar</a>
