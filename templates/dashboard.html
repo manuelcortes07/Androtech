@@ -148,6 +148,68 @@
         </div>
     </div>
 
+    <!-- FILA 2B: COBROS Y PENDIENTES -->
+    <div class="row g-4 mb-5">
+
+        <!-- Dinero Cobrado -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-success text-white border-0">
+                    <h5 class="mb-0"><i class="bi bi-check-circle-fill"></i> Dinero Cobrado</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="text-muted small">Cobrado</p>
+                            <h3 class="fw-bold text-success">{{ "%.2f"|format(dinero_cobrado) }}€</h3>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted small">Reparaciones</p>
+                            <h3 class="fw-bold" style="color: #6c757d;">{{ reparaciones_pagadas }}</h3>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-success" style="width: {{ tasa_cobro }}%">
+                            {{ tasa_cobro }}% cobrado
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dinero Por Cobrar -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-warning text-white border-0">
+                    <h5 class="mb-0"><i class="bi bi-hourglass-split"></i> Dinero Por Cobrar</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="text-muted small">Pendiente</p>
+                            <h3 class="fw-bold text-warning">{{ "%.2f"|format(dinero_por_cobrar) }}€</h3>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted small">Reparaciones</p>
+                            <h3 class="fw-bold" style="color: #6c757d;">{{ reparaciones_pendiente_pago }}</h3>
+                        </div>
+                    </div>
+                    <hr>
+                    {% if reparaciones_pendiente_pago > 0 %}
+                        <p class="text-danger small mb-0">
+                            ⚠️ <strong>{{ reparaciones_pendiente_pago }} reparación(es) sin pagar</strong>
+                        </p>
+                    {% else %}
+                        <p class="text-success small mb-0">
+                            ✓ <strong>Todas las reparaciones están pagadas</strong>
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- FILA 3: GRÁFICOS Y TABLAS -->
     <div class="row g-4">
 
@@ -200,8 +262,48 @@
         {% endif %}
     </div>
 
-    <!-- FILA 4: ÚLTIMAS REPARACIONES -->
+    <!-- FILA 4: PENDIENTES DE PAGO -->
+    {% if reparaciones_sin_pagar %}
     <div class="row mt-5">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm border-warning">
+                <div class="card-header bg-warning text-white border-0">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-circle"></i> Reparaciones Pendientes de Pago</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Cliente</th>
+                                    <th>Dispositivo</th>
+                                    <th>Precio</th>
+                                    <th>Fecha Entrada</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for rep in reparaciones_sin_pagar %}
+                                <tr class="table-warning">
+                                    <td><strong>#{{ rep.id }}</strong></td>
+                                    <td>{{ rep.cliente or 'Sin asignar' }}</td>
+                                    <td>{{ rep.dispositivo }}</td>
+                                    <td><strong class="text-danger">{{ "%.2f"|format(rep.precio) }}€</strong></td>
+                                    <td><small class="text-muted">{{ rep.fecha_entrada }}</small></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- FILA 5: ÚLTIMAS REPARACIONES -->
+    <div class="row mt-5">
+        <div class="col-12">
         <div class="col-12">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-primary text-white border-0">
@@ -217,6 +319,7 @@
                                     <th>Cliente</th>
                                     <th>Dispositivo</th>
                                     <th>Estado</th>
+                                    <th>Pago</th>
                                     <th>Fecha</th>
                                     <th>Precio</th>
                                 </tr>
@@ -234,6 +337,13 @@
                                             <span class="badge bg-warning text-dark">{{ rep.estado }}</span>
                                         {% else %}
                                             <span class="badge bg-info">{{ rep.estado }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if rep.estado_pago == 'Pagado' %}
+                                            <span class="badge bg-success">✓ Pagado</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">⏳ Pendiente</span>
                                         {% endif %}
                                     </td>
                                     <td><small class="text-muted">{{ rep.fecha_entrada }}</small></td>

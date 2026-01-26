@@ -37,6 +37,9 @@ CREATE TABLE IF NOT EXISTS reparaciones (
     fecha_salida TEXT,
     precio REAL,
     tipo_documento TEXT DEFAULT 'presupuesto',
+    estado_pago TEXT DEFAULT 'Pendiente',
+    fecha_pago TEXT,
+    metodo_pago TEXT,
     FOREIGN KEY (cliente_id) REFERENCES clientes(id)
 );
 """)

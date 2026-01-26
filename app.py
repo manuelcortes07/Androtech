@@ -8,6 +8,22 @@ from utils.pdf_generator import generar_presupuesto_pdf
 app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta_muy_segura_aqui'  # Cambia esto por una clave segura en producción
 
+# REGISTRAR FILTRO PERSONALIZADO PARA JINJA2
+@app.template_filter('strftime')
+def strftime_filter(date_str, format_str='%d/%m/%Y'):
+    """Filtro para formatear fechas en Jinja2. Si date_str es vacío, retorna hoy"""
+    if not date_str or date_str == '':
+        return datetime.now().strftime(format_str)
+    if isinstance(date_str, str):
+        # Intentar parsear la fecha
+        try:
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+        except:
+            return date_str
+    else:
+        date_obj = date_str
+    return date_obj.strftime(format_str)
+
 # CONEXIÓN A LA BASE DE DATOS
 def get_db():
     conn = sqlite3.connect("database/andro_tech.db")
@@ -134,6 +150,41 @@ def dashboard():
         AND fecha_entrada >= ?
     """, (inicio_mes.strftime("%Y-%m-%d"),)).fetchone()[0]
     
+    # ========== ESTADÍSTICAS DE PAGOS ==========
+    dinero_cobrado = conn.execute("""
+        SELECT IFNULL(SUM(precio), 0) FROM reparaciones
+        WHERE estado_pago = 'Pagado' AND precio IS NOT NULL
+    """).fetchone()[0]
+    
+    dinero_por_cobrar = ingresos_total - dinero_cobrado
+    
+    reparaciones_pendiente_pago = conn.execute("""
+        SELECT COUNT(*) FROM reparaciones
+        WHERE estado_pago = 'Pendiente' AND precio IS NOT NULL AND precio > 0
+    """).fetchone()[0]
+    
+    reparaciones_pagadas = conn.execute("""
+        SELECT COUNT(*) FROM reparaciones
+        WHERE estado_pago = 'Pagado'
+    """).fetchone()[0]
+    
+    # Calcular tasa de cobro (porcentaje)
+    tasa_cobro = 0
+    if ingresos_total > 0:
+        tasa_cobro = round((dinero_cobrado / ingresos_total * 100), 1)
+    
+    # Obtener reparaciones pendientes de pago (últimas 5)
+    reparaciones_sin_pagar = conn.execute("""
+        SELECT reparaciones.*, clientes.nombre AS cliente
+        FROM reparaciones
+        LEFT JOIN clientes ON clientes.id = reparaciones.cliente_id
+        WHERE reparaciones.estado_pago = 'Pendiente' 
+        AND reparaciones.precio IS NOT NULL AND reparaciones.precio > 0
+        ORDER BY reparaciones.id DESC
+        LIMIT 5
+    """).fetchall()
+    reparaciones_sin_pagar_list = [dict(r) for r in reparaciones_sin_pagar] if reparaciones_sin_pagar else []
+    
     # ========== DISPOSITIVOS MÁS REPARADOS ==========
     dispositivos_top = conn.execute("""
         SELECT dispositivo, COUNT(*) as cantidad
@@ -192,7 +243,13 @@ def dashboard():
         reparaciones_completadas_mes=reparaciones_completadas_mes,
         ultimas_reparaciones=ultimas_reparaciones,
         dispositivos_top=dispositivos_dict,
-        estados_distribucion=estados_dict
+        estados_distribucion=estados_dict,
+        dinero_cobrado=round(dinero_cobrado, 2),
+        dinero_por_cobrar=round(dinero_por_cobrar, 2),
+        reparaciones_pendiente_pago=reparaciones_pendiente_pago,
+        reparaciones_pagadas=reparaciones_pagadas,
+        tasa_cobro=tasa_cobro,
+        reparaciones_sin_pagar=reparaciones_sin_pagar_list
     )
 
 #  SECCIÓN CLIENTES
@@ -353,10 +410,70 @@ def editar_reparacion(id):
 @role_required('admin')
 def borrar_reparacion(id):
     conn = get_db()
+    
+    # Validar que no esté pagada
+    reparacion = conn.execute("SELECT estado_pago FROM reparaciones WHERE id=?", (id,)).fetchone()
+    if reparacion and reparacion['estado_pago'] == 'Pagado':
+        conn.close()
+        flash('❌ No se puede eliminar: esta reparación ya está pagada.', 'danger')
+        return redirect(url_for("reparaciones"))
+    
     conn.execute("DELETE FROM reparaciones WHERE id=?", (id,))
     conn.commit()
     conn.close()
+    flash('✅ Reparación eliminada correctamente.', 'success')
     return redirect(url_for("reparaciones"))
+
+
+@app.route("/reparaciones/<int:id>/marcar-pagado", methods=["POST"])
+@login_required
+def marcar_reparacion_pagada(id):
+    """
+    Marca una reparación como pagada.
+    Solo accesible por admin y técnicos.
+    """
+    conn = get_db()
+    
+    # Obtener reparación
+    reparacion = conn.execute("SELECT * FROM reparaciones WHERE id=?", (id,)).fetchone()
+    
+    if not reparacion:
+        conn.close()
+        flash('❌ Reparación no encontrada.', 'danger')
+        return redirect(url_for("reparaciones"))
+    
+    # Validar que NO esté ya pagada
+    if reparacion['estado_pago'] == 'Pagado':
+        conn.close()
+        flash('❌ Esta reparación ya está marcada como pagada.', 'warning')
+        return redirect(url_for("editar_reparacion", id=id))
+    
+    # Validar que tenga precio
+    if not reparacion['precio'] or reparacion['precio'] <= 0:
+        conn.close()
+        flash('❌ No se puede marcar como pagada: sin presupuesto asignado.', 'danger')
+        return redirect(url_for("editar_reparacion", id=id))
+    
+    # Obtener datos del formulario
+    metodo_pago = request.form.get("metodo_pago", "").strip()
+    
+    if not metodo_pago:
+        conn.close()
+        flash('❌ Debe seleccionar un método de pago.', 'danger')
+        return redirect(url_for("editar_reparacion", id=id))
+    
+    # Actualizar BD
+    fecha_pago = datetime.now().strftime("%Y-%m-%d")
+    conn.execute("""
+        UPDATE reparaciones 
+        SET estado_pago='Pagado', fecha_pago=?, metodo_pago=?
+        WHERE id=?
+    """, (fecha_pago, metodo_pago, id))
+    conn.commit()
+    conn.close()
+    
+    flash(f'✅ Pago registrado correctamente ({metodo_pago}).', 'success')
+    return redirect(url_for("editar_reparacion", id=id))
 
 
 # GENERAR PDF PRESUPUESTO

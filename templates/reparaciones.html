@@ -26,6 +26,7 @@
                             <th scope="col">Cliente</th>
                             <th scope="col">Dispositivo</th>
                             <th scope="col" style="width:140px;">Estado</th>
+                            <th scope="col" style="width:110px;">Pago</th>
                             <th scope="col" style="width:160px;">Fecha entrada</th>
                             <th scope="col" style="width:200px;">Acciones</th>
                         </tr>
@@ -40,6 +41,13 @@
                             <td>
                                 {# Mantengo el valor original y muestro una etiqueta visual #}
                                 <span class="badge bg-info text-dark">{{ r.estado }}</span>
+                            </td>
+                            <td>
+                                {% if r.estado_pago == 'Pagado' %}
+                                    <span class="badge bg-success">✓ Pagado</span>
+                                {% else %}
+                                    <span class="badge bg-danger">⏳ Pendiente</span>
+                                {% endif %}
                             </td>
                             <td>{{ r.fecha_entrada }}</td>
                             <td>
