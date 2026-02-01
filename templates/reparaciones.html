@@ -18,6 +18,47 @@
 
             <div class="card-body">
 
+                <!-- FILTROS AVANZADOS -->
+                <form method="get" class="row g-2 mb-3">
+                    <div class="col-sm-3">
+                        <select name="cliente_id" class="form-select form-select-sm">
+                            <option value="">-- Todos los clientes --</option>
+                            {% for c in clientes %}
+                                <option value="{{ c.id }}" {% if filters.cliente_id and filters.cliente_id == (c.id|string) %}selected{% endif %}>{{ c.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-sm-2">
+                        <select name="estado" class="form-select form-select-sm">
+                            <option value="">-- Estado --</option>
+                            <option value="Pendiente" {% if filters.estado == 'Pendiente' %}selected{% endif %}>Pendiente</option>
+                            <option value="En proceso" {% if filters.estado == 'En proceso' %}selected{% endif %}>En proceso</option>
+                            <option value="Terminado" {% if filters.estado == 'Terminado' %}selected{% endif %}>Terminado</option>
+                            <option value="Entregado" {% if filters.estado == 'Entregado' %}selected{% endif %}>Entregado</option>
+                        </select>
+                    </div>
+
+                    <div class="col-sm-2">
+                        <input type="date" name="desde" class="form-control form-control-sm" placeholder="Desde" value="{{ filters.desde if filters.desde is defined else '' }}">
+                    </div>
+
+                    <div class="col-sm-2">
+                        <input type="date" name="hasta" class="form-control form-control-sm" placeholder="Hasta" value="{{ filters.hasta if filters.hasta is defined else '' }}">
+                    </div>
+
+                    <div class="col-sm-1">
+                        <input type="number" step="0.01" name="precio_min" class="form-control form-control-sm" placeholder="Min" value="{{ filters.precio_min if filters.precio_min is defined else '' }}">
+                    </div>
+                    <div class="col-sm-1">
+                        <input type="number" step="0.01" name="precio_max" class="form-control form-control-sm" placeholder="Max" value="{{ filters.precio_max if filters.precio_max is defined else '' }}">
+                    </div>
+
+                    <div class="col-sm-1 d-grid">
+                        <button class="btn btn-primary btn-sm" type="submit">Filtrar</button>
+                    </div>
+                </form>
+
                 <div class="table-responsive">
                     <table class="table table-striped table-hover align-middle mb-0">
                         <thead class="table-secondary text-secondary small text-uppercase">
@@ -69,9 +110,25 @@
 
             </div>
 
-            <div class="card-footer bg-light small text-muted d-flex justify-content-between align-items-center">
-                <div>Mostrando <strong>{{ reparaciones|length }}</strong> reparaciones</div>
-                <div>Panel administrativo — AndroTech</div>
+            <div class="card-footer bg-light small text-muted">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>Mostrando <strong>{{ reparaciones|length }}</strong> de <strong>{{ total }}</strong> reparaciones</div>
+                    <div>
+                        <nav aria-label="Paginacion">
+                            <ul class="pagination pagination-sm mb-0">
+                                <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                                    <a class="page-link" href="?page={{ page-1 }}{% if filters_query %}&{{ filters_query }}{% endif %}">Anterior</a>
+                                </li>
+                                {% for p in range(1, total_pages+1) %}
+                                <li class="page-item {% if p == page %}active{% endif %}"><a class="page-link" href="?page={{ p }}{% if filters_query %}&{{ filters_query }}{% endif %}">{{ p }}</a></li>
+                                {% endfor %}
+                                <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+                                    <a class="page-link" href="?page={{ page+1 }}{% if filters_query %}&{{ filters_query }}{% endif %}">Siguiente</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
             </div>
 
         </div>

@@ -156,7 +156,28 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+
+                        <!-- Estado de Pago -->
+                        <div class="col-md-12">
+                            <div class="d-flex align-items-center">
+                                {% if reparacion.estado_pago == 'Pagado' %}
+                                    <i class="bi bi-check-circle-fill text-success me-3" style="font-size: 1.5rem;"></i>
+                                    <div>
+                                        <h6 class="mb-1 fw-semibold">Estado de Pago</h6>
+                                        <p class="mb-0 text-success fw-semibold">
+                                            ✅ Pagado {% if reparacion.fecha_pago %}el {{ reparacion.fecha_pago }}{% endif %}
+                                            {% if reparacion.metodo_pago %}({{ reparacion.metodo_pago }}){% endif %}
+                                        </p>
+                                    </div>
+                                {% else %}
+                                    <i class="bi bi-clock-history text-warning me-3" style="font-size: 1.5rem;"></i>
+                                    <div>
+                                        <h6 class="mb-1 fw-semibold">Estado de Pago</h6>
+                                        <p class="mb-0 text-warning">⏳ Pendiente de pago</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
 
                     <!-- MENSAJE CONTEXTUAL SEGÚN ESTADO -->
                     <div class="mt-4 p-3
@@ -243,6 +264,71 @@
                                 <p class="small text-muted">Disponible para recogida</p>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{% if reparacion and reparacion.precio and reparacion.estado_pago != 'Pagado' %}
+<!-- FORMULARIO DE PAGO PÚBLICO -->
+<section class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm border-primary border-2">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-credit-card"></i> Pagar esta reparación</h5>
+                </div>
+                <div class="card-body p-4">
+                    <p class="text-muted mb-3">Introduce tu correo electrónico para verificar tu identidad y procede al pago seguro con tarjeta. Stripe se encargará de procesar tu pago de forma segura.</p>
+                    <form action="/publico/pagar/{{ reparacion.id }}" method="POST" class="needs-validation" novalidate>
+                        <div class="mb-3">
+                            <label for="cliente_email" class="form-label fw-semibold">
+                                <i class="bi bi-envelope me-2"></i>Correo electrónico registrado
+                            </label>
+                            <input type="email" id="cliente_email" name="cliente_email" class="form-control form-control-lg" required placeholder="tu@ejemplo.com">
+                            <div class="invalid-feedback">Introduce un correo válido.</div>
+                            <small class="form-text text-muted">Debe coincidir con el email registrado para esta reparación.</small>
+                        </div>
+                        <div class="alert alert-info small mb-3">
+                            <i class="bi bi-info-circle"></i> Importe a pagar: <strong>{{ "%.2f"|format(reparacion.precio) }} €</strong> (IVA incluido)
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg fw-semibold">
+                                <i class="bi bi-lock-fill me-2"></i>Pagar con tarjeta (Stripe)
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{% if reparacion and reparacion.estado_pago == 'Pagado' %}
+<!-- CONFIRMACIÓN DE PAGO REALIZADO -->
+<section class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm border-success border-2">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-check-circle-fill"></i> Pago Confirmado</h5>
+                </div>
+                <div class="card-body p-4 text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+                    </div>
+                    <p class="mb-2">✅ <strong>Tu pago ha sido procesado correctamente.</strong></p>
+                    <p class="text-muted small mb-3">
+                        Importe: <strong>{{ "%.2f"|format(reparacion.precio) }} €</strong><br>
+                        {% if reparacion.fecha_pago %}Pagado el: <strong>{{ reparacion.fecha_pago }}</strong><br>{% endif %}
+                        {% if reparacion.metodo_pago %}Método: <strong>{{ reparacion.metodo_pago }}</strong>{% endif %}
+                    </p>
+                    <div class="alert alert-success small">
+                        <i class="bi bi-info-circle"></i> Gracias por tu pago. Tu dispositivo está siendo preparado para la entrega.
                     </div>
                 </div>
             </div>

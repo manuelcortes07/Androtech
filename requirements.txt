@@ -3,3 +3,4 @@ flask-mysqldb
 reportlab
 fpdf
 bootstrap-flask
+stripe
