@@ -327,6 +327,69 @@ def editar_cliente(id):
     return render_template("editar_cliente.html", cliente=cliente)
 
 
+# HISTORIAL CLIENTE - SOLO ADMIN
+@app.route("/cliente/historial")
+@role_required('admin')
+def historial_cliente():
+    conn = get_db()
+
+    # Estadísticas generales
+    total_reparaciones = conn.execute("SELECT COUNT(*) FROM reparaciones").fetchone()[0]
+    pagadas = conn.execute("SELECT COUNT(*) FROM reparaciones WHERE estado_pago = 'Pagado'").fetchone()[0]
+    pendientes = conn.execute("SELECT COUNT(*) FROM reparaciones WHERE estado_pago != 'Pagado'").fetchone()[0]
+    total_invertido = conn.execute("SELECT IFNULL(SUM(precio), 0) FROM reparaciones WHERE precio IS NOT NULL").fetchone()[0]
+    promedio_precio = conn.execute("SELECT IFNULL(AVG(precio), 0) FROM reparaciones WHERE precio IS NOT NULL").fetchone()[0]
+    total_completadas = conn.execute("SELECT COUNT(*) FROM reparaciones WHERE estado = 'Terminado' OR estado = 'Entregado'").fetchone()[0]
+
+    # Filtro por estado y cliente
+    estado_filtro = request.args.get('estado', '').strip()
+    cliente_filtro = request.args.get('cliente_id', '').strip()
+
+    # Paginación
+    try:
+        page = int(request.args.get('page', 1))
+        if page < 1:
+            page = 1
+    except ValueError:
+        page = 1
+    per_page = 10
+    offset = (page - 1) * per_page
+
+    base_sql = "SELECT reparaciones.*, clientes.nombre AS cliente FROM reparaciones LEFT JOIN clientes ON clientes.id = reparaciones.cliente_id"
+    where = []
+    params = []
+    if estado_filtro:
+        where.append("reparaciones.estado = ?")
+        params.append(estado_filtro)
+    if cliente_filtro:
+        where.append("reparaciones.cliente_id = ?")
+        params.append(cliente_filtro)
+
+    where_clause = (" WHERE " + " AND ".join(where)) if where else ""
+
+    total_count = conn.execute("SELECT COUNT(*) FROM reparaciones" + where_clause, params).fetchone()[0]
+    total_pages = (total_count + per_page - 1) // per_page if total_count > 0 else 1
+
+    reparaciones_rows = conn.execute(base_sql + where_clause + " ORDER BY reparaciones.id DESC LIMIT ? OFFSET ?", params + [per_page, offset]).fetchall()
+    reparaciones = [dict(r) for r in reparaciones_rows]
+
+    estados = conn.execute("SELECT DISTINCT estado FROM reparaciones ORDER BY estado").fetchall()
+    clientes = conn.execute("SELECT id, nombre FROM clientes ORDER BY nombre").fetchall()
+
+    conn.close()
+
+    stats = {
+        'total_reparaciones': total_reparaciones,
+        'pagadas': pagadas,
+        'pendientes': pendientes,
+        'total_invertido': total_invertido or 0,
+        'promedio_precio': promedio_precio or 0,
+        'total_completadas': total_completadas,
+    }
+
+    return render_template('historial_cliente.html', reparaciones=reparaciones, stats=stats, estados=estados, clientes=clientes, estado_filtro=estado_filtro, cliente_filtro=cliente_filtro, page=page, total_pages=total_pages)
+
+
 # BORRAR CLIENTE
 @app.route("/clientes/borrar/<int:id>")
 @role_required('admin')

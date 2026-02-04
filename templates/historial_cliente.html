@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+
+{% block title %}Mi Historial de Reparaciones{% endblock %}
+
+{% block content %}
+
+<div class="container py-5">
+    <!-- HEADER -->
+    <div class="row mb-5">
+        <div class="col-lg-8">
+            <h1 class="display-5 fw-bold mb-2">
+                <i class="bi bi-clock-history text-primary me-2"></i>Mi Historial de Reparaciones
+            </h1>
+            <p class="lead text-muted">Consulta el estado de todas tus reparaciones, descargar presupuestos y facturas.</p>
+        </div>
+    </div>
+
+    <!-- ESTADÍSTICAS PERSONALES (KPI CARDS) -->
+    <div class="row g-3 mb-5">
+        <div class="col-md-4 col-lg-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <div class="fs-2 text-primary fw-bold mb-2">{{ stats.total_reparaciones }}</div>
+                    <p class="card-text text-muted small mb-0">Total de reparaciones</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 col-lg-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <div class="fs-2 text-success fw-bold mb-2">{{ stats.pagadas }}</div>
+                    <p class="card-text text-muted small mb-0">Reparaciones pagadas</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 col-lg-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <div class="fs-2 text-warning fw-bold mb-2">{{ stats.pendientes }}</div>
+                    <p class="card-text text-muted small mb-0">Pendientes de pago</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 col-lg-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <div class="fs-2 text-info fw-bold mb-2">{{ "%.2f"|format(stats.total_invertido) }} €</div>
+                    <p class="card-text text-muted small mb-0">Inversión total</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FILTROS -->
+    <div class="card shadow-sm mb-4 border-0">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="cliente_id" class="form-label fw-semibold">
+                        <i class="bi bi-people me-2"></i>Filtrar por cliente
+                    </label>
+                    <select id="cliente_id" name="cliente_id" class="form-select">
+                        <option value="">Todos los clientes</option>
+                        {% for c in clientes %}
+                            <option value="{{ c.id }}" {% if c.id|string == cliente_filtro %}selected{% endif %}>{{ c.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="estado" class="form-label fw-semibold">
+                        <i class="bi bi-funnel me-2"></i>Filtrar por estado
+                    </label>
+                    <select id="estado" name="estado" class="form-select">
+                        <option value="">Todos los estados</option>
+                        {% for estado_opt in estados %}
+                            <option value="{{ estado_opt.estado }}" {% if estado_opt.estado == estado_filtro %}selected{% endif %}>
+                                {{ estado_opt.estado }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search me-2"></i>Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- HISTORIAL: SIN REPARACIONES -->
+    {% if not reparaciones %}
+    <div class="alert alert-info text-center py-5" role="alert">
+        <div class="mb-3">
+            <i class="bi bi-inbox" style="font-size: 3rem; color: #0dcaf0;"></i>
+        </div>
+        <h5 class="alert-heading">No hay reparaciones en tu historial</h5>
+        <p class="mb-0">Cuando lleves un dispositivo a reparar, aparecerá aquí el historial completo.</p>
+    </div>
+    {% else %}
+
+    <!-- HISTORIAL: TABLA DE REPARACIONES -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-center">#ID</th>
+                        <th>Dispositivo</th>
+                        <th class="text-center">Estado</th>
+                        <th>Fecha Entrada</th>
+                        <th class="text-end">Precio</th>
+                        <th class="text-center">Pago</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rep in reparaciones %}
+                    <tr class="align-middle">
+                        <td class="text-center fw-semibold text-primary">#{{ rep.id }}</td>
+                        <td>
+                            <div class="fw-semibold">{{ rep.dispositivo }}</div>
+                            <small class="text-muted">{{ rep.descripcion[:50] if rep.descripcion else 'Sin descripción' }}</small>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge
+                                {% if rep.estado == 'Entregado' %}bg-success
+                                {% elif rep.estado == 'Terminado' %}bg-success
+                                {% elif rep.estado == 'En proceso' %}bg-primary
+                                {% elif rep.estado == 'Pendiente' %}bg-warning text-dark
+                                {% else %}bg-secondary{% endif %}
+                            ">
+                                {{ rep.estado }}
+                            </span>
+                        </td>
+                        <td>
+                            {{ rep.fecha_entrada }}
+                        </td>
+                        <td class="text-end fw-semibold">
+                            {% if rep.precio %}
+                                {{ "%.2f"|format(rep.precio) }} €
+                            {% else %}
+                                <span class="text-muted">Pendiente</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if rep.estado_pago == 'Pagado' %}
+                                <span class="badge bg-success">✓ Pagado</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">⏳ Pendiente</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <button type="button" 
+                                    class="btn btn-sm btn-outline-primary" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#detallesModal{{ rep.id }}">
+                                <i class="bi bi-eye"></i> Ver
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- MODALES: DETALLES DE REPARACIÓN -->
+    {% for rep in reparaciones %}
+    <div class="modal fade" id="detallesModal{{ rep.id }}" tabindex="-1" aria-labelledby="detallesLabel{{ rep.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white border-0">
+                    <h5 class="modal-title" id="detallesLabel{{ rep.id }}">
+                        <i class="bi bi-info-circle me-2"></i>Detalles Reparación #{{ rep.id }}
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <h6 class="fw-semibold text-muted small mb-2">DISPOSITIVO</h6>
+                            <p class="mb-0">{{ rep.dispositivo }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-semibold text-muted small mb-2">ESTADO ACTUAL</h6>
+                            <p class="mb-0">
+                                <span class="badge
+                                    {% if rep.estado == 'Entregado' %}bg-success
+                                    {% elif rep.estado == 'Terminado' %}bg-success
+                                    {% elif rep.estado == 'En proceso' %}bg-primary
+                                    {% elif rep.estado == 'Pendiente' %}bg-warning text-dark
+                                    {% else %}bg-secondary{% endif %}
+                                ">
+                                    {{ rep.estado }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-semibold text-muted small mb-2">FECHA DE ENTRADA</h6>
+                            <p class="mb-0">{{ rep.fecha_entrada }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-semibold text-muted small mb-2">PRESUPUESTO</h6>
+                            <p class="mb-0">
+                                {% if rep.precio %}
+                                    <strong>{{ "%.2f"|format(rep.precio) }} €</strong> (IVA incluido)
+                                {% else %}
+                                    <span class="text-muted">A determinar</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-12">
+                            <h6 class="fw-semibold text-muted small mb-2">DESCRIPCIÓN</h6>
+                            <p class="mb-0">{{ rep.descripcion or 'Sin descripción adicional' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-semibold text-muted small mb-2">ESTADO DE PAGO</h6>
+                            <p class="mb-0">
+                                {% if rep.estado_pago == 'Pagado' %}
+                                    <span class="badge bg-success">✓ Pagado</span>
+                                    {% if rep.fecha_pago %}
+                                        <small class="text-muted d-block mt-1">{{ rep.fecha_pago }}</small>
+                                    {% endif %}
+                                    {% if rep.metodo_pago %}
+                                        <small class="text-muted d-block">{{ rep.metodo_pago }}</small>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">⏳ Pendiente de pago</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    {% if rep.precio and rep.estado_pago != 'Pagado' %}
+                        <a href="/consulta?id={{ rep.id }}" class="btn btn-success">
+                            <i class="bi bi-credit-card me-2"></i>Pagar Ahora
+                        </a>
+                    {% endif %}
+                    <a href="/reparaciones/pdf/{{ rep.id }}?tipo=presupuesto" class="btn btn-primary">
+                        <i class="bi bi-file-pdf me-2"></i>Descargar PDF
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- PAGINACIÓN -->
+    {% if total_pages > 1 %}
+    <nav aria-label="Paginación" class="mt-5">
+        <ul class="pagination justify-content-center">
+            <!-- Botón Anterior -->
+            {% if page > 1 %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">
+                        <i class="bi bi-chevron-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page-1 }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">
+                        Anterior
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="bi bi-chevron-double-left"></i></span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">Anterior</span>
+                </li>
+            {% endif %}
+
+            <!-- Números de página -->
+            {% for i in range(1, total_pages + 1) %}
+                {% if i == page %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ i }}</span>
+                    </li>
+                {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ i }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">{{ i }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            <!-- Botón Siguiente -->
+            {% if page < total_pages %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page+1 }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">
+                        Siguiente
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ total_pages }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">
+                        <i class="bi bi-chevron-double-right"></i>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Siguiente</span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="bi bi-chevron-double-right"></i></span>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% endif %}
+
+    <!-- BOTÓN VOLVER -->
+    <div class="row mt-5">
+        <div class="col-12 text-center">
+            <a href="/" class="btn btn-secondary btn-lg">
+                <i class="bi bi-arrow-left me-2"></i>Volver al Inicio
+            </a>
+        </div>
+    </div>
+
+</div>
+
+<!-- JavaScript para validación de formularios -->
+<script>
+    (function () {
+        'use strict'
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms)
+            .forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    form.classList.add('was-validated')
+                }, false)
+            })
+    })();
+</script>
+
+{% endblock %}
