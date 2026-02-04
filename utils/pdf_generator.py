@@ -118,7 +118,7 @@ def generar_presupuesto_pdf(reparacion_data, tipo_documento="presupuesto"):
     # === CABECERA ===
     tabla_cabecera = []
     
-    logo_path = os.path.join(os.path.dirname(__file__), '..', 'static', 'img', 'logo.png')
+    logo_path = os.path.join(os.path.dirname(__file__), '..', 'static', 'imagenes', 'logo.jpg')
     
     if os.path.exists(logo_path):
         try:
