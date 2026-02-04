@@ -68,6 +68,7 @@
                             <th scope="col">Dispositivo</th>
                             <th scope="col" style="width:140px;">Estado</th>
                             <th scope="col" style="width:110px;">Pago</th>
+                            <th scope="col" style="width:130px;">Actualizado</th>
                             <th scope="col" style="width:160px;">Fecha entrada</th>
                             <th scope="col" style="width:200px;">Acciones</th>
                         </tr>
@@ -88,6 +89,13 @@
                                     <span class="badge bg-success">✓ Pagado</span>
                                 {% else %}
                                     <span class="badge bg-danger">⏳ Pendiente</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if r.ultima_actualizacion %}
+                                    <small class="text-muted">{{ r.ultima_actualizacion|strftime('%d/%m/%Y') }}</small>
+                                {% else %}
+                                    <small class="text-muted">-</small>
                                 {% endif %}
                             </td>
                             <td>{{ r.fecha_entrada }}</td>

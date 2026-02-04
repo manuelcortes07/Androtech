@@ -66,6 +66,56 @@ def role_required(rol_requerido):
     return decorator
 
 # =========================================
+# 🔸 HISTORIAL DE CAMBIOS (AUDITORÍA)
+# =========================================
+
+def registrar_cambio_estado(conn, reparacion_id, estado_nuevo, usuario=None):
+    """
+    Registra cambio de estado en tabla reparaciones_historial.
+    Solo registra si el estado REALMENTE cambió.
+    
+    Args:
+        conn: conexión SQLite
+        reparacion_id: ID de la reparación
+        estado_nuevo: nuevo estado (ej. "En proceso")
+        usuario: nombre del usuario que realizó el cambio (opcional)
+    
+    Returns:
+        bool: True si se registró, False si no hubo cambio
+    """
+    try:
+        # Obtener estado actual
+        reparacion = conn.execute(
+            "SELECT estado FROM reparaciones WHERE id=?", 
+            (reparacion_id,)
+        ).fetchone()
+        
+        if not reparacion:
+            return False  # Reparación no existe
+        
+        estado_anterior = reparacion['estado']
+        
+        # Solo registrar si el estado cambió realmente
+        if estado_anterior == estado_nuevo:
+            return False
+        
+        # Insertar en historial
+        fecha_cambio = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        conn.execute("""
+            INSERT INTO reparaciones_historial 
+            (reparacion_id, estado_anterior, estado_nuevo, fecha_cambio, usuario)
+            VALUES (?, ?, ?, ?, ?)
+        """, (reparacion_id, estado_anterior, estado_nuevo, fecha_cambio, usuario))
+        
+        conn.commit()
+        return True
+        
+    except Exception as e:
+        print(f"⚠️  Error registrando cambio de estado: {e}")
+        return False
+
+# =========================================
 # 🔸 AUTENTICACIÓN
 # =========================================
 
@@ -477,6 +527,18 @@ def reparaciones():
     final_params = params + [per_page, offset]
     datos = conn.execute(select_sql, tuple(final_params)).fetchall()
 
+    # Enriquecer datos con última actualización de cada reparación
+    datos_enriquecidos = []
+    for r in datos:
+        r_dict = dict(r)
+        # Obtener última actualización del historial
+        ultima_actualizacion = conn.execute(
+            "SELECT fecha_cambio FROM reparaciones_historial WHERE reparacion_id = ? ORDER BY fecha_cambio DESC LIMIT 1",
+            (r_dict['id'],)
+        ).fetchone()
+        r_dict['ultima_actualizacion'] = ultima_actualizacion['fecha_cambio'] if ultima_actualizacion else None
+        datos_enriquecidos.append(r_dict)
+
     # Lista de clientes para filtro
     clientes = conn.execute("SELECT id, nombre FROM clientes ORDER BY nombre").fetchall()
 
@@ -501,7 +563,7 @@ def reparaciones():
 
     total_pages = max(1, (total + per_page - 1) // per_page)
 
-    return render_template("reparaciones.html", reparaciones=datos, clientes=clientes, filters=filters, filters_query=filters_query, page=page, total_pages=total_pages, per_page=per_page, total=total)
+    return render_template("reparaciones.html", reparaciones=datos_enriquecidos, clientes=clientes, filters=filters, filters_query=filters_query, page=page, total_pages=total_pages, per_page=per_page, total=total)
 
 
 # NUEVA REPARACIÓN
@@ -546,6 +608,9 @@ def editar_reparacion(id):
         descripcion = request.form["descripcion"]
         estado = request.form["estado"]
         precio = request.form["precio"]
+
+        # Registrar cambio de estado en historial (ANTES de actualizar)
+        registrar_cambio_estado(conn, id, estado, usuario=session.get('usuario'))
 
         conn.execute("""
             UPDATE reparaciones
