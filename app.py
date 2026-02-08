@@ -600,7 +600,10 @@ def reparaciones():
 
     total_pages = max(1, (total + per_page - 1) // per_page)
 
-    return render_template("reparaciones.html", reparaciones=datos_enriquecidos, clientes=clientes, filters=filters, filters_query=filters_query, page=page, total_pages=total_pages, per_page=per_page, total=total)
+    # Determinar si mostrar precios según rol
+    mostrar_precios = session.get('rol') in ['admin', 'tecnico']
+
+    return render_template("reparaciones.html", reparaciones=datos_enriquecidos, clientes=clientes, filters=filters, filters_query=filters_query, page=page, total_pages=total_pages, per_page=per_page, total=total, mostrar_precios=mostrar_precios, user_role=session.get('rol'))
 
 
 # NUEVA REPARACIÓN
@@ -663,7 +666,16 @@ def editar_reparacion(id):
     clientes = conn.execute("SELECT * FROM clientes").fetchall()
     conn.close()
 
-    return render_template("editar_reparacion.html", reparacion=reparacion, clientes=clientes)
+    # Determinar si puede editar precio según rol
+    puede_editar_precio = session.get('rol') == 'admin'
+    
+    return render_template(
+        "editar_reparacion.html",
+        reparacion=reparacion,
+        clientes=clientes,
+        puede_editar_precio=puede_editar_precio,
+        user_role=session.get('rol')
+    )
 
 
 # BORRAR REPARACIÓN

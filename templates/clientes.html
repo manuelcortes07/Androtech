@@ -66,8 +66,10 @@
                             <td>
                                 <a href="/clientes/editar/{{ c.id }}" class="btn btn-warning btn-sm me-1">Editar</a>
                                 {% if session.rol == 'admin' %}
-                                <a href="/clientes/borrar/{{ c.id }}" class="btn btn-danger btn-sm"
-                                   onclick="return confirm('¿Seguro que deseas borrar este cliente?');">Borrar</a>
+                                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#confirmBorrarModal" 
+                                        onclick="setConfirmData('/clientes/borrar/{{ c.id }}', 'Borrar Cliente', '¿Estás seguro de que deseas borrar este cliente ({{ c.nombre }}) y todos sus registros? Esta acción no se puede deshacer.')">
+                                    🗑️ Borrar
+                                </button>
                                 {% endif %}
                             </td>
                         </tr>
@@ -221,5 +223,46 @@
             applyFilter();
 
         })();
+    </script>
+
+    <!-- Modal de Confirmación Genérico -->
+    <div class="modal fade" id="confirmBorrarModal" tabindex="-1" aria-labelledby="confirmBorrarLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-danger">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="confirmBorrarLabel">Confirmación de acción</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="confirmBorrarMsg">
+                    ¿Estás seguro?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirmBorrarBtn" onclick="confirmarAccion()">Sí, estoy seguro</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    let confirmData = {
+        url: null,
+        title: null,
+        message: null
+    };
+
+    function setConfirmData(url, title, message) {
+        confirmData.url = url;
+        confirmData.title = title;
+        confirmData.message = message;
+        document.getElementById('confirmBorrarLabel').textContent = title;
+        document.getElementById('confirmBorrarMsg').textContent = message;
+    }
+
+    function confirmarAccion() {
+        if (confirmData.url) {
+            window.location.href = confirmData.url;
+        }
+    }
     </script>
 {% endblock %}
