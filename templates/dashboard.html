@@ -16,6 +16,28 @@
         </div>
     </div>
 
+    <!-- ALERTA: REPARACIONES ATRASADAS -->
+    {% if reparaciones_atrasadas %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-warning alert-dismissible fade show border-0 shadow-sm" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill me-3 fs-5"></i>
+                    <div>
+                        <h5 class="alert-heading mb-1">
+                            ⚠️ {{ reparaciones_atrasadas|length }} reparación(es) atrasada(s)
+                        </h5>
+                        <p class="mb-0 small text-muted">
+                            {{ reparaciones_atrasadas|length }} reparación(es) en estado activo sin actualización hace más de 7 días.
+                        </p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- FILA 1: KPIs PRINCIPALES -->
     <div class="row g-4 mb-5">
         
@@ -360,6 +382,56 @@
             </div>
         </div>
     </div>
+
+    <!-- SECCIÓN: REPARACIONES ATRASADAS -->
+    {% if reparaciones_atrasadas %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm border-start border-danger">
+                <div class="card-header bg-danger text-white border-0">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> Reparaciones Atrasadas</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">
+                        Reparaciones en estado activo sin actualización hace más de 7 días. Requieren atención.
+                    </p>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Cliente</th>
+                                    <th>Dispositivo</th>
+                                    <th>Estado</th>
+                                    <th>Última Actualización</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for rep in reparaciones_atrasadas %}
+                                <tr class="table-danger">
+                                    <td><strong>#{{ rep.id }}</strong></td>
+                                    <td>{{ rep.cliente or 'Sin asignar' }}</td>
+                                    <td>{{ rep.dispositivo }}</td>
+                                    <td>
+                                        <span class="badge bg-warning text-dark">{{ rep.estado }}</span>
+                                    </td>
+                                    <td>
+                                        {% if rep.ultima_actualizacion %}
+                                            <small class="text-muted">{{ rep.ultima_actualizacion|strftime('%d/%m/%Y %H:%M') }}</small>
+                                        {% else %}
+                                            <small class="text-muted badge bg-secondary">Nunca</small>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
 </div>
 

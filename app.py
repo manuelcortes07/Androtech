@@ -283,6 +283,31 @@ def dashboard():
         LIMIT 5
     """).fetchall()
     
+    # ========== REPARACIONES ATRASADAS (sin actualización hace > 7 días) ==========
+    hace_7_dias = (hoy - __import__('datetime').timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
+    
+    reparaciones_atrasadas = conn.execute("""
+        SELECT reparaciones.*, clientes.nombre AS cliente,
+               (SELECT fecha_cambio FROM reparaciones_historial 
+                WHERE reparacion_id = reparaciones.id 
+                ORDER BY fecha_cambio DESC LIMIT 1) AS ultima_actualizacion
+        FROM reparaciones
+        LEFT JOIN clientes ON clientes.id = reparaciones.cliente_id
+        WHERE reparaciones.estado IN ('En proceso', 'Pendiente')
+        AND (
+            SELECT fecha_cambio FROM reparaciones_historial 
+            WHERE reparacion_id = reparaciones.id 
+            ORDER BY fecha_cambio DESC LIMIT 1
+        ) < ? 
+        OR (
+            SELECT COUNT(*) FROM reparaciones_historial 
+            WHERE reparacion_id = reparaciones.id
+        ) = 0
+        ORDER BY reparaciones.id DESC
+    """, (hace_7_dias,)).fetchall()
+    
+    reparaciones_atrasadas_list = [dict(r) for r in reparaciones_atrasadas] if reparaciones_atrasadas else []
+
     conn.close()
     
     # Calcular IVA en ingresos
@@ -311,7 +336,8 @@ def dashboard():
         reparaciones_pendiente_pago=reparaciones_pendiente_pago,
         reparaciones_pagadas=reparaciones_pagadas,
         tasa_cobro=tasa_cobro,
-        reparaciones_sin_pagar=reparaciones_sin_pagar_list
+        reparaciones_sin_pagar=reparaciones_sin_pagar_list,
+        reparaciones_atrasadas=reparaciones_atrasadas_list
     )
 
 #  SECCIÓN CLIENTES
