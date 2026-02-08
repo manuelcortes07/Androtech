@@ -67,6 +67,7 @@
                             <th scope="col">Cliente</th>
                             <th scope="col">Dispositivo</th>
                             <th scope="col" style="width:140px;">Estado</th>
+                            <th scope="col" style="width:110px;">Alertas</th>
                             <th scope="col" style="width:110px;">Pago</th>
                             <th scope="col" style="width:130px;">Actualizado</th>
                             <th scope="col" style="width:160px;">Fecha entrada</th>
@@ -83,6 +84,19 @@
                             <td>
                                 {# Mantengo el valor original y muestro una etiqueta visual #}
                                 <span class="badge bg-info text-dark">{{ r.estado }}</span>
+                            </td>
+                            <td>
+                                {% if r.alertas_info.tiene_alertas %}
+                                    <div class="d-flex gap-1 flex-wrap">
+                                        {% for alerta in r.alertas_info.alertas %}
+                                        <span class="badge bg-{{ alerta.color }} small" title="{{ alerta.mensaje }}">
+                                            {{ alerta.icono }} {{ alerta.tipo|replace('_', ' ')|title }}
+                                        </span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <span class="badge bg-light text-muted small">—</span>
+                                {% endif %}
                             </td>
                             <td>
                                 {% if r.estado_pago == 'Pagado' %}

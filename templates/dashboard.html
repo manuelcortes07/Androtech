@@ -300,6 +300,7 @@
                                     <th>ID</th>
                                     <th>Cliente</th>
                                     <th>Dispositivo</th>
+                                    <th>Alertas</th>
                                     <th>Precio</th>
                                     <th>Fecha Entrada</th>
                                 </tr>
@@ -310,6 +311,19 @@
                                     <td><strong>#{{ rep.id }}</strong></td>
                                     <td>{{ rep.cliente or 'Sin asignar' }}</td>
                                     <td>{{ rep.dispositivo }}</td>
+                                    <td>
+                                        {% if rep.alertas_info.tiene_alertas %}
+                                            <div class="d-flex gap-1 flex-wrap">
+                                                {% for alerta in rep.alertas_info.alertas %}
+                                                <span class="badge bg-{{ alerta.color }} small" title="{{ alerta.mensaje }}">
+                                                    {{ alerta.icono }}
+                                                </span>
+                                                {% endfor %}
+                                            </div>
+                                        {% else %}
+                                            <span class="badge bg-light text-muted small">—</span>
+                                        {% endif %}
+                                    </td>
                                     <td><strong class="text-danger">{{ "%.2f"|format(rep.precio) }}€</strong></td>
                                     <td><small class="text-muted">{{ rep.fecha_entrada }}</small></td>
                                 </tr>
@@ -403,6 +417,7 @@
                                     <th>Cliente</th>
                                     <th>Dispositivo</th>
                                     <th>Estado</th>
+                                    <th>Alertas</th>
                                     <th>Última Actualización</th>
                                 </tr>
                             </thead>
@@ -414,6 +429,19 @@
                                     <td>{{ rep.dispositivo }}</td>
                                     <td>
                                         <span class="badge bg-warning text-dark">{{ rep.estado }}</span>
+                                    </td>
+                                    <td>
+                                        {% if rep.alertas_info.tiene_alertas %}
+                                            <div class="d-flex gap-1 flex-wrap">
+                                                {% for alerta in rep.alertas_info.alertas %}
+                                                <span class="badge bg-{{ alerta.color }} small" title="{{ alerta.mensaje }}">
+                                                    {{ alerta.icono }}
+                                                </span>
+                                                {% endfor %}
+                                            </div>
+                                        {% else %}
+                                            <span class="badge bg-light text-muted small">—</span>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         {% if rep.ultima_actualizacion %}

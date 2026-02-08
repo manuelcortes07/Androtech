@@ -116,6 +116,84 @@ def registrar_cambio_estado(conn, reparacion_id, estado_nuevo, usuario=None):
         return False
 
 # =========================================
+# 🔸 SISTEMA DE ALERTAS INTELIGENTES
+# =========================================
+
+def calcular_alertas_reparacion(reparacion, ultima_actualizacion=None):
+    """
+    Calcula las alertas y badges para una reparación.
+    
+    Retorna un diccionario con:
+    {
+        'alertas': lista de dicts con {tipo, mensaje, icono, color},
+        'urgencia': 'critico' | 'importante' | 'advertencia' | 'normal',
+        'tiene_alertas': bool
+    }
+    """
+    from datetime import timedelta
+    
+    alertas = []
+    urgencia = 'normal'
+    
+    # 1. Sin presupuesto asignado
+    if not reparacion.get('precio') or reparacion.get('precio') <= 0:
+        alertas.append({
+            'tipo': 'sin_presupuesto',
+            'mensaje': 'Sin presupuesto',
+            'icono': '💰',
+            'color': 'danger'
+        })
+        urgencia = 'critico'
+    
+    # 2. Pago pendiente (presupuesto asignado pero no pagado)
+    if reparacion.get('precio') and reparacion.get('precio') > 0 and reparacion.get('estado_pago') != 'Pagado':
+        alertas.append({
+            'tipo': 'pago_pendiente',
+            'mensaje': 'Pago pendiente',
+            'icono': '⏳',
+            'color': 'warning'
+        })
+    
+    # 3. Reparación atrasada (>7 días sin actualizar)
+    if ultima_actualizacion:
+        try:
+            fecha_act = datetime.strptime(ultima_actualizacion, '%Y-%m-%d %H:%M:%S')
+            dias_sin_actualizar = (datetime.now() - fecha_act).days
+            if dias_sin_actualizar > 7 and reparacion.get('estado') in ['Pendiente', 'En proceso']:
+                alertas.append({
+                    'tipo': 'atrasada',
+                    'mensaje': f'Atrasada ({dias_sin_actualizar}d)',
+                    'icono': '⏰',
+                    'color': 'danger'
+                })
+                if urgencia != 'critico':
+                    urgencia = 'importante'
+        except:
+            pass
+    
+    # 4. Terminado pero no entregado (riesgo de olvido)
+    if reparacion.get('estado') == 'Terminado' and reparacion.get('estado_pago') != 'Pagado':
+        alertas.append({
+            'tipo': 'pendiente_entrega',
+            'mensaje': 'Espera entrega',
+            'icono': '📦',
+            'color': 'info'
+        })
+    
+    # Determinar urgencia final
+    if any(a['color'] == 'danger' for a in alertas):
+        urgencia = 'critico'
+    elif any(a['color'] == 'warning' for a in alertas):
+        if urgencia != 'critico':
+            urgencia = 'advertencia'
+    
+    return {
+        'alertas': alertas,
+        'urgencia': urgencia,
+        'tiene_alertas': len(alertas) > 0
+    }
+
+# =========================================
 # 🔸 AUTENTICACIÓN
 # =========================================
 
@@ -307,6 +385,13 @@ def dashboard():
     """, (hace_7_dias,)).fetchall()
     
     reparaciones_atrasadas_list = [dict(r) for r in reparaciones_atrasadas] if reparaciones_atrasadas else []
+    
+    # Enriquecer con alertas
+    for rep in reparaciones_sin_pagar_list:
+        rep['alertas_info'] = calcular_alertas_reparacion(rep, rep.get('ultima_actualizacion'))
+    
+    for rep in reparaciones_atrasadas_list:
+        rep['alertas_info'] = calcular_alertas_reparacion(rep, rep.get('ultima_actualizacion'))
 
     conn.close()
     
@@ -574,6 +659,10 @@ def reparaciones():
             (r_dict['id'],)
         ).fetchone()
         r_dict['ultima_actualizacion'] = ultima_actualizacion['fecha_cambio'] if ultima_actualizacion else None
+        
+        # Calcular alertas inteligentes
+        r_dict['alertas_info'] = calcular_alertas_reparacion(r_dict, r_dict['ultima_actualizacion'])
+        
         datos_enriquecidos.append(r_dict)
 
     # Lista de clientes para filtro
@@ -664,17 +753,29 @@ def editar_reparacion(id):
 
     reparacion = conn.execute("SELECT * FROM reparaciones WHERE id=?", (id,)).fetchone()
     clientes = conn.execute("SELECT * FROM clientes").fetchall()
+    
+    # Obtener última actualización para calcular alertas
+    ultima_actualizacion = conn.execute(
+        "SELECT fecha_cambio FROM reparaciones_historial WHERE reparacion_id = ? ORDER BY fecha_cambio DESC LIMIT 1",
+        (id,)
+    ).fetchone()
+    ultima_act = ultima_actualizacion['fecha_cambio'] if ultima_actualizacion else None
+    
     conn.close()
 
     # Determinar si puede editar precio según rol
     puede_editar_precio = session.get('rol') == 'admin'
+    
+    # Calcular alertas
+    alertas_info = calcular_alertas_reparacion(reparacion, ultima_act)
     
     return render_template(
         "editar_reparacion.html",
         reparacion=reparacion,
         clientes=clientes,
         puede_editar_precio=puede_editar_precio,
-        user_role=session.get('rol')
+        user_role=session.get('rol'),
+        alertas_info=alertas_info
     )
 
 

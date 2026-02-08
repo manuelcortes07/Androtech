@@ -17,6 +17,27 @@
 
             <div class="card-body">
 
+                <!-- ALERTAS INTELIGENTES -->
+                {% if alertas_info.tiene_alertas %}
+                <div class="alert alert-{{ 'danger' if alertas_info.urgencia == 'critico' else 'warning' if alertas_info.urgencia in ['importante', 'advertencia'] else 'info' }} alert-dismissible fade show" role="alert">
+                    <strong>
+                        {% if alertas_info.urgencia == 'critico' %}
+                            🚨 Estado crítico:
+                        {% elif alertas_info.urgencia == 'importante' %}
+                            ⚠️ Situación importante:
+                        {% else %}
+                            ℹ️ Información:
+                        {% endif %}
+                    </strong>
+                    <ul class="mb-0 mt-2" style="font-size: 0.95rem;">
+                        {% for alerta in alertas_info.alertas %}
+                        <li>{{ alerta.icono }} <strong>{{ alerta.tipo|replace('_', ' ')|title }}:</strong> {{ alerta.mensaje }}</li>
+                        {% endfor %}
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endif %}
+
                 <form action="/reparaciones/editar/{{ reparacion.id }}" method="POST" class="needs-validation" novalidate>
                     {# Si usas CSRF (Flask-WTF) descomenta la siguiente línea #}
                     {# {{ csrf_token() }} #}
