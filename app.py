@@ -423,6 +423,17 @@ def historial_cliente():
     reparaciones_rows = conn.execute(base_sql + where_clause + " ORDER BY reparaciones.id DESC LIMIT ? OFFSET ?", params + [per_page, offset]).fetchall()
     reparaciones = [dict(r) for r in reparaciones_rows]
 
+    # Enriquecer datos con última actualización de cada reparación
+    reparaciones_enriquecidas = []
+    for r in reparaciones:
+        # Obtener última actualización del historial
+        ultima_actualizacion = conn.execute(
+            "SELECT fecha_cambio FROM reparaciones_historial WHERE reparacion_id = ? ORDER BY fecha_cambio DESC LIMIT 1",
+            (r['id'],)
+        ).fetchone()
+        r['ultima_actualizacion'] = ultima_actualizacion['fecha_cambio'] if ultima_actualizacion else None
+        reparaciones_enriquecidas.append(r)
+
     estados = conn.execute("SELECT DISTINCT estado FROM reparaciones ORDER BY estado").fetchall()
     clientes = conn.execute("SELECT id, nombre FROM clientes ORDER BY nombre").fetchall()
 
@@ -437,7 +448,7 @@ def historial_cliente():
         'total_completadas': total_completadas,
     }
 
-    return render_template('historial_cliente.html', reparaciones=reparaciones, stats=stats, estados=estados, clientes=clientes, estado_filtro=estado_filtro, cliente_filtro=cliente_filtro, page=page, total_pages=total_pages)
+    return render_template('historial_cliente.html', reparaciones=reparaciones_enriquecidas, stats=stats, estados=estados, clientes=clientes, estado_filtro=estado_filtro, cliente_filtro=cliente_filtro, page=page, total_pages=total_pages)
 
 
 # BORRAR CLIENTE
