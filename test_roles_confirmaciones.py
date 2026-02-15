@@ -80,6 +80,19 @@ def test_variables_paso_a_templates():
         
     print("  ✅ Variables pasadas correctamente a templates")
 
+def test_busqueda_global_ruta():
+    """Test básico de la ruta de búsqueda global"""
+    print("✓ Test: Ruta /reparaciones con parámetro q")
+    with app.test_client() as client:
+        # Simular login como admin
+        with client.session_transaction() as sess:
+            sess['usuario'] = 'test'
+            sess['rol'] = 'admin'
+        resp = client.get('/reparaciones?q=1')
+        assert resp.status_code == 200, "La ruta debe responder 200"
+        assert b'Buscar' in resp.data or b'q=' in resp.data, "La página debe contener la caja de búsqueda"
+    print("  ✅ La búsqueda global responde correctamente")
+
 if __name__ == '__main__':
     print("\n" + "="*60)
     print("🧪 TESTS: Roles + Confirmaciones")
@@ -89,6 +102,7 @@ if __name__ == '__main__':
     test_puede_editar_precio()
     test_confirmacion_modales()
     test_variables_paso_a_templates()
+    test_busqueda_global_ruta()
     
     print("\n" + "="*60)
     print("✅ Todos los tests pasaron correctamente")

@@ -592,6 +592,8 @@ def reparaciones():
     hasta = request.args.get('hasta', '').strip()
     precio_min = request.args.get('precio_min', '').strip()
     precio_max = request.args.get('precio_max', '').strip()
+    # búsqueda global
+    q = request.args.get('q', '').strip()
 
     # Paginación
     try:
@@ -615,6 +617,21 @@ def reparaciones():
     if estado:
         where_clauses.append("reparaciones.estado = ?")
         params.append(estado)
+
+    if q:
+        q_clauses = []
+        # buscar por ID exacta si es numérico
+        try:
+            q_id = int(q)
+            q_clauses.append("reparaciones.id = ?")
+            params.append(q_id)
+        except ValueError:
+            pass
+        q_clauses.append("clientes.nombre LIKE ?")
+        params.append(f"%{q}%")
+        q_clauses.append("clientes.telefono LIKE ?")
+        params.append(f"%{q}%")
+        where_clauses.append("(" + " OR ".join(q_clauses) + ")")
 
     if desde:
         where_clauses.append("reparaciones.fecha_entrada >= ?")
@@ -684,6 +701,8 @@ def reparaciones():
         filters['precio_min'] = precio_min
     if precio_max:
         filters['precio_max'] = precio_max
+    if q:
+        filters['q'] = q
 
     filters_query = urllib.parse.urlencode(filters)
 
