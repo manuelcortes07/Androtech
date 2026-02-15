@@ -9,7 +9,7 @@ Valida:
 """
 
 from datetime import datetime, timedelta
-from app import calcular_alertas_reparacion
+from alerts import calcular_alertas_reparacion
 
 def test_alerta_sin_presupuesto():
     """Test: Alerta cuando sin presupuesto"""

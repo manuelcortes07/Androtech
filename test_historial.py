@@ -6,6 +6,7 @@ IMPORTANTE: Este script es SOLO para demostración. No modifica datos reales.
 
 import sqlite3
 from datetime import datetime
+from historial import registrar_cambio_estado
 
 DB_PATH = "database/andro_tech.db"
 
@@ -45,45 +46,24 @@ def test_registrar_cambio():
     
     print(f"   Estado nuevo (test): {estado_nuevo}")
     
-    # Simular registro en historial (sin hacer commit real)
-    try:
-        fecha_cambio = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
-        # Registrar en historial
-        cursor.execute("""
-            INSERT INTO reparaciones_historial 
-            (reparacion_id, estado_anterior, estado_nuevo, fecha_cambio, usuario)
-            VALUES (?, ?, ?, ?, ?)
-        """, (rep_id, estado_actual, estado_nuevo, fecha_cambio, "test_user"))
-        
-        conn.commit()
-        
-        print(f"\n✅ Cambio registrado en historial:")
-        print(f"   - ID Reparación: {rep_id}")
-        print(f"   - Estado anterior: {estado_actual}")
-        print(f"   - Estado nuevo: {estado_nuevo}")
-        print(f"   - Fecha/Hora: {fecha_cambio}")
-        print(f"   - Usuario: test_user")
-        
-        # Verificar que se insertó
+    # Utilizar el helper importado para registrar el cambio
+    registrado = registrar_cambio_estado(conn, rep_id, estado_nuevo, usuario="test_user")
+    if registrado:
+        print(f"\n✅ Cambio registrado en historial (helper devuelto True). \n   - ID Reparación: {rep_id}\n   - Estado anterior: {estado_actual}\n   - Estado nuevo: {estado_nuevo}\n   - Usuario: test_user")
+        # Verificar que se insertó directamente
         historial = cursor.execute(
             "SELECT * FROM reparaciones_historial WHERE reparacion_id = ? ORDER BY id DESC LIMIT 1",
             (rep_id,)
         ).fetchone()
-        
         if historial:
             print(f"\n✅ Verificación: Registro encontrado en DB")
             print(f"   - Historial ID: {historial['id']}")
-        
-        # ROLLBACK para no modificar datos reales
-        conn.rollback()
-        print(f"\n🔄 Cambio DESHECHO (ROLLBACK) - Test completado sin modificar datos reales.")
-        
-    except Exception as e:
-        print(f"\n❌ Error durante test: {e}")
-    
-    finally:
-        conn.close()
+    else:
+        print("⚠️  El helper indicó que no se registró el cambio (posible mismo estado).")
+    # ROLLBACK para no modificar datos reales
+    conn.rollback()
+    print(f"\n🔄 Cambio DESHECHO (ROLLBACK) - Test completado sin modificar datos reales.")
+    conn.close()
 
 if __name__ == "__main__":
     print("🧪 TEST: Registrar cambio de estado\n" + "="*50)

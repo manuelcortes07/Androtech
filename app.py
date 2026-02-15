@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify
-import sqlite3
 import os
 from datetime import datetime, timedelta
 import secrets
@@ -8,8 +7,19 @@ try:
 except ImportError:
     stripe = None
 from werkzeug.security import generate_password_hash, check_password_hash
-from functools import wraps
+
+# local modules (split responsibilities)
 from utils.pdf_generator import generar_presupuesto_pdf
+from db import get_db
+from auth import login_required, role_required
+from alerts import calcular_alertas_reparacion
+from historial import registrar_cambio_estado
+from utils.security import (
+    ensure_csrf_token,
+    inject_csrf_token,
+    csrf_protect,
+    validar_precio,
+)
 
 app = Flask(__name__)
 # Secret key should be provided via environment variable in production
@@ -28,6 +38,10 @@ STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 if STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
+
+# register CSRF helpers from utils/security
+app.before_request(ensure_csrf_token)
+app.context_processor(inject_csrf_token)
 
 # REGISTRAR FILTRO PERSONALIZADO PARA JINJA2
 @app.template_filter('strftime')
@@ -64,173 +78,21 @@ def validate_csrf():
     return True
 
 
-def csrf_protect(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if request.method == 'POST':
-            if not validate_csrf():
-                return redirect(request.url)
-        return f(*args, **kwargs)
-    return decorated_function
+# ``csrf_protect`` now imported from utils/security; definition
+# removed from this module.
 
 
-# CONEXIÓN A LA BASE DE DATOS
-def get_db():
-    conn = sqlite3.connect("database/andro_tech.db")
-    conn.row_factory = sqlite3.Row
-    return conn
+# Database connection function now lives in db.py and is
+# imported as ``get_db``. Keeping this placeholder comment for clarity.
 
-# DECORADOR PARA REQUERIR LOGIN
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'usuario' not in session:
-            flash('Debes iniciar sesión para acceder a esta página.', 'danger')
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated_function
+# Authentication decorators (`login_required`, `role_required`) are
+# now located in auth.py; they are imported above.
+# History recording logic has been delegated to historial.py;
+# the helper ``registrar_cambio_estado`` is imported at the top of
+# this file for use in the routes where state changes occur.
 
-# DECORADOR PARA REQUERIR ROL ESPECÍFICO (OPCIONAL)
-def role_required(rol_requerido):
-    def decorator(f):
-        @wraps(f)
-        @login_required
-        def decorated_function(*args, **kwargs):
-            if session.get('rol') != rol_requerido:
-                flash('No tienes permisos para acceder a esta página.', 'danger')
-                return redirect(url_for('index'))
-            return f(*args, **kwargs)
-        return decorated_function
-    return decorator
-
-# =========================================
-# 🔸 HISTORIAL DE CAMBIOS (AUDITORÍA)
-# =========================================
-
-def registrar_cambio_estado(conn, reparacion_id, estado_nuevo, usuario=None):
-    """
-    Registra cambio de estado en tabla reparaciones_historial.
-    Solo registra si el estado REALMENTE cambió.
-    
-    Args:
-        conn: conexión SQLite
-        reparacion_id: ID de la reparación
-        estado_nuevo: nuevo estado (ej. "En proceso")
-        usuario: nombre del usuario que realizó el cambio (opcional)
-    
-    Returns:
-        bool: True si se registró, False si no hubo cambio
-    """
-    try:
-        # Obtener estado actual
-        reparacion = conn.execute(
-            "SELECT estado FROM reparaciones WHERE id=?", 
-            (reparacion_id,)
-        ).fetchone()
-        
-        if not reparacion:
-            return False  # Reparación no existe
-        
-        estado_anterior = reparacion['estado']
-        
-        # Solo registrar si el estado cambió realmente
-        if estado_anterior == estado_nuevo:
-            return False
-        
-        # Insertar en historial
-        fecha_cambio = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
-        conn.execute("""
-            INSERT INTO reparaciones_historial 
-            (reparacion_id, estado_anterior, estado_nuevo, fecha_cambio, usuario)
-            VALUES (?, ?, ?, ?, ?)
-        """, (reparacion_id, estado_anterior, estado_nuevo, fecha_cambio, usuario))
-        
-        conn.commit()
-        return True
-        
-    except Exception as e:
-        print(f"⚠️  Error registrando cambio de estado: {e}")
-        return False
-
-# =========================================
-# 🔸 SISTEMA DE ALERTAS INTELIGENTES
-# =========================================
-
-def calcular_alertas_reparacion(reparacion, ultima_actualizacion=None):
-    """
-    Calcula las alertas y badges para una reparación.
-    
-    Retorna un diccionario con:
-    {
-        'alertas': lista de dicts con {tipo, mensaje, icono, color},
-        'urgencia': 'critico' | 'importante' | 'advertencia' | 'normal',
-        'tiene_alertas': bool
-    }
-    """
-    from datetime import timedelta
-    
-    alertas = []
-    urgencia = 'normal'
-    
-    # 1. Sin presupuesto asignado
-    if not reparacion.get('precio') or reparacion.get('precio') <= 0:
-        alertas.append({
-            'tipo': 'sin_presupuesto',
-            'mensaje': 'Sin presupuesto',
-            'icono': '💰',
-            'color': 'danger'
-        })
-        urgencia = 'critico'
-    
-    # 2. Pago pendiente (presupuesto asignado pero no pagado)
-    if reparacion.get('precio') and reparacion.get('precio') > 0 and reparacion.get('estado_pago') != 'Pagado':
-        alertas.append({
-            'tipo': 'pago_pendiente',
-            'mensaje': 'Pago pendiente',
-            'icono': '⏳',
-            'color': 'warning'
-        })
-    
-    # 3. Reparación atrasada (>7 días sin actualizar)
-    if ultima_actualizacion:
-        try:
-            fecha_act = datetime.strptime(ultima_actualizacion, '%Y-%m-%d %H:%M:%S')
-            dias_sin_actualizar = (datetime.now() - fecha_act).days
-            if dias_sin_actualizar > 7 and reparacion.get('estado') in ['Pendiente', 'En proceso']:
-                alertas.append({
-                    'tipo': 'atrasada',
-                    'mensaje': f'Atrasada ({dias_sin_actualizar}d)',
-                    'icono': '⏰',
-                    'color': 'danger'
-                })
-                if urgencia != 'critico':
-                    urgencia = 'importante'
-        except:
-            pass
-    
-    # 4. Terminado pero no entregado (riesgo de olvido)
-    if reparacion.get('estado') == 'Terminado' and reparacion.get('estado_pago') != 'Pagado':
-        alertas.append({
-            'tipo': 'pendiente_entrega',
-            'mensaje': 'Espera entrega',
-            'icono': '📦',
-            'color': 'info'
-        })
-    
-    # Determinar urgencia final
-    if any(a['color'] == 'danger' for a in alertas):
-        urgencia = 'critico'
-    elif any(a['color'] == 'warning' for a in alertas):
-        if urgencia != 'critico':
-            urgencia = 'advertencia'
-    
-    return {
-        'alertas': alertas,
-        'urgencia': urgencia,
-        'tiene_alertas': len(alertas) > 0
-    }
-
+# Alert calculation logic now lives in alerts.py; the
+# ``calcular_alertas_reparacion`` function is imported above.
 # =========================================
 # 🔸 AUTENTICACIÓN
 # =========================================
@@ -771,20 +633,16 @@ def nueva_reparacion():
 
         fecha_entrada = datetime.now().strftime("%Y-%m-%d")
 
-        # validar precio
+        # validar precio using helper
         if precio:
-            try:
-                precio_val = float(precio)
-                if precio_val < 0:
-                    raise ValueError
-                if session.get('rol') != 'admin':
-                    precio = None
-                else:
-                    precio = precio_val
-            except ValueError:
+            if not validar_precio(precio):
                 flash('Precio inválido', 'danger')
                 conn.close()
                 return redirect(url_for('nueva_reparacion'))
+            if session.get('rol') != 'admin':
+                precio = None
+            else:
+                precio = float(precio)
         else:
             precio = None
 
@@ -819,20 +677,17 @@ def editar_reparacion(id):
 
         # precio validación: solo admin puede cambiar precio
         if precio:
-            try:
-                precio_val = float(precio)
-                if precio_val < 0:
-                    raise ValueError
-                if session.get('rol') != 'admin':
-                    # si no es admin, no permitimos alterar precio
-                    original = conn.execute("SELECT precio FROM reparaciones WHERE id=?", (id,)).fetchone()['precio']
-                    precio = original
-                else:
-                    precio = precio_val
-            except ValueError:
+            if not validar_precio(precio):
                 flash('Precio inválido', 'danger')
                 conn.close()
                 return redirect(url_for('editar_reparacion', id=id))
+            precio_val = float(precio)
+            if session.get('rol') != 'admin':
+                # si no es admin, no permitimos alterar precio
+                original = conn.execute("SELECT precio FROM reparaciones WHERE id=?", (id,)).fetchone()['precio']
+                precio = original
+            else:
+                precio = precio_val
         else:
             precio = None
 
