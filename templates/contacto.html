@@ -23,7 +23,7 @@
             <!-- Cuerpo del formulario -->
             <div class="card-body p-4">
                 <form action="/contacto" method="POST" class="needs-validation" novalidate>
-                    
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <!-- Fila 1: Nombre y Email -->
                     <div class="row">
                         <div class="col-md-6 mb-3">

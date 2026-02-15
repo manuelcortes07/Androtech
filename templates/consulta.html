@@ -31,6 +31,7 @@
                     <h3 class="card-title text-center mb-4 fw-bold">Buscar tu Reparación</h3>
 
                     <form method="POST" class="needs-validation" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <div class="mb-4">
                             <label for="id_reparacion" class="form-label fw-semibold">
                                 <i class="bi bi-hash me-2"></i>Número de Reparación
@@ -284,6 +285,7 @@
                 <div class="card-body p-4">
                     <p class="text-muted mb-3">Introduce tu correo electrónico para verificar tu identidad y procede al pago seguro con tarjeta. Stripe se encargará de procesar tu pago de forma segura.</p>
                     <form action="/publico/pagar/{{ reparacion.id }}" method="POST" class="needs-validation" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <div class="mb-3">
                             <label for="cliente_email" class="form-label fw-semibold">
                                 <i class="bi bi-envelope me-2"></i>Correo electrónico registrado

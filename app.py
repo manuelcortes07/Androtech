@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify
 import sqlite3
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
+import secrets
 try:
     import stripe
 except ImportError:
@@ -11,7 +12,15 @@ from functools import wraps
 from utils.pdf_generator import generar_presupuesto_pdf
 
 app = Flask(__name__)
-app.secret_key = 'tu_clave_secreta_muy_segura_aqui'  # Cambia esto por una clave segura en producción
+# Secret key should be provided via environment variable in production
+app.secret_key = os.environ.get('SECRET_KEY', secrets.token_urlsafe(32))
+# Configure session expiration
+app.permanent_session_lifetime = timedelta(hours=6)  # ajustable según política
+
+# Ensure sessions are permanent by default
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
 
 # Stripe configuration (use environment variables in production)
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
@@ -35,6 +44,35 @@ def strftime_filter(date_str, format_str='%d/%m/%Y'):
     else:
         date_obj = date_str
     return date_obj.strftime(format_str)
+
+# CSRF PROTECCIÓN (simple token en sesión)
+@app.before_request
+def ensure_csrf_token():
+    if 'csrf_token' not in session:
+        session['csrf_token'] = secrets.token_urlsafe(16)
+
+@app.context_processor
+def inject_csrf_token():
+    return dict(csrf_token=session.get('csrf_token'))
+
+
+def validate_csrf():
+    token = request.form.get('csrf_token', '')
+    if not token or token != session.get('csrf_token'):
+        flash('Formulario inválido o expirado. Intenta de nuevo.', 'danger')
+        return False
+    return True
+
+
+def csrf_protect(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if request.method == 'POST':
+            if not validate_csrf():
+                return redirect(request.url)
+        return f(*args, **kwargs)
+    return decorated_function
+
 
 # CONEXIÓN A LA BASE DE DATOS
 def get_db():
@@ -199,6 +237,7 @@ def calcular_alertas_reparacion(reparacion, ultima_actualizacion=None):
 
 # LOGIN
 @app.route("/login", methods=["GET", "POST"])
+@csrf_protect
 def login():
     if request.method == "POST":
         usuario = request.form["usuario"]
@@ -440,6 +479,7 @@ def clientes():
 # CREAR CLIENTE
 @app.route("/clientes/nuevo", methods=["GET", "POST"])
 @login_required
+@csrf_protect
 def nuevo_cliente():
     if request.method == "POST":
         nombre = request.form["nombre"]
@@ -463,6 +503,7 @@ def nuevo_cliente():
 # EDITAR CLIENTE
 @app.route("/clientes/editar/<int:id>", methods=["GET", "POST"])
 @login_required
+@csrf_protect
 def editar_cliente(id):
     conn = get_db()
 
@@ -717,6 +758,7 @@ def reparaciones():
 # NUEVA REPARACIÓN
 @app.route("/reparaciones/nueva", methods=["GET", "POST"])
 @login_required
+@csrf_protect
 def nueva_reparacion():
     conn = get_db()
 
@@ -725,9 +767,26 @@ def nueva_reparacion():
         dispositivo = request.form["dispositivo"]
         descripcion = request.form["descripcion"]
         estado = request.form["estado"]
-        precio = request.form["precio"]
+        precio = request.form.get("precio")
 
         fecha_entrada = datetime.now().strftime("%Y-%m-%d")
+
+        # validar precio
+        if precio:
+            try:
+                precio_val = float(precio)
+                if precio_val < 0:
+                    raise ValueError
+                if session.get('rol') != 'admin':
+                    precio = None
+                else:
+                    precio = precio_val
+            except ValueError:
+                flash('Precio inválido', 'danger')
+                conn.close()
+                return redirect(url_for('nueva_reparacion'))
+        else:
+            precio = None
 
         conn.execute("""
             INSERT INTO reparaciones (cliente_id, dispositivo, descripcion, estado, fecha_entrada, precio)
@@ -747,6 +806,7 @@ def nueva_reparacion():
 # EDITAR REPARACIÓN
 @app.route("/reparaciones/editar/<int:id>", methods=["GET", "POST"])
 @login_required
+@csrf_protect
 def editar_reparacion(id):
     conn = get_db()
 
@@ -756,6 +816,25 @@ def editar_reparacion(id):
         descripcion = request.form["descripcion"]
         estado = request.form["estado"]
         precio = request.form["precio"]
+
+        # precio validación: solo admin puede cambiar precio
+        if precio:
+            try:
+                precio_val = float(precio)
+                if precio_val < 0:
+                    raise ValueError
+                if session.get('rol') != 'admin':
+                    # si no es admin, no permitimos alterar precio
+                    original = conn.execute("SELECT precio FROM reparaciones WHERE id=?", (id,)).fetchone()['precio']
+                    precio = original
+                else:
+                    precio = precio_val
+            except ValueError:
+                flash('Precio inválido', 'danger')
+                conn.close()
+                return redirect(url_for('editar_reparacion', id=id))
+        else:
+            precio = None
 
         # Registrar cambio de estado en historial (ANTES de actualizar)
         registrar_cambio_estado(conn, id, estado, usuario=session.get('usuario'))
@@ -937,6 +1016,7 @@ def generar_pdf_presupuesto(id):
 # =========================================
 
 @app.route("/contacto", methods=["GET", "POST"])
+@csrf_protect
 def contacto():
     if request.method == "POST":
         nombre = request.form["nombre"]
@@ -980,6 +1060,7 @@ def servicios():
 # =========================================
 
 @app.route("/consulta", methods=["GET", "POST"])
+@csrf_protect
 def consulta():
     reparacion = None
     error = None
@@ -1014,6 +1095,7 @@ def consulta():
 
 
 @app.route('/publico/pagar/<int:id>', methods=['POST'])
+@csrf_protect
 def publico_pagar(id):
     """Endpoint de pago público. Verificación por email antes de crear sesión Stripe."""
     # 1. Validar email
