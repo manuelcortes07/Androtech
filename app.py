@@ -773,6 +773,15 @@ def editar_reparacion(id):
     reparacion = conn.execute("SELECT * FROM reparaciones WHERE id=?", (id,)).fetchone()
     clientes = conn.execute("SELECT * FROM clientes").fetchall()
     
+    # Historial completo de estados para timeline
+    historial_rows = conn.execute(
+        "SELECT estado_anterior, estado_nuevo, fecha_cambio, usuario "
+        "FROM reparaciones_historial WHERE reparacion_id = ? "
+        "ORDER BY fecha_cambio ASC",
+        (id,)
+    ).fetchall()
+    historial = [dict(h) for h in historial_rows] if historial_rows else []
+    
     # Obtener última actualización para calcular alertas
     ultima_actualizacion = conn.execute(
         "SELECT fecha_cambio FROM reparaciones_historial WHERE reparacion_id = ? ORDER BY fecha_cambio DESC LIMIT 1",
@@ -794,7 +803,8 @@ def editar_reparacion(id):
         clientes=clientes,
         puede_editar_precio=puede_editar_precio,
         user_role=session.get('rol'),
-        alertas_info=alertas_info
+        alertas_info=alertas_info,
+        historial=historial
     )
 
 

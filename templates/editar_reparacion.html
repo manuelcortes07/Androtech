@@ -18,6 +18,28 @@
             <div class="card-body">
 
                 <!-- ALERTAS INTELIGENTES -->
+                <!-- TIMELINE DE ESTADOS -->
+                {% if historial %}
+                <div class="mb-4">
+                    <h5 class="fw-semibold">Timeline de Estados</h5>
+                    <ul class="timeline">
+                        {% for h in historial %}
+                        <li>
+                            <span class="badge bg-secondary me-2">{{ h.fecha_cambio|strftime('%d/%m/%Y %H:%M') }}</span>
+                            <span class="small">{{ h.estado_anterior }} → <strong>{{ h.estado_nuevo }}</strong></span>
+                            {% if h.usuario %}<small class="text-muted">({{ h.usuario }})</small>{% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <style>
+                .timeline { list-style: none; padding-left: 0; }
+                .timeline li { position: relative; padding-left: 1.5rem; margin-bottom: 0.5rem; }
+                .timeline li:before { content: ''; position: absolute; left: 0; top: 0.5rem; width: 0.5rem; height: 0.5rem; background-color: #0d6efd; border-radius: 50%; }
+                </style>
+                {% endif %}
+
+                <!-- ALERTAS INTELIGENTES -->
                 {% if alertas_info.tiene_alertas %}
                 <div class="alert alert-{{ 'danger' if alertas_info.urgencia == 'critico' else 'warning' if alertas_info.urgencia in ['importante', 'advertencia'] else 'info' }} alert-dismissible fade show" role="alert">
                     <strong>

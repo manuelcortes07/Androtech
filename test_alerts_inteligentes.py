@@ -135,6 +135,12 @@ def test_template_variables_presentes():
         contenido = f.read()
         assert 'alertas_info' in contenido, "alertas_info debe estar en dashboard"
     print("  ✅ Variables correctamente en dashboard.html")
+    # Verificar timeline en editar_reparacion.html
+    with open('templates/editar_reparacion.html','r',encoding='utf-8') as f:
+        txt=f.read()
+        assert 'Timeline de Estados' in txt, "Debe existir sección de timeline"
+        assert 'class="timeline"' in txt, "Clase timeline aplicada"
+    print("  ✅ Timeline visual presente en editar_reparacion.html")
 
 if __name__ == '__main__':
     print("\n" + "="*60)
