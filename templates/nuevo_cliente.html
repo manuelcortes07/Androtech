@@ -21,7 +21,7 @@
 				<!-- Formulario moderno, limpio y organizado -->
 				<form action="/clientes/nuevo" method="POST" class="needs-validation" novalidate>
 					{# Si usas CSRF en Flask, descomenta la línea siguiente #}
-					{# {{ csrf_token() }} #}
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
 					<div class="mb-3">
 						<label for="nombre" class="form-label fw-semibold">Nombre completo <span class="text-danger">*</span></label>

@@ -19,7 +19,7 @@
 
                 <form action="/reparaciones/nueva" method="POST" class="needs-validation" novalidate>
                     {# Si usas CSRF (Flask-WTF) descomenta la siguiente línea #}
-                    {# {{ csrf_token() }} #}
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
                     <div class="mb-3">
                         <label for="cliente_id" class="form-label fw-semibold">Cliente <span class="text-danger">*</span></label>

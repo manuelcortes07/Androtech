@@ -41,6 +41,7 @@
 
                     <!-- Formulario de Login -->
                     <form method="POST" class="needs-validation" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <!-- Campo Usuario -->
                         <div class="mb-3">
                             <label for="usuario" class="form-label fw-semibold">

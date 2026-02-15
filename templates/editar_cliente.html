@@ -6,7 +6,7 @@
 <form method="POST" class="needs-validation" novalidate>
 
     {# Si usas Flask-WTF / CSRF, descomenta la siguiente línea: #}
-    {# {{ csrf_token() }} #}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <label>Nombre:</label>
     <input type="text" name="nombre" class="form-control" value="{{ cliente.nombre }}" required>
     <div class="invalid-feedback">Por favor introduce el nombre completo del cliente.</div>
