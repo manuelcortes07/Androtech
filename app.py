@@ -59,6 +59,131 @@ def strftime_filter(date_str, format_str='%d/%m/%Y'):
         date_obj = date_str
     return date_obj.strftime(format_str)
 
+
+# -------------------------
+# Helpers: filters builder
+# -------------------------
+def build_reparaciones_filters(args):
+    """Construye cláusula WHERE y parámetros a partir de query params.
+
+    args: objeto parecido a dict (p. ej. request.args)
+    Devuelve (where_clause, params_list)
+    """
+    clauses = []
+    params = []
+
+    cliente = args.get('cliente')
+    if cliente:
+        clauses.append("clientes.nombre LIKE ?")
+        params.append(f"%{cliente}%")
+
+    estado = args.get('estado')
+    if estado:
+        clauses.append("reparaciones.estado = ?")
+        params.append(estado)
+
+    pago = args.get('pago')
+    if pago:
+        clauses.append("reparaciones.estado_pago = ?")
+        params.append(pago)
+
+    fecha_desde = args.get('fecha_desde')
+    if fecha_desde:
+        clauses.append("reparaciones.fecha_entrada >= ?")
+        params.append(fecha_desde)
+
+    fecha_hasta = args.get('fecha_hasta')
+    if fecha_hasta:
+        clauses.append("reparaciones.fecha_entrada <= ?")
+        params.append(fecha_hasta)
+
+    where = " AND ".join(clauses) if clauses else "1=1"
+    return where, params
+
+
+# ==============================
+# Endpoint: Export reparaciones
+# ==============================
+@app.route('/export/reparaciones', methods=['GET'])
+@login_required
+def export_reparaciones():
+    # Permitir admin o recepcionista
+    rol = session.get('rol')
+    if rol not in ('admin', 'recepcionista'):
+        flash('No tienes permisos para exportar datos.', 'danger')
+        return redirect(url_for('reparaciones'))
+
+    where, params = build_reparaciones_filters(request.args)
+
+    conn = get_db()
+    query = (
+        "SELECT reparaciones.id, clientes.nombre as cliente, clientes.telefono, "
+        "reparaciones.dispositivo, reparaciones.estado, reparaciones.estado_pago, "
+        "reparaciones.precio, reparaciones.fecha_entrada, reparaciones.fecha_pago as fecha_finalizacion "
+        "FROM reparaciones JOIN clientes ON clientes.id = reparaciones.cliente_id "
+        f"WHERE {where} ORDER BY reparaciones.id DESC"
+    )
+
+    rows = conn.execute(query, params).fetchall()
+
+    import csv
+    from io import StringIO
+    from flask import Response
+
+    output = StringIO()
+    writer = csv.writer(output)
+
+    # Header
+    header = [
+        'ID', 'Cliente', 'Teléfono', 'Dispositivo', 'Estado', 'Estado pago',
+        'Precio', 'Fecha entrada', 'Fecha finalización', 'Días en taller', 'Alertas'
+    ]
+    writer.writerow(header)
+
+    for r in rows:
+        rdict = dict(r)
+        fecha_entrada = rdict.get('fecha_entrada')
+        fecha_fin = rdict.get('fecha_finalizacion')
+
+        # calcular dias en taller
+        dias = ''
+        try:
+            if fecha_entrada:
+                fmt = '%Y-%m-%d'
+                from datetime import datetime
+                d_ent = datetime.strptime(fecha_entrada, fmt)
+                if fecha_fin:
+                    d_fin = datetime.strptime(fecha_fin, fmt)
+                else:
+                    d_fin = datetime.now()
+                dias = (d_fin - d_ent).days
+        except Exception:
+            dias = ''
+
+        # alertas en texto plano
+        alertas_txt = ''
+        try:
+            alert_info = calcular_alertas_reparacion(rdict)
+            if alert_info and alert_info.get('tiene_alertas'):
+                alertas_txt = '; '.join([a['mensaje'] for a in alert_info['alertas']])
+        except Exception:
+            alertas_txt = ''
+
+        writer.writerow([
+            rdict.get('id'), rdict.get('cliente'), rdict.get('telefono'),
+            rdict.get('dispositivo'), rdict.get('estado'), rdict.get('estado_pago'),
+            rdict.get('precio'), fecha_entrada, fecha_fin, dias, alertas_txt
+        ])
+
+    conn.close()
+    output.seek(0)
+    filename = f"reparaciones_{datetime.now().strftime('%Y%m%d')}.csv"
+    return Response(output.getvalue(), mimetype='text/csv', headers={
+        'Content-Disposition': f'attachment;filename={filename}'
+    })
+
+
+
 # CSRF PROTECCIÓN (simple token en sesión)
 @app.before_request
 def ensure_csrf_token():
