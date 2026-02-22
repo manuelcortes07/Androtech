@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 import os
 from datetime import datetime, timedelta
 import secrets
+import logging
+import json
 try:
     import stripe
 except ImportError:
@@ -31,6 +33,30 @@ app.permanent_session_lifetime = timedelta(hours=6)  # ajustable según polític
 @app.before_request
 def make_session_permanent():
     session.permanent = True
+
+# -----------------------------
+# Structured/JSON logger
+# -----------------------------
+class JSONFormatter(logging.Formatter):
+    def format(self, record):
+        log_record = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        if record.exc_info:
+            log_record["exception"] = self.formatException(record.exc_info)
+        return json.dumps(log_record, ensure_ascii=False)
+
+
+logger = logging.getLogger("androtech")
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.INFO)
+    handler.setFormatter(JSONFormatter())
+    logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 # Stripe configuration (use environment variables in production)
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
@@ -238,9 +264,26 @@ def login():
             session["usuario"] = user["usuario"]
             session["rol"] = user["rol"]
             flash(f"Bienvenido, {user['usuario']}!", "success")
+            try:
+                logger.info(json.dumps({
+                    "event": "login_success",
+                    "user": user['usuario'],
+                    "role": user['rol'],
+                    "ip": request.remote_addr
+                }, ensure_ascii=False))
+            except Exception:
+                logger.info(f"login_success user={user['usuario']}")
             return redirect(url_for("dashboard"))
         else:
             flash("Usuario o contraseña incorrectos.", "danger")
+            try:
+                logger.warning(json.dumps({
+                    "event": "login_failed",
+                    "user": usuario,
+                    "ip": request.remote_addr
+                }, ensure_ascii=False))
+            except Exception:
+                logger.warning(f"login_failed user={usuario}")
 
     return render_template("login.html")
 
@@ -771,12 +814,22 @@ def nueva_reparacion():
         else:
             precio = None
 
-        conn.execute("""
+        cur = conn.execute("""
             INSERT INTO reparaciones (cliente_id, dispositivo, descripcion, estado, fecha_entrada, precio)
             VALUES (?, ?, ?, ?, ?, ?)
         """, (cliente_id, dispositivo, descripcion, estado, fecha_entrada, precio))
-        
         conn.commit()
+        new_id = getattr(cur, 'lastrowid', None)
+        try:
+            logger.info(json.dumps({
+                "event": "reparacion_created",
+                "reparacion_id": new_id,
+                "cliente_id": cliente_id,
+                "dispositivo": dispositivo,
+                "usuario": session.get('usuario')
+            }, ensure_ascii=False))
+        except Exception:
+            logger.info(f"reparacion_created id={new_id} cliente={cliente_id} device={dispositivo}")
         conn.close()
         return redirect(url_for("reparaciones"))
 
@@ -826,6 +879,16 @@ def editar_reparacion(id):
         """, (cliente_id, dispositivo, descripcion, estado, precio, id))
 
         conn.commit()
+        try:
+            logger.info(json.dumps({
+                "event": "reparacion_updated",
+                "reparacion_id": id,
+                "cliente_id": cliente_id,
+                "dispositivo": dispositivo,
+                "usuario": session.get('usuario')
+            }, ensure_ascii=False))
+        except Exception:
+            logger.info(f"reparacion_updated id={id} cliente={cliente_id} device={dispositivo}")
         conn.close()
         return redirect(url_for("reparaciones"))
 
@@ -882,6 +945,14 @@ def borrar_reparacion(id):
     
     conn.execute("DELETE FROM reparaciones WHERE id=?", (id,))
     conn.commit()
+    try:
+        logger.info(json.dumps({
+            "event": "reparacion_deleted",
+            "reparacion_id": id,
+            "usuario": session.get('usuario')
+        }, ensure_ascii=False))
+    except Exception:
+        logger.info(f"reparacion_deleted id={id}")
     conn.close()
     flash('✅ Reparación eliminada correctamente.', 'success')
     return redirect(url_for("reparaciones"))
@@ -932,6 +1003,15 @@ def marcar_reparacion_pagada(id):
         WHERE id=?
     """, (fecha_pago, metodo_pago, id))
     conn.commit()
+    try:
+        logger.info(json.dumps({
+            "event": "reparacion_pagada",
+            "reparacion_id": id,
+            "metodo_pago": metodo_pago,
+            "usuario": session.get('usuario')
+        }, ensure_ascii=False))
+    except Exception:
+        logger.info(f"reparacion_pagada id={id} metodo={metodo_pago}")
     conn.close()
     
     flash(f'✅ Pago registrado correctamente ({metodo_pago}).', 'success')
@@ -1163,6 +1243,15 @@ def publico_pagar(id):
                 'cliente_nombre': reparacion.get('cliente_nombre', '')
             }
         )
+        try:
+            logger.info(json.dumps({
+                "event": "checkout_session_created",
+                "reparacion_id": id,
+                "session_id": getattr(checkout_session, 'id', None),
+                "cliente_email": cliente_email
+            }, ensure_ascii=False))
+        except Exception:
+            logger.info(f"checkout_session_created reparacion={id} cliente={cliente_email}")
         conn.close()
         return redirect(checkout_session.url, code=303)
     except stripe.error.CardError as e:
@@ -1208,22 +1297,22 @@ def stripe_webhook():
 
     # 1. Validar que webhook secret está configurado
     if not STRIPE_WEBHOOK_SECRET:
-        print('[WEBHOOK] ❌ Error: STRIPE_WEBHOOK_SECRET no configurado')
+        logger.error('[WEBHOOK] ❌ Error: STRIPE_WEBHOOK_SECRET no configurado')
         return jsonify({'error': 'Webhook secret not configured'}), 400
 
     if not sig_header:
-        print('[WEBHOOK] ❌ Error: Stripe-Signature header no encontrado')
+        logger.error('[WEBHOOK] ❌ Error: Stripe-Signature header no encontrado')
         return jsonify({'error': 'Missing Stripe-Signature header'}), 400
 
     # 2. Construir y validar evento
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
-        print(f'[WEBHOOK] ✅ Evento válido: {event["type"]}')
+        logger.info(f'[WEBHOOK] ✅ Evento válido: {event["type"]}')
     except stripe.error.SignatureVerificationError as e:
-        print(f'[WEBHOOK] ❌ Error de firma: {str(e)}')
+        logger.error(f'[WEBHOOK] ❌ Error de firma: {str(e)}')
         return jsonify({'error': 'Invalid signature'}), 400
     except Exception as e:
-        print(f'[WEBHOOK] ❌ Error al procesar evento: {str(e)}')
+        logger.error(f'[WEBHOOK] ❌ Error al procesar evento: {str(e)}')
         return jsonify({'error': str(e)}), 400
 
     # 3. Procesar evento checkout.session.completed
@@ -1235,7 +1324,7 @@ def stripe_webhook():
 
         # Validar metadata
         if not reparacion_id:
-            print('[WEBHOOK] ❌ Error: reparacion_id no encontrado en metadata')
+            logger.error('[WEBHOOK] ❌ Error: reparacion_id no encontrado en metadata')
             return jsonify({'error': 'Missing reparacion_id in metadata'}), 400
 
         # Actualizar BD
@@ -1250,12 +1339,12 @@ def stripe_webhook():
             ).fetchone()
 
             if not reparacion:
-                print(f'[WEBHOOK] ❌ Error: Reparación #{reparacion_id} no encontrada')
+                logger.error(f'[WEBHOOK] ❌ Error: Reparación #{reparacion_id} no encontrada')
                 return jsonify({'error': f'Repair #{reparacion_id} not found'}), 404
 
             # Verificar que NO está ya pagada
             if reparacion['estado_pago'] == 'Pagado':
-                print(f'[WEBHOOK] ⚠️ Advertencia: Reparación #{reparacion_id} ya está pagada')
+                logger.warning(f'[WEBHOOK] ⚠️ Advertencia: Reparación #{reparacion_id} ya está pagada')
                 return jsonify({'status': 'already_paid'}), 200
 
             # Marcar como pagada
@@ -1268,10 +1357,10 @@ def stripe_webhook():
             )
             conn.commit()
 
-            print(f'[WEBHOOK] ✅ Reparación #{reparacion_id} marcada como pagada (email: {cliente_email})')
+            logger.info(f'[WEBHOOK] ✅ Reparación #{reparacion_id} marcada como pagada (email: {cliente_email})')
 
         except Exception as e:
-            print(f'[WEBHOOK] ❌ Error al actualizar BD: {str(e)}')
+            logger.error(f'[WEBHOOK] ❌ Error al actualizar BD: {str(e)}')
             return jsonify({'error': str(e)}), 500
 
         finally:
@@ -1279,9 +1368,42 @@ def stripe_webhook():
                 conn.close()
 
     else:
-        print(f'[WEBHOOK] ℹ️ Evento no procesado: {event["type"]}')
+        logger.info(f'[WEBHOOK] ℹ️ Evento no procesado: {event["type"]}')
 
     return jsonify({'status': 'received'}), 200
+
+
+# Health endpoint
+@app.route('/health')
+def health():
+    return jsonify(status='OK'), 200
+
+
+# Global error handlers
+@app.errorhandler(404)
+def not_found_error(error):
+    try:
+        logger.warning(json.dumps({
+            "event": "error_404",
+            "path": request.path,
+            "ip": request.remote_addr
+        }, ensure_ascii=False))
+    except Exception:
+        logger.warning(f"error_404 path={request.path}")
+    return render_template('error.html', code=404, message='Página no encontrada'), 404
+
+
+@app.errorhandler(500)
+def internal_error(error):
+    try:
+        logger.exception(json.dumps({
+            "event": "error_500",
+            "path": request.path,
+            "error": str(error)
+        }, ensure_ascii=False))
+    except Exception:
+        logger.exception('error_500')
+    return render_template('error.html', code=500, message='Error interno del servidor'), 500
 
 # =========================================
 # 🔸 FUNCIÓN PARA CREAR USUARIO ADMIN INICIAL
