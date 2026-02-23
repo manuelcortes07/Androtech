@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import secrets
 import logging
 import json
+import urllib.parse
 try:
     import stripe
 except ImportError:
@@ -16,6 +17,7 @@ from db import get_db
 from auth import login_required, role_required
 from alerts import calcular_alertas_reparacion
 from historial import registrar_cambio_estado
+from audit import registrar_auditoria, obtener_auditoria_reciente, crear_tabla_auditoria
 from utils.security import (
     ensure_csrf_token,
     inject_csrf_token,
@@ -64,6 +66,11 @@ STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 if STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
+
+# Inicializar tabla de auditoría
+_conn_init = get_db()
+crear_tabla_auditoria(_conn_init)
+_conn_init.close()
 
 # register CSRF helpers from utils/security
 app.before_request(ensure_csrf_token)
@@ -258,12 +265,18 @@ def login():
 
         conn = get_db()
         user = conn.execute("SELECT * FROM usuarios WHERE usuario = ?", (usuario,)).fetchone()
-        conn.close()
 
         if user and check_password_hash(user["contraseña"], contraseña):
             session["usuario"] = user["usuario"]
             session["rol"] = user["rol"]
             flash(f"Bienvenido, {user['usuario']}!", "success")
+            
+            # Registrar auditoría
+            registrar_auditoria(conn, 'login', user['usuario'], {
+                'rol': user['rol'],
+                'ip': request.remote_addr
+            }, ip_address=request.remote_addr)
+            
             try:
                 logger.info(json.dumps({
                     "event": "login_success",
@@ -273,9 +286,17 @@ def login():
                 }, ensure_ascii=False))
             except Exception:
                 logger.info(f"login_success user={user['usuario']}")
+            
+            conn.close()
             return redirect(url_for("dashboard"))
         else:
             flash("Usuario o contraseña incorrectos.", "danger")
+            
+            # Registrar intento fallido
+            registrar_auditoria(conn, 'login_failed', usuario or 'unknown', {
+                'ip': request.remote_addr
+            }, ip_address=request.remote_addr)
+            
             try:
                 logger.warning(json.dumps({
                     "event": "login_failed",
@@ -284,6 +305,8 @@ def login():
                 }, ensure_ascii=False))
             except Exception:
                 logger.warning(f"login_failed user={usuario}")
+            
+            conn.close()
 
     return render_template("login.html")
 
@@ -462,6 +485,69 @@ def dashboard():
     for rep in reparaciones_atrasadas_list:
         rep['alertas_info'] = calcular_alertas_reparacion(rep, rep.get('ultima_actualizacion'))
 
+    # ========== MÉTRICA 1: INGRESOS POR MES (últimos 6 meses) ==========
+    ingresos_por_mes = []
+    for i in range(5, -1, -1):  # Últimos 6 meses
+        fecha = hoy - __import__('datetime').timedelta(days=30*i)
+        inicio = datetime(fecha.year, fecha.month, 1)
+        if i == 0:
+            fin = hoy
+        else:
+            # Primer día del mes siguiente
+            if fecha.month == 12:
+                fin = datetime(fecha.year + 1, 1, 1) - __import__('datetime').timedelta(seconds=1)
+            else:
+                fin = datetime(fecha.year, fecha.month + 1, 1) - __import__('datetime').timedelta(seconds=1)
+        
+        ingreso_mes_i = conn.execute("""
+            SELECT IFNULL(SUM(precio), 0) FROM reparaciones
+            WHERE fecha_entrada >= ? AND fecha_entrada <= ? AND precio IS NOT NULL
+        """, (inicio.strftime("%Y-%m-%d"), fin.strftime("%Y-%m-%d"))).fetchone()[0]
+        
+        ingresos_por_mes.append({
+            "mes": inicio.strftime("%b %Y"),
+            "valor": round(ingreso_mes_i, 2)
+        })
+    
+    # ========== MÉTRICA 2: TIEMPO MEDIO DE REPARACIÓN ==========
+    tiempo_medio_dias = 0
+    reparaciones_completadas = conn.execute("""
+        SELECT COUNT(*) FROM reparaciones
+        WHERE estado = 'Terminado' OR estado = 'Entregado'
+    """).fetchone()[0]
+    
+    if reparaciones_completadas > 0:
+        # Calcular promedio de días entre entrada y última actualización
+        tiempo_promedio = conn.execute("""
+            SELECT AVG(
+                CAST((julianday(COALESCE(
+                    (SELECT fecha_cambio FROM reparaciones_historial 
+                     WHERE reparacion_id = reparaciones.id 
+                     ORDER BY fecha_cambio DESC LIMIT 1),
+                    reparaciones.fecha_entrada
+                )) - julianday(reparaciones.fecha_entrada)) AS REAL)
+            )
+            FROM reparaciones
+            WHERE estado = 'Terminado' OR estado = 'Entregado'
+        """).fetchone()[0]
+        
+        if tiempo_promedio:
+            tiempo_medio_dias = round(float(tiempo_promedio), 1)
+    
+    # ========== MÉTRICA 3: REPARACIONES POR TÉCNICO ==========
+    reparaciones_por_tecnico = conn.execute("""
+        SELECT usuario, COUNT(*) as cantidad
+        FROM reparaciones_historial
+        WHERE usuario IS NOT NULL AND usuario != ''
+        GROUP BY usuario
+        ORDER BY cantidad DESC
+    """).fetchall()
+    
+    tecnico_dict = [{"nombre": t[0], "cantidad": t[1]} for t in reparaciones_por_tecnico] if reparaciones_por_tecnico else []
+    
+    # ========== AUDITORÍA RECIENTE (últimos 10 eventos) ==========
+    eventos_auditoria = obtener_auditoria_reciente(conn, limite=10)
+    
     conn.close()
     
     # Calcular IVA en ingresos
@@ -491,7 +577,11 @@ def dashboard():
         reparaciones_pagadas=reparaciones_pagadas,
         tasa_cobro=tasa_cobro,
         reparaciones_sin_pagar=reparaciones_sin_pagar_list,
-        reparaciones_atrasadas=reparaciones_atrasadas_list
+        reparaciones_atrasadas=reparaciones_atrasadas_list,
+        ingresos_por_mes=ingresos_por_mes,
+        tiempo_medio_dias=tiempo_medio_dias,
+        reparaciones_por_tecnico=tecnico_dict,
+        eventos_auditoria=eventos_auditoria
     )
 
 #  SECCIÓN CLIENTES
@@ -652,8 +742,6 @@ def borrar_cliente(id):
 @app.route("/reparaciones")
 @login_required
 def reparaciones():
-    import urllib.parse
-
     conn = get_db()
 
     # Recoger filtros desde query string
@@ -1072,6 +1160,224 @@ def generar_pdf_presupuesto(id):
     )
 
 # =========================================
+# 🔸 ADMINISTRACIÓN DE USUARIOS
+# =========================================
+
+# LISTAR USUARIOS
+@app.route("/admin/usuarios")
+@login_required
+@role_required('admin')
+def admin_usuarios():
+    conn = get_db()
+    usuarios = conn.execute("""
+        SELECT id, usuario, rol, 
+               (SELECT COUNT(*) FROM reparaciones_historial 
+                WHERE usuario = usuarios.usuario) AS intervenciones
+        FROM usuarios
+        ORDER BY usuario ASC
+    """).fetchall()
+    conn.close()
+    
+    try:
+        logger.info(json.dumps({
+            "event": "admin_usuarios_viewed",
+            "admin": session.get('usuario'),
+            "total_usuarios": len(usuarios)
+        }, ensure_ascii=False))
+    except Exception:
+        logger.info(f"admin_usuarios_viewed by {session.get('usuario')}")
+    
+    return render_template("admin_usuarios.html", usuarios=usuarios)
+
+
+# CREAR USUARIO
+@app.route("/admin/usuarios/nuevo", methods=["GET", "POST"])
+@login_required
+@role_required('admin')
+@csrf_protect
+def nuevo_usuario():
+    if request.method == "POST":
+        usuario = request.form.get("usuario", "").strip()
+        contraseña = request.form.get("contraseña", "").strip()
+        rol = request.form.get("rol", "tecnico").strip()
+        
+        # Validaciones
+        if not usuario or len(usuario) < 3:
+            flash("❌ Usuario debe tener al menos 3 caracteres.", "danger")
+            return render_template("nuevo_usuario.html")
+        
+        if not contraseña or len(contraseña) < 6:
+            flash("❌ Contraseña debe tener al menos 6 caracteres.", "danger")
+            return render_template("nuevo_usuario.html")
+        
+        if rol not in ['admin', 'tecnico']:
+            flash("❌ Rol inválido.", "danger")
+            return render_template("nuevo_usuario.html")
+        
+        try:
+            conn = get_db()
+            hashed_pwd = generate_password_hash(contraseña)
+            conn.execute("""
+                INSERT INTO usuarios (usuario, contraseña, rol)
+                VALUES (?, ?, ?)
+            """, (usuario, hashed_pwd, rol))
+            conn.commit()
+            
+            # Registrar auditoría
+            registrar_auditoria(conn, 'usuario_created', session.get('usuario'), {
+                'nuevo_usuario': usuario,
+                'rol': rol
+            }, ip_address=request.remote_addr)
+            
+            conn.close()
+            
+            try:
+                logger.info(json.dumps({
+                    "event": "usuario_created",
+                    "admin": session.get('usuario'),
+                    "nuevo_usuario": usuario,
+                    "rol": rol
+                }, ensure_ascii=False))
+            except Exception:
+                logger.info(f"usuario_created {usuario} rol={rol}")
+            
+            flash(f"✅ Usuario '{usuario}' creado correctamente.", "success")
+            return redirect(url_for("admin_usuarios"))
+        
+        except Exception as e:
+            conn.close() if conn else None
+            error_msg = "El usuario ya existe" if "UNIQUE" in str(e) else str(e)
+            flash(f"❌ Error: {error_msg}", "danger")
+            return render_template("nuevo_usuario.html")
+    
+    return render_template("nuevo_usuario.html")
+
+
+# EDITAR USUARIO
+@app.route("/admin/usuarios/editar/<int:id>", methods=["GET", "POST"])
+@login_required
+@role_required('admin')
+@csrf_protect
+def editar_usuario(id):
+    conn = get_db()
+    usuario = conn.execute("SELECT * FROM usuarios WHERE id = ?", (id,)).fetchone()
+    
+    if not usuario:
+        conn.close()
+        flash("❌ Usuario no encontrado.", "danger")
+        return redirect(url_for("admin_usuarios"))
+    
+    if request.method == "POST":
+        rol = request.form.get("rol", "tecnico").strip()
+        nueva_contraseña = request.form.get("nueva_contraseña", "").strip()
+        
+        if rol not in ['admin', 'tecnico']:
+            flash("❌ Rol inválido.", "danger")
+            conn.close()
+            return render_template("editar_usuario.html", usuario=usuario)
+        
+        try:
+            if nueva_contraseña:
+                if len(nueva_contraseña) < 6:
+                    flash("❌ Nueva contraseña debe tener al menos 6 caracteres.", "danger")
+                    conn.close()
+                    return render_template("editar_usuario.html", usuario=usuario)
+                
+                hashed_pwd = generate_password_hash(nueva_contraseña)
+                conn.execute("""
+                    UPDATE usuarios
+                    SET rol = ?, contraseña = ?
+                    WHERE id = ?
+                """, (rol, hashed_pwd, id))
+            else:
+                conn.execute("""
+                    UPDATE usuarios
+                    SET rol = ?
+                    WHERE id = ?
+                """, (rol, id))
+            
+            conn.commit()
+            
+            # Registrar auditoría
+            registrar_auditoria(conn, 'usuario_updated', session.get('usuario'), {
+                'usuario_id': id,
+                'usuario_nombre': usuario['usuario'],
+                'nuevo_rol': rol,
+                'password_changed': bool(nueva_contraseña)
+            }, ip_address=request.remote_addr)
+            
+            try:
+                logger.info(json.dumps({
+                    "event": "usuario_updated",
+                    "admin": session.get('usuario'),
+                    "usuario_id": id,
+                    "usuario_nombre": usuario['usuario'],
+                    "nuevo_rol": rol,
+                    "password_changed": bool(nueva_contraseña)
+                }, ensure_ascii=False))
+            except Exception:
+                logger.info(f"usuario_updated id={id} rol={rol}")
+            
+            flash(f"✅ Usuario '{usuario['usuario']}' actualizado correctamente.", "success")
+            conn.close()
+            return redirect(url_for("admin_usuarios"))
+        
+        except Exception as e:
+            conn.close()
+            flash(f"❌ Error al actualizar: {str(e)}", "danger")
+            return render_template("editar_usuario.html", usuario=usuario)
+    
+    conn.close()
+    return render_template("editar_usuario.html", usuario=usuario)
+
+
+# BORRAR USUARIO
+@app.route("/admin/usuarios/borrar/<int:id>")
+@login_required
+@role_required('admin')
+def borrar_usuario(id):
+    # Validar que no sea el mismo usuario logueado
+    if session.get('usuario'):
+        conn = get_db()
+        usuario = conn.execute("SELECT usuario FROM usuarios WHERE id = ?", (id,)).fetchone()
+        
+        if usuario and usuario['usuario'] == session.get('usuario'):
+            conn.close()
+            flash("❌ No puedes borrar tu propia cuenta.", "danger")
+            return redirect(url_for("admin_usuarios"))
+        
+        try:
+            usuario_nombre = usuario['usuario'] if usuario else f"ID {id}"
+            conn.execute("DELETE FROM usuarios WHERE id = ?", (id,))
+            conn.commit()
+            
+            # Registrar auditoría
+            registrar_auditoria(conn, 'usuario_deleted', session.get('usuario'), {
+                'usuario_id': id,
+                'usuario_nombre': usuario_nombre
+            }, ip_address=request.remote_addr)
+            
+            try:
+                logger.info(json.dumps({
+                    "event": "usuario_deleted",
+                    "admin": session.get('usuario'),
+                    "usuario_id": id,
+                    "usuario_nombre": usuario_nombre
+                }, ensure_ascii=False))
+            except Exception:
+                logger.info(f"usuario_deleted id={id}")
+            
+            flash(f"✅ Usuario '{usuario_nombre}' eliminado correctamente.", "success")
+        
+        except Exception as e:
+            flash(f"❌ Error al eliminar: {str(e)}", "danger")
+        
+        finally:
+            conn.close()
+    
+    return redirect(url_for("admin_usuarios"))
+
+# =========================================
 # 🔸 SECCIÓN CONTACTO
 # =========================================
 
@@ -1087,13 +1393,16 @@ def contacto():
 
         # Aquí simplemente imprimimos los datos en consola
         # (luego lo cambiamos por enviar email real si quieres)
-        print("\n --- NUEVO MENSAJE DE CONTACTO ---")
-        print("Nombre:", nombre)
-        print("Email:", email)
-        print("Teléfono:", telefono)
-        print("Tipo:", tipo)
-        print("Mensaje:", mensaje)
-        print("----------------------------------\n")
+        try:
+            logger.info(json.dumps({
+                "event": "contacto_enviado",
+                "nombre": nombre,
+                "email": email,
+                "telefono": telefono,
+                "tipo": tipo
+            }, ensure_ascii=False))
+        except Exception:
+            logger.info(f"contacto_enviado nombre={nombre} email={email} tipo={tipo}")
 
         return render_template("contacto_exito.html", nombre=nombre)
 
@@ -1277,7 +1586,10 @@ def publico_pagar(id):
     except Exception as e:
         conn.close()
         flash(f'❌ Error inesperado al crear la sesión de pago: {str(e)}', 'danger')
-        print(f'[ERROR] publico_pagar: {str(e)}')
+        logger.exception(json.dumps({
+            "event": "publico_pagar_error",
+            "error": str(e)
+        }, ensure_ascii=False))
         return redirect(url_for('consulta'))
 
 

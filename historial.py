@@ -6,6 +6,9 @@ encapsulates the insert logic and the guard against duplicate entries.
 """
 
 from datetime import datetime
+import logging
+
+logger = logging.getLogger("androtech")
 
 
 def registrar_cambio_estado(conn, reparacion_id, estado_nuevo, usuario=None):
@@ -38,5 +41,5 @@ def registrar_cambio_estado(conn, reparacion_id, estado_nuevo, usuario=None):
         conn.commit()
         return True
     except Exception as e:
-        print(f"⚠️  Error registrando cambio de estado: {e}")
+        logger.error(f"Error registrando cambio de estado: {e}")
         return False

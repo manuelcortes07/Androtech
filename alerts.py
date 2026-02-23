@@ -14,6 +14,10 @@ def calcular_alertas_reparacion(reparacion, ultima_actualizacion=None):
     and ``tiene_alertas``.  The logic mirrors the original implementation
     that lived in :mod:`app`.
     """
+    # Convert sqlite3.Row to dict if needed
+    if not isinstance(reparacion, dict):
+        reparacion = dict(reparacion)
+    
     alertas = []
     urgencia = 'normal'
 

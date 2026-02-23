@@ -397,6 +397,190 @@
         </div>
     </div>
 
+    <!-- SECCIÓN: MÉTRICAS AVANZADAS -->
+    <div class="row g-4 mb-5">
+        
+        <!-- Ingresos por mes (últimos 6 meses) -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom border-light">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart-fill text-success"></i> Ingresos por Mes</h5>
+                    <small class="text-muted">Últimos 6 meses</small>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Mes</th>
+                                    <th class="text-end">Ingresos</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for mes in ingresos_por_mes %}
+                                <tr>
+                                    <td><strong>{{ mes.mes }}</strong></td>
+                                    <td class="text-end">
+                                        <span class="badge bg-success">€{{ "%.2f"|format(mes.valor) }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3 pt-3 border-top">
+                        <p class="text-muted small mb-0">
+                            <i class="bi bi-info-circle"></i>
+                            Total 6 meses: <strong>€{{ "%.2f"|format(ingresos_por_mes|map(attribute='valor')|sum) }}</strong>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tiempo medio de reparación + Reparaciones por técnico -->
+        <div class="col-lg-6">
+            <div class="row g-4">
+                <!-- Tiempo medio -->
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm" style="border-left: 4px solid #0dcaf0;">
+                        <div class="card-body">
+                            <p class="text-muted small mb-1">
+                                <i class="bi bi-hourglass3 text-info"></i>
+                                Tiempo Promedio de Reparación
+                            </p>
+                            <h2 class="h1 fw-bold text-info mb-2" style="margin: 0;">
+                                {{ tiempo_medio_dias }} <small class="text-muted" style="font-size: 0.6em;">días</small>
+                            </h2>
+                            <small class="text-muted">
+                                Basado en {{ reparaciones_completadas_mes }} reparaciones completadas
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reparaciones por técnico -->
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white border-bottom border-light">
+                            <h5 class="mb-0"><i class="bi bi-person-badge text-primary"></i> Reparaciones por Técnico</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if reparaciones_por_tecnico %}
+                            <div class="table-responsive">
+                                <table class="table table-hover table-sm mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Técnico</th>
+                                            <th class="text-end">Intervenciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for tecnico in reparaciones_por_tecnico[:5] %}
+                                        <tr>
+                                            <td>
+                                                <i class="bi bi-person-circle"></i>
+                                                <strong>{{ tecnico.nombre }}</strong>
+                                            </td>
+                                            <td class="text-end">
+                                                <span class="badge bg-primary">{{ tecnico.cantidad }}</span>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <p class="text-muted mb-0"><i class="bi bi-info-circle"></i> Sin datos de técnicos aún</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECCIÓN: AUDITORÍA RECIENTE -->
+    {% if eventos_auditoria %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm border-start border-info">
+                <div class="card-header bg-info text-white border-0">
+                    <h5 class="mb-0"><i class="bi bi-shield-lock"></i> Auditoría Reciente</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">
+                        Últimos eventos del sistema: logins, cambios de usuarios, operaciones críticas.
+                    </p>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th><i class="bi bi-clock-history"></i> Timestamp</th>
+                                    <th><i class="bi bi-tag"></i> Evento</th>
+                                    <th><i class="bi bi-person"></i> Usuario</th>
+                                    <th><i class="bi bi-info-circle"></i> Detalles</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for evento in eventos_auditoria %}
+                                <tr>
+                                    <td>
+                                        <small class="text-muted">
+                                            {% if evento.timestamp %}
+                                                {{ evento.timestamp|strftime('%d/%m/%Y %H:%M:%S') }}
+                                            {% endif %}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        {% if evento.event_type == 'login' %}
+                                            <span class="badge bg-success"><i class="bi bi-box-arrow-in-right"></i> Login</span>
+                                        {% elif evento.event_type == 'login_failed' %}
+                                            <span class="badge bg-danger"><i class="bi bi-exclamation-circle"></i> Login Fallido</span>
+                                        {% elif evento.event_type == 'usuario_created' %}
+                                            <span class="badge bg-primary"><i class="bi bi-person-plus"></i> Usuario Creado</span>
+                                        {% elif evento.event_type == 'usuario_updated' %}
+                                            <span class="badge bg-info"><i class="bi bi-pencil"></i> Usuario Actualizado</span>
+                                        {% elif evento.event_type == 'usuario_deleted' %}
+                                            <span class="badge bg-danger"><i class="bi bi-trash"></i> Usuario Eliminado</span>
+                                        {% elif evento.event_type == 'reparacion_created' %}
+                                            <span class="badge bg-primary"><i class="bi bi-tools"></i> Reparación Creada</span>
+                                        {% elif evento.event_type == 'reparacion_updated' %}
+                                            <span class="badge bg-info"><i class="bi bi-pencil"></i> Reparación Actualizada</span>
+                                        {% elif evento.event_type == 'reparacion_deleted' %}
+                                            <span class="badge bg-danger"><i class="bi bi-trash"></i> Reparación Eliminada</span>
+                                        {% elif evento.event_type == 'pago_registrado' %}
+                                            <span class="badge bg-success"><i class="bi bi-credit-card"></i> Pago Registrado</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ evento.event_type }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ evento.usuario or 'Sistema' }}</strong>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {% if evento.ip_address %}
+                                                <i class="bi bi-globe"></i> {{ evento.ip_address }}
+                                            {% else %}
+                                                {% if evento.evento_datos %}
+                                                    {% set datos = evento.evento_datos %}
+                                                    ({{ datos|truncate(60) }})
+                                                {% endif %}
+                                            {% endif %}
+                                        </small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- SECCIÓN: REPARACIONES ATRASADAS -->
     {% if reparaciones_atrasadas %}
     <div class="row mt-5">

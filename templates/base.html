@@ -83,6 +83,29 @@
                             <i class="bi bi-wrench me-1"></i>Servicios
                         </a>
                     </li>
+                    
+                    <!-- Administración (solo Admin) -->
+                    {% if session.rol == 'admin' %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-danger fw-semibold"
+                           href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-shield-exclamation me-1"></i>Administración
+                        </a>
+                        <ul class="dropdown-menu shadow-sm" aria-labelledby="adminDropdown">
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('admin_usuarios') }}">
+                                    <i class="bi bi-people-fill me-2"></i>Gestión de Usuarios
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-muted small" href="#">
+                                    <i class="bi bi-eye me-2"></i>Auditoría de Logs
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    {% endif %}
                 </ul>
 
                 <!-- Búsqueda global en navbar -->
