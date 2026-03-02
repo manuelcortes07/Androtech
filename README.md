@@ -71,6 +71,12 @@ $env:STRIPE_PUBLISHABLE_KEY = "pk_test_..."
 $env:STRIPE_WEBHOOK_SECRET = "whsec_..." # Se obtiene después
 ```
 
+> **❗ Atención:** Si ves `Error de autenticación con Stripe` al intentar crear una sesión de pago, es muy probable que
+> 1. `STRIPE_SECRET_KEY` esté vacío o no configurado, o
+> 2. se haya usado por error la **clave pública** (`pk_...`) en lugar de la secreta (`sk_...`).
+>
+> Revisa las variables de entorno y asegúrate de usar la clave `sk_test_...` adecuada.
+
 #### Opción B: Persistente (Permanente en Windows)
 
 ```powershell
