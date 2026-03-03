@@ -274,36 +274,135 @@
 {% endif %}
 
 {% if reparacion and reparacion.precio and reparacion.estado_pago != 'Pagado' %}
-<!-- FORMULARIO DE PAGO PÚBLICO -->
+<!-- FORMULARIO DE PAGO PÚBLICO - MEJORADO -->
 <section class="container mb-5">
     <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card shadow-sm border-primary border-2">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="bi bi-credit-card"></i> Pagar esta reparación</h5>
+        <div class="col-md-8 col-lg-7">
+            <!-- Card de Pago Premium -->
+            <div class="card shadow-lg border-0" data-sr="enter bottom over 0.6s">
+                <!-- Header con Stripe -->
+                <div class="card-header bg-gradient" style="background: linear-gradient(135deg, #635bff 0%, #4c45e8 100%); border: none;">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <h5 class="mb-0 text-white fw-bold">
+                            <i class="bi bi-credit-card-fill me-2"></i>Proceder al Pago
+                        </h5>
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='30' height='30' fill='white'%3E%3Cpath d='M3 3h18v6H3z'/%3E%3Crect x='3' y='11' width='18' height='10' rx='1'/%3E%3Ccircle cx='8' cy='16' r='1' fill='%23635bff'/%3E%3C/svg%3E" alt="Stripe" style="width: 40px; height: auto; filter: brightness(0) invert(1);">
+                    </div>
                 </div>
-                <div class="card-body p-4">
-                    <p class="text-muted mb-3">Introduce tu correo electrónico para verificar tu identidad y procede al pago seguro con tarjeta. Stripe se encargará de procesar tu pago de forma segura.</p>
+
+                <div class="card-body p-5">
+                    <!-- Información de la Reparación -->
+                    <div class="row mb-4 pb-3 border-bottom">
+                        <div class="col-sm-6">
+                            <small class="text-muted d-block mb-1">Reparación #</small>
+                            <h6 class="mb-0 fw-bold">{{ reparacion.id }}</h6>
+                        </div>
+                        <div class="col-sm-6">
+                            <small class="text-muted d-block mb-1">Dispositivo</small>
+                            <h6 class="mb-0">{{ reparacion.dispositivo }}</h6>
+                        </div>
+                    </div>
+
+                    <!-- Resumen del Pago -->
+                    <div class="bg-light rounded p-3 mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Subtotal</span>
+                            <span>{{ "%.2f"|format(reparacion.precio * 0.79) }} €</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="text-muted">IVA (21%)</span>
+                            <span>{{ "%.2f"|format(reparacion.precio * 0.21) }} €</span>
+                        </div>
+                        <hr class="my-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong class="text-dark">TOTAL A PAGAR</strong>
+                            <h5 class="mb-0 text-success fw-bold">{{ "%.2f"|format(reparacion.precio) }} €</h5>
+                        </div>
+                    </div>
+
+                    <!-- Formulario de Pago -->
                     <form action="/publico/pagar/{{ reparacion.id }}" method="POST" class="needs-validation" novalidate>
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                        <div class="mb-3">
-                            <label for="cliente_email" class="form-label fw-semibold">
-                                <i class="bi bi-envelope me-2"></i>Correo electrónico registrado
+                        
+                        <!-- Email con Validación -->
+                        <div class="mb-4">
+                            <label for="cliente_email" class="form-label fw-semibold d-flex align-items-center">
+                                <i class="bi bi-envelope-check text-primary me-2"></i>Correo de Verificación
                             </label>
-                            <input type="email" id="cliente_email" name="cliente_email" class="form-control form-control-lg" required placeholder="tu@ejemplo.com">
-                            <div class="invalid-feedback">Introduce un correo válido.</div>
-                            <small class="form-text text-muted">Debe coincidir con el email registrado para esta reparación.</small>
+                            <input 
+                                type="email" 
+                                id="cliente_email" 
+                                name="cliente_email" 
+                                class="form-control form-control-lg" 
+                                required 
+                                placeholder="tu.email@ejemplo.com"
+                                autocomplete="email">
+                            <div class="invalid-feedback d-block">
+                                Por favor, introduce un correo electrónico válido.
+                            </div>
+                            <small class="form-text text-muted d-block mt-2">
+                                <i class="bi bi-info-circle me-1"></i>Debe coincidir con el email registrado para esta reparación.
+                            </small>
                         </div>
-                        <div class="alert alert-info small mb-3">
-                            <i class="bi bi-info-circle"></i> Importe a pagar: <strong>{{ "%.2f"|format(reparacion.precio) }} €</strong> (IVA incluido)
+
+                        <!-- Checkbox de Términos -->
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" id="terms" required>
+                            <label class="form-check-label" for="terms">
+                                Acepto los <a href="/servicios" target="_blank" class="text-decoration-none">términos de pago</a> y confirmo que he leído la <a href="/servicios" target="_blank" class="text-decoration-none">política de privacidad</a>
+                            </label>
+                            <div class="invalid-feedback">Debes aceptar los términos para continuar.</div>
                         </div>
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-success btn-lg fw-semibold">
-                                <i class="bi bi-lock-fill me-2"></i>Pagar con tarjeta (Stripe)
+
+                        <!-- Información de Seguridad -->
+                        <div class="alert alert-info alert-sm mb-4 p-3" role="alert">
+                            <div class="d-flex">
+                                <i class="bi bi-shield-check text-info me-3" style="font-size: 1.2rem; min-width: 24px;"></i>
+                                <div>
+                                    <small class="fw-semibold d-block mb-1">✅ Pago 100% Seguro</small>
+                                    <small class="text-muted">Tu información de tarjeta se procesa directamente con Stripe usando encriptación TLS. Anders Tech nunca almacena datos de tu tarjeta.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botón de Pago -->
+                        <div class="d-grid mb-3">
+                            <button 
+                                type="submit" 
+                                class="btn btn-primary btn-lg fw-bold" 
+                                style="background: linear-gradient(135deg, #635bff 0%, #4c45e8 100%); border: none; box-shadow: 0 4px 12px rgba(99, 91, 255, 0.3);">
+                                <i class="bi bi-lock-fill me-2"></i>Pagar {{ "%.2f"|format(reparacion.precio) }} € con Stripe
                             </button>
+                        </div>
+
+                        <!-- Link para volver a consultar -->
+                        <div class="text-center">
+                            <a href="/consulta" class="text-decoration-none text-muted small">
+                                <i class="bi bi-arrow-left me-1"></i>Volver a consulta
+                            </a>
                         </div>
                     </form>
                 </div>
+
+                <!-- Footer de Card -->
+                <div class="card-footer bg-light border-top-0 py-3 text-center">
+                    <small class="text-muted d-flex align-items-center justify-content-center">
+                        <i class="bi bi-check-circle-fill text-success me-2" style="font-size: 0.8rem;"></i>
+                        Certificado por Stripe • Encriptación SSL/TLS 256-bit
+                    </small>
+                </div>
+            </div>
+
+            <!-- Info Adicional -->
+            <div class="mt-4 p-4 bg-light rounded" data-sr="enter bottom over 0.8s">
+                <h6 class="mb-3 fw-semibold">
+                    <i class="bi bi-question-circle me-2 text-primary"></i>¿Tienes dudas?
+                </h6>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2"><i class="bi bi-telephone me-2 text-muted"></i><strong>Llamenos:</strong> (+34) 123 456 789</li>
+                    <li class="mb-2"><i class="bi bi-envelope me-2 text-muted"></i><strong>Email:</strong> soporte@androtech.es</li>
+                    <li><i class="bi bi-clock me-2 text-muted"></i><strong>Horario:</strong> Lunes a Viernes, 9:00-18:00</li>
+                </ul>
             </div>
         </div>
     </div>
@@ -311,32 +410,142 @@
 {% endif %}
 
 {% if reparacion and reparacion.estado_pago == 'Pagado' %}
-<!-- CONFIRMACIÓN DE PAGO REALIZADO -->
+<!-- CONFIRMACIÓN DE PAGO REALIZADO - MEJORADO -->
 <section class="container mb-5">
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-6">
-            <div class="card shadow-sm border-success border-2">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0"><i class="bi bi-check-circle-fill"></i> Pago Confirmado</h5>
-                </div>
-                <div class="card-body p-4 text-center">
-                    <div class="mb-3">
-                        <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+            <div class="card shadow-lg border-0 border-success" data-sr="enter bottom over 0.6s">
+                <!-- Header de Éxito -->
+                <div class="card-header bg-gradient" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none;">
+                    <div class="text-center py-2">
+                        <div class="mb-3">
+                            <i class="bi bi-check-circle-fill text-white" style="font-size: 2.5rem;"></i>
+                        </div>
+                        <h5 class="mb-0 text-white fw-bold">¡Pago Confirmado!</h5>
                     </div>
-                    <p class="mb-2">✅ <strong>Tu pago ha sido procesado correctamente.</strong></p>
-                    <p class="text-muted small mb-3">
-                        Importe: <strong>{{ "%.2f"|format(reparacion.precio) }} €</strong><br>
-                        {% if reparacion.fecha_pago %}Pagado el: <strong>{{ reparacion.fecha_pago }}</strong><br>{% endif %}
-                        {% if reparacion.metodo_pago %}Método: <strong>{{ reparacion.metodo_pago }}</strong>{% endif %}
-                    </p>
-                    <div class="alert alert-success small">
-                        <i class="bi bi-info-circle"></i> Gracias por tu pago. Tu dispositivo está siendo preparado para la entrega.
+                </div>
+
+                <!-- Cuerpo de Confirmación -->
+                <div class="card-body p-5 text-center">
+                    <!-- Animación de éxito (emojis saltando) -->
+                    <div class="mb-4">
+                        <p style="font-size: 3rem; animation: bounce 0.5s ease-in-out;">✅</p>
+                    </div>
+
+                    <!-- Mensaje Principal -->
+                    <h6 class="mb-2 fw-bold text-dark">Tu pago ha sido procesado exitosamente</h6>
+                    <p class="text-muted mb-4">Gracias por confiar en AndroTech. Tu dispositivo está siendo preparado.</p>
+
+                    <!-- Detalles de la Transacción -->
+                    <div class="bg-light rounded p-4 mb-4">
+                        <div class="row mb-3">
+                            <div class="col-6 text-start">
+                                <small class="text-muted d-block mb-1">
+                                    <i class="bi bi-receipt me-1"></i>Reparación #{{ reparacion.id }}
+                                </small>
+                            </div>
+                            <div class="col-6 text-end">
+                                <small class="fw-semibold">
+                                    <span class="badge bg-success">Pagada</span>
+                                </small>
+                            </div>
+                        </div>
+
+                        <hr class="my-3">
+
+                        <div class="row mb-2">
+                            <div class="col-6 text-start">
+                                <small class="text-muted">Dispositivo</small>
+                                <p class="mb-0 fw-semibold">{{ reparacion.dispositivo }}</p>
+                            </div>
+                            <div class="col-6 text-end">
+                                <small class="text-muted">Importe</small>
+                                <p class="mb-0 fw-bold text-success" style="font-size: 1.1rem;">{{ "%.2f"|format(reparacion.precio) }} €</p>
+                            </div>
+                        </div>
+
+                        <hr class="my-3">
+
+                        <div class="row">
+                            {% if reparacion.fecha_pago %}
+                            <div class="col-6 text-start">
+                                <small class="text-muted">
+                                    <i class="bi bi-calendar-check me-1"></i>Fecha de Pago
+                                </small>
+                                <p class="mb-0">{{ reparacion.fecha_pago }}</p>
+                            </div>
+                            {% endif %}
+                            {% if reparacion.metodo_pago %}
+                            <div class="col-6 text-end">
+                                <small class="text-muted">
+                                    <i class="bi bi-credit-card me-1"></i>Método
+                                </small>
+                                <p class="mb-0">{{ reparacion.metodo_pago }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Próximos Pasos -->
+                    <div class="alert alert-info mb-4" role="alert">
+                        <h6 class="alert-heading fw-bold mb-3">
+                            <i class="bi bi-arrow-right-circle me-2"></i>Próximos Pasos
+                        </h6>
+                        <ol class="mb-0 text-start small">
+                            <li class="mb-2">Tu reparación entrará en la siguiente fase de procesamiento</li>
+                            <li class="mb-2">Recibirás un email de confirmación en los próximos minutos</li>
+                            <li>Te avisaremos cuando tu dispositivo esté listo para recoger</li>
+                        </ol>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="d-grid gap-2">
+                        <a href="/consulta" class="btn btn-primary fw-semibold">
+                            <i class="bi bi-search me-2"></i>Consultar Estado Again
+                        </a>
+                        <a href="/" class="btn btn-outline-secondary fw-semibold">
+                            <i class="bi bi-house me-2"></i>Volver al Inicio
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="card-footer bg-light border-top-0 py-3 text-center">
+                    <small class="text-muted">
+                        <i class="bi bi-check-circle me-1"></i>Tu pago está asegurado por Stripe
+                    </small>
+                </div>
+            </div>
+
+            <!-- Card de Soporte -->
+            <div class="mt-4 p-4 rounded border border-info bg-info bg-opacity-10" data-sr="enter bottom over 0.8s">
+                <h6 class="fw-bold text-info mb-3">
+                    <i class="bi bi-chat-dots me-2"></i>¿Necesitas Ayuda?
+                </h6>
+                <p class="small text-muted mb-3">Si tienes alguna pregunta sobre tu pago o reparación, no dudes en contactarnos:</p>
+                <div class="row g-3">
+                    <div class="col-6">
+                        <a href="tel:+34123456789" class="btn btn-sm btn-outline-info w-100">
+                            <i class="bi bi-telephone me-1"></i>Llamar
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="mailto:soporte@androtech.es" class="btn btn-sm btn-outline-info w-100">
+                            <i class="bi bi-envelope me-1"></i>Email
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
+
+<style>
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+</style>
 {% endif %}
 
 <!-- MENSAJE DE ERROR -->
