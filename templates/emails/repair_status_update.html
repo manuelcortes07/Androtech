@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actualización de Reparación - AndroTech</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+        .status-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        .status-update {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #007bff;
+        }
+        .status-change {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 15px 0;
+        }
+        .status-old {
+            text-decoration: line-through;
+            color: #6c757d;
+            margin-right: 20px;
+        }
+        .arrow {
+            font-size: 24px;
+            color: #007bff;
+            margin: 0 10px;
+        }
+        .status-new {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .repair-details {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .detail-label {
+            font-weight: bold;
+            color: #666;
+        }
+        .detail-value {
+            color: #333;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+        .contact-info {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .next-steps {
+            background-color: #d1ecf1;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #17a2b8;
+            margin: 20px 0;
+        }
+        .urgent {
+            background-color: #f8d7da;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #dc3545;
+            margin: 20px 0;
+        }
+        {% if estado_nuevo == 'Terminado' %}
+        .status-icon { color: #28a745; }
+        {% elif estado_nuevo == 'Entregado' %}
+        .status-icon { color: #20c997; }
+        {% elif estado_nuevo == 'En Progreso' %}
+        .status-icon { color: #ffc107; }
+        {% elif estado_nuevo == 'Pendiente' %}
+        .status-icon { color: #6c757d; }
+        {% else %}
+        .status-icon { color: #007bff; }
+        {% endif %}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="status-icon">
+                {% if estado_nuevo == 'Terminado' %}✅{% elif estado_nuevo == 'Entregado' %}📦{% elif estado_nuevo == 'En Progreso' %}🔧{% elif estado_nuevo == 'Pendiente' %}⏳{% else %}📋{% endif %}
+            </div>
+            <div class="logo">AndroTech</div>
+            <h1>Actualización de Reparación</h1>
+            <p>El estado de tu reparación ha cambiado</p>
+        </div>
+
+        <div class="status-update">
+            <h3>Cambio de Estado</h3>
+            <div class="status-change">
+                <span class="status-old">{{ estado_anterior }}</span>
+                <span class="arrow">→</span>
+                <span class="status-new">{{ estado_nuevo }}</span>
+            </div>
+        </div>
+
+        <div class="repair-details">
+            <h3>Detalles de la Reparación</h3>
+            <div class="detail-row">
+                <span class="detail-label">Cliente:</span>
+                <span class="detail-value">{{ cliente_nombre }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Reparación ID:</span>
+                <span class="detail-value">#{{ reparacion_id }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Dispositivo:</span>
+                <span class="detail-value">{{ dispositivo }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Descripción:</span>
+                <span class="detail-value">{{ descripcion }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Fecha de Actualización:</span>
+                <span class="detail-value">{{ fecha_actualizacion|default('Ahora') }}</span>
+            </div>
+        </div>
+
+        {% if estado_nuevo == 'Terminado' %}
+        <div class="next-steps">
+            <h4>¡Tu reparación está lista!</h4>
+            <p>Tu dispositivo ha sido reparado exitosamente. Puedes pasar a recogerlo en nuestras instalaciones durante el horario de atención.</p>
+            <p><strong>Horario de atención:</strong> Lunes a Viernes de 9:00 a 18:00</p>
+        </div>
+        {% elif estado_nuevo == 'Entregado' %}
+        <div class="next-steps">
+            <h4>¡Reparación Completada!</h4>
+            <p>Tu dispositivo ha sido entregado. Esperamos que estés satisfecho con nuestro servicio.</p>
+            <p>Si tienes alguna pregunta o necesitas soporte adicional, no dudes en contactarnos.</p>
+        </div>
+        {% elif estado_nuevo == 'En Progreso' %}
+        <div class="next-steps">
+            <h4>Estamos trabajando en tu reparación</h4>
+            <p>Tu dispositivo está siendo reparado por nuestros técnicos especializados. Te mantendremos informado sobre cualquier actualización.</p>
+        </div>
+        {% elif estado_nuevo == 'Pendiente' %}
+        <div class="urgent">
+            <h4>Reparación Pendiente</h4>
+            <p>Tu reparación está pendiente de atención. Nos pondremos en contacto contigo pronto para coordinar los próximos pasos.</p>
+        </div>
+        {% endif %}
+
+        <div class="contact-info">
+            <h4>¿Necesitas Más Información?</h4>
+            <p>
+                📞 <strong>Teléfono:</strong> +1 (555) 123-4567<br>
+                📧 <strong>Email:</strong> soporte@androtech.com<br>
+                🏪 <strong>Dirección:</strong> Calle Tecnología 123, Ciudad Tech
+            </p>
+            <p><strong>Referencia de reparación:</strong> #{{ reparacion_id }}</p>
+        </div>
+
+        <div class="footer">
+            <p>
+                Este es un email automático generado por el sistema AndroTech.<br>
+                Por favor, no respondas directamente a este mensaje.
+            </p>
+            <p>
+                <strong>AndroTech</strong> - Tu aliado en reparaciones tecnológicas<br>
+                © {{ year|default('2024') }} AndroTech. Todos los derechos reservados.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

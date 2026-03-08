@@ -10,6 +10,7 @@ try:
 except ImportError:
     stripe = None
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_mail import Mail
 
 # local modules (split responsibilities)
 from utils.pdf_generator import generar_presupuesto_pdf
@@ -24,6 +25,7 @@ from utils.security import (
     csrf_protect,
     validar_precio,
 )
+from utils.email_service import EmailService
 
 app = Flask(__name__)
 # Secret key should be provided via environment variable in production
@@ -91,6 +93,18 @@ if STRIPE_SECRET_KEY and not STRIPE_SECRET_KEY.startswith('sk_'):
 _conn_init = get_db()
 crear_tabla_auditoria(_conn_init)
 _conn_init.close()
+
+# Flask-Mail configuration
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true'
+app.config['MAIL_USE_SSL'] = os.environ.get('MAIL_USE_SSL', 'False').lower() == 'true'
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', '')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', '')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@androtech.com')
+
+mail = Mail(app)
+email_service = EmailService(mail)
 
 # register CSRF helpers from utils/security
 app.before_request(ensure_csrf_token)
@@ -978,6 +992,7 @@ def editar_reparacion(id):
             precio = None
 
         # Registrar cambio de estado en historial (ANTES de actualizar)
+        estado_anterior = conn.execute("SELECT estado FROM reparaciones WHERE id=?", (id,)).fetchone()['estado']
         registrar_cambio_estado(conn, id, estado, usuario=session.get('usuario'))
 
         conn.execute("""
@@ -987,6 +1002,36 @@ def editar_reparacion(id):
         """, (cliente_id, dispositivo, descripcion, estado, precio, id))
 
         conn.commit()
+
+        # Enviar email de actualización de estado si cambió
+        if estado_anterior != estado:
+            try:
+                # Obtener datos del cliente para el email
+                cliente_data = conn.execute('''
+                    SELECT c.nombre, c.email
+                    FROM reparaciones r
+                    JOIN clientes c ON r.cliente_id = c.id
+                    WHERE r.id = ?
+                ''', (id,)).fetchone()
+
+                if cliente_data and cliente_data['email']:
+                    # Enviar email de actualización de estado
+                    email_service.send_repair_status_update(
+                        to_email=cliente_data['email'],
+                        cliente_nombre=cliente_data['nombre'],
+                        reparacion_id=id,
+                        estado_anterior=estado_anterior,
+                        estado_nuevo=estado,
+                        dispositivo=dispositivo,
+                        descripcion=descripcion
+                    )
+                    logger.info(f'[EMAIL] 📧 Email de actualización de estado enviado a {cliente_data["email"]} para reparación {id}')
+                else:
+                    logger.warning(f'[EMAIL] ⚠️ No se pudo enviar email de actualización: cliente sin email para reparación {id}')
+
+            except Exception as e:
+                logger.exception(f'Error enviando email de actualización de estado para reparación {id}: {str(e)}')
+
         try:
             logger.info(json.dumps({
                 "event": "reparacion_updated",
@@ -1763,6 +1808,32 @@ def stripe_webhook():
                 }, ip_address=request.remote_addr)
             except Exception:
                 logger.exception('Error registrando auditoría de pago')
+
+            # Enviar email de confirmación de pago
+            try:
+                # Obtener datos completos de la reparación y cliente
+                reparacion_data = conn.execute('''
+                    SELECT r.*, c.nombre, c.email, c.telefono
+                    FROM reparaciones r
+                    JOIN clientes c ON r.cliente_id = c.id
+                    WHERE r.id = ?
+                ''', (reparacion_id,)).fetchone()
+
+                if reparacion_data:
+                    # Enviar email de confirmación
+                    email_service.send_payment_confirmation(
+                        to_email=reparacion_data['email'],
+                        cliente_nombre=reparacion_data['nombre'],
+                        reparacion_id=reparacion_id,
+                        precio=reparacion_data['precio'],
+                        descripcion=reparacion_data['descripcion']
+                    )
+                    logger.info(f'[WEBHOOK] 📧 Email de confirmación enviado a {reparacion_data["email"]}')
+                else:
+                    logger.warning(f'[WEBHOOK] ⚠️ No se pudieron obtener datos para email de reparación {reparacion_id}')
+
+            except Exception as e:
+                logger.exception(f'Error enviando email de confirmación para reparación {reparacion_id}: {str(e)}')
 
             logger.info(json.dumps({
                 "event": "webhook_payment_processed",

@@ -7,6 +7,7 @@ Aplicación Flask para gestionar reparaciones de dispositivos móviles con siste
 - **Dashboard administrativo** con KPIs de reparaciones y pagos
 - **Consulta pública**: clientes pueden ver estado de reparaciones sin login
 - **Pagos públicos con Stripe**: clientes pagan directamente desde la web con tarjeta
+- **Sistema de email automático**: notificaciones de pagos y actualizaciones de reparaciones
 - **Generación de PDFs**: presupuestos y facturas automáticas
 - **Filtros avanzados**: búsqueda por cliente, estado, fechas y rango de precio
 - **Historial de pagos**: registro de transacciones y métodos de pago
@@ -86,6 +87,38 @@ setx STRIPE_WEBHOOK_SECRET "whsec_..."
 ```
 
 Cierra la terminal y abre una nueva para que los cambios surtan efecto.
+
+## 📧 Configuración de Email Automático
+
+### Características
+- **Confirmación de pagos**: Email automático cuando se procesa un pago exitoso
+- **Actualización de estados**: Notificación cuando cambia el estado de una reparación
+- **Facturas**: Envío de facturas por email
+
+### Configuración Rápida
+
+```powershell
+# Ejecutar el asistente de configuración
+.\configure_email.ps1
+```
+
+### Configuración Manual
+
+```powershell
+# Variables de entorno necesarias
+$env:MAIL_SERVER = "smtp.gmail.com"
+$env:MAIL_PORT = "587"
+$env:MAIL_USE_TLS = "true"
+$env:MAIL_USERNAME = "tu-email@gmail.com"
+$env:MAIL_PASSWORD = "tu-contraseña"
+$env:MAIL_DEFAULT_SENDER = "noreply@androtech.com"
+```
+
+### Para Gmail
+1. Habilita "Acceso de aplicaciones menos seguras" en tu cuenta Google, O
+2. Crea una "Contraseña de aplicación" si tienes 2FA activado
+
+> **📖 Documentación completa:** Ver [EMAIL_SETUP.md](EMAIL_SETUP.md) para detalles avanzados.
 
 ## ▶️ Ejecutar la Aplicación
 

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmación de Pago - AndroTech</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+        .success-icon {
+            font-size: 48px;
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+        .payment-details {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #28a745;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .detail-label {
+            font-weight: bold;
+            color: #666;
+        }
+        .detail-value {
+            color: #333;
+        }
+        .amount {
+            font-size: 24px;
+            font-weight: bold;
+            color: #28a745;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+        .contact-info {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #ffc107;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="success-icon">✅</div>
+            <div class="logo">AndroTech</div>
+            <h1>¡Pago Confirmado!</h1>
+            <p>Tu pago ha sido procesado exitosamente</p>
+        </div>
+
+        <div class="highlight">
+            <strong>¡Gracias por confiar en AndroTech!</strong><br>
+            Hemos recibido tu pago y estamos trabajando en la reparación de tu dispositivo.
+        </div>
+
+        <div class="payment-details">
+            <h3>Detalles del Pago</h3>
+            <div class="detail-row">
+                <span class="detail-label">Cliente:</span>
+                <span class="detail-value">{{ cliente_nombre }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Reparación ID:</span>
+                <span class="detail-value">#{{ reparacion_id }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Descripción:</span>
+                <span class="detail-value">{{ descripcion }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Monto Pagado:</span>
+                <span class="detail-value amount">${{ "%.2f"|format(precio) }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Fecha de Pago:</span>
+                <span class="detail-value">{{ fecha_pago|default('Ahora') }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Método de Pago:</span>
+                <span class="detail-value">Tarjeta de Crédito/Débito (Stripe)</span>
+            </div>
+        </div>
+
+        <div class="contact-info">
+            <h4>¿Necesitas Ayuda?</h4>
+            <p>
+                📞 <strong>Teléfono:</strong> +1 (555) 123-4567<br>
+                📧 <strong>Email:</strong> soporte@androtech.com<br>
+                🏪 <strong>Dirección:</strong> Calle Tecnología 123, Ciudad Tech
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>
+                Este es un email automático generado por el sistema AndroTech.<br>
+                Por favor, no respondas directamente a este mensaje.
+            </p>
+            <p>
+                <strong>AndroTech</strong> - Tu aliado en reparaciones tecnológicas<br>
+                © {{ year|default('2024') }} AndroTech. Todos los derechos reservados.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
