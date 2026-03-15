@@ -104,21 +104,52 @@ Cierra la terminal y abre una nueva para que los cambios surtan efecto.
 
 ### Configuración Manual
 
+#### Para Gmail (Recomendado con 2FA)
 ```powershell
 # Variables de entorno necesarias
 $env:MAIL_SERVER = "smtp.gmail.com"
 $env:MAIL_PORT = "587"
 $env:MAIL_USE_TLS = "true"
+$env:MAIL_USE_SSL = "false"
 $env:MAIL_USERNAME = "tu-email@gmail.com"
-$env:MAIL_PASSWORD = "tu-contraseña"
+$env:MAIL_PASSWORD = "tu-contraseña-de-aplicación"
 $env:MAIL_DEFAULT_SENDER = "noreply@androtech.com"
 ```
 
-### Para Gmail
-1. Habilita "Acceso de aplicaciones menos seguras" en tu cuenta Google, O
-2. Crea una "Contraseña de aplicación" si tienes 2FA activado
+**Configuración de Gmail:**
+1. Ve a [Google Account Settings](https://myaccount.google.com/security)
+2. Activa la **Verificación en 2 pasos**
+3. Ve a **Contraseñas de aplicaciones**
+4. Genera una contraseña para "AndroTech"
+5. Usa esa contraseña de 16 caracteres en `MAIL_PASSWORD`
 
-> **📖 Documentación completa:** Ver [EMAIL_SETUP.md](EMAIL_SETUP.md) para detalles avanzados.
+#### Para Outlook/Hotmail
+```powershell
+$env:MAIL_SERVER = "smtp-mail.outlook.com"
+$env:MAIL_PORT = "587"
+$env:MAIL_USE_TLS = "true"
+$env:MAIL_USE_SSL = "false"
+$env:MAIL_USERNAME = "tu-email@outlook.com"
+$env:MAIL_PASSWORD = "tu-contraseña-normal"
+$env:MAIL_DEFAULT_SENDER = "noreply@androtech.com"
+```
+
+### Alternar entre Proveedores
+
+```powershell
+# Script para cambiar fácilmente entre Gmail y Outlook
+python switch_email_config.py
+```
+
+### Probar Configuración Específica
+
+```powershell
+# Probar Gmail específicamente
+python test_gmail.py
+
+# Probar configuración general
+python test_email_console.py
+```
 
 ## ▶️ Ejecutar la Aplicación
 
