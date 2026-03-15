@@ -5,6 +5,11 @@ import secrets
 import logging
 import json
 import urllib.parse
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde .env
+load_dotenv()
+
 try:
     import stripe
 except ImportError:
@@ -102,6 +107,9 @@ app.config['MAIL_USE_SSL'] = os.environ.get('MAIL_USE_SSL', 'False').lower() == 
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', '')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', '')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@androtech.com')
+app.config['MAIL_DEFAULT_CHARSET'] = 'utf-8'
+app.config['MAIL_DEFAULT_CONTENT_TYPE'] = 'text/html'
+app.config['MAIL_SUPPRESS_SEND'] = False
 
 mail = Mail(app)
 email_service = EmailService(mail)
@@ -1025,7 +1033,7 @@ def editar_reparacion(id):
                         dispositivo=dispositivo,
                         descripcion=descripcion
                     )
-                    logger.info(f'[EMAIL] 📧 Email de actualización de estado enviado a {cliente_data["email"]} para reparación {id}')
+                    logger.info(f'[EMAIL] Email de actualizacion de estado enviado a {cliente_data["email"]} para reparacion {id}')
                 else:
                     logger.warning(f'[EMAIL] ⚠️ No se pudo enviar email de actualización: cliente sin email para reparación {id}')
 
@@ -1828,7 +1836,7 @@ def stripe_webhook():
                         precio=reparacion_data['precio'],
                         descripcion=reparacion_data['descripcion']
                     )
-                    logger.info(f'[WEBHOOK] 📧 Email de confirmación enviado a {reparacion_data["email"]}')
+                    logger.info(f'[WEBHOOK] Email de confirmacion enviado a {reparacion_data["email"]}')
                 else:
                     logger.warning(f'[WEBHOOK] ⚠️ No se pudieron obtener datos para email de reparación {reparacion_id}')
 

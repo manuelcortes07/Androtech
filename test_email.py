@@ -7,6 +7,10 @@ Ejecutar después de configurar las variables de entorno de email
 import os
 import sys
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Cargar variables de entorno
+load_dotenv()
 
 # Agregar el directorio raíz al path para importar módulos locales
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -57,17 +61,17 @@ def test_email_service():
         print("❌ No se puede determinar email de prueba")
         return False
 
-    print(f"📧 Enviando email de prueba a: {test_email}")
+    print(f"Enviando email de prueba a: {test_email}")
 
     try:
         with app.app_context():
             # Enviar email de confirmación de pago de prueba
             email_service.send_payment_confirmation(
                 to_email=test_email,
-                cliente_nombre="Cliente de Prueba",
+                cliente_nombre="Cliente Prueba",
                 reparacion_id=999,
                 precio=99.99,
-                descripcion="iPhone 12 Pro Max - Reparación de pantalla"
+                descripcion="iPhone 12 Pro Max - Reparacion de pantalla"
             )
 
             print("✅ Email de confirmación de pago enviado exitosamente")
@@ -80,7 +84,7 @@ def test_email_service():
                 estado_anterior="En Progreso",
                 estado_nuevo="Terminado",
                 dispositivo="iPhone 12 Pro Max",
-                descripcion="Reparación de pantalla completada"
+                descripcion="Reparacion de pantalla completada"
             )
 
             print("✅ Email de actualización de estado enviado exitosamente")

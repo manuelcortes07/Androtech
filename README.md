@@ -171,7 +171,44 @@ $env:STRIPE_WEBHOOK_SECRET = "whsec_..."
 - Vuelve a la consulta y verás "Pago Confirmado"
 - En el dashboard verás el pago registrado
 
-## 📁 Estructura del Proyecto
+## � Probar Sistema de Email
+
+### Modo de Prueba (Sin Envío Real)
+
+Por defecto, el sistema imprime emails en consola para evitar problemas de configuración SMTP:
+
+```powershell
+# Ejecutar pruebas de email
+python test_email_console.py
+```
+
+Verás en consola los emails que se enviarían (confirmaciones de pago, actualizaciones de estado, facturas).
+
+### Activar Envío Real de Emails
+
+1. **Configura credenciales SMTP válidas** en `.env`:
+   ```env
+   MAIL_SERVER=smtp.gmail.com
+   MAIL_PORT=587
+   MAIL_USE_TLS=true
+   MAIL_USERNAME=tu-email@gmail.com
+   MAIL_PASSWORD=tu-contraseña-app
+   ```
+
+2. **Restaura envío real**:
+   ```powershell
+   python restore_email_sending.py
+   ```
+
+3. **Reinicia la aplicación** para aplicar cambios.
+
+### Tipos de Emails Automáticos
+
+- **Confirmación de pago**: Se envía automáticamente al procesar un pago exitoso
+- **Actualización de estado**: Se envía cuando cambia el estado de una reparación
+- **Factura**: Se puede enviar manualmente desde el dashboard
+
+## �📁 Estructura del Proyecto
 
 ```
 AndroTech/
