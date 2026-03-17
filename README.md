@@ -141,14 +141,55 @@ $env:MAIL_DEFAULT_SENDER = "noreply@androtech.com"
 python switch_email_config.py
 ```
 
-### Probar Configuración Específica
+### Probar Envío Real de Emails
+
+Una vez configuradas las credenciales SMTP válidas:
 
 ```powershell
-# Probar Gmail específicamente
-python test_gmail.py
+# Probar envío real de email
+python test_real_email.py
+```
 
-# Probar configuración general
-python test_email_console.py
+### Verificar Emails Enviados
+
+Después de un pago exitoso, deberías recibir:
+- ✅ Email de confirmación de pago automático
+- ✅ Email con detalles de la transacción
+- ✅ Template HTML profesional
+
+## 🔧 Solución de Problemas Comunes
+
+### Errores en Amarillo en VS Code (Import Errors)
+
+Si VS Code marca errores en amarillo como `from flask_mail import Mail` o `from dotenv import load_dotenv`, significa que no está usando el entorno virtual.
+
+**Solución Rápida:**
+1. Presiona `Ctrl + Shift + P` (o `Cmd + Shift + P` en Mac)
+2. Busca: `Python: Select Interpreter`
+3. Selecciona: `./venv/Scripts/python.exe`
+
+**Verificación:**
+```powershell
+# Ejecuta este script para verificar
+python check_dependencies.py
+```
+
+### Dependencias No Encontradas
+
+Si faltan dependencias:
+```powershell
+# Activar entorno virtual
+.\venv\Scripts\Activate.ps1
+
+# Instalar todas las dependencias
+pip install -r requirements.txt
+```
+
+### Error al Ejecutar la Aplicación
+
+```powershell
+# Verificar que todo funciona
+python -c "from flask import Flask; from flask_mail import Mail; print('OK')"
 ```
 
 ## ▶️ Ejecutar la Aplicación

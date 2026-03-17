@@ -33,24 +33,16 @@ class EmailService:
             )
             print(f"DEBUG: Template renderizado, longitud: {len(html_body)}")
 
-            # Para pruebas: imprimir en consola en lugar de enviar
-            print("=== EMAIL DE PRUEBA - NO SE ENVÍA ===")
-            print(f"Para: {to_email}")
-            print(f"Asunto: Payment Confirmed - Repair")
-            print(f"Contenido: {html_body[:200]}...")
-            print("=====================================")
-
-            # En producción, descomentar estas líneas:
-            # # Crear mensaje
-            # msg = Message(
-            #     subject='Payment Confirmed - Repair',
-            #     recipients=[to_email],
-            #     charset='utf-8'
-            # )
-            # msg.html = html_body
-            # msg.content_type = 'text/html; charset=utf-8'
-            # # Enviar email
-            # self.mail.send(msg)
+            # Crear mensaje
+            msg = Message(
+                subject='Payment Confirmed - Repair',
+                recipients=[to_email],
+                charset='utf-8'
+            )
+            msg.html = html_body
+            msg.content_type = 'text/html; charset=utf-8'
+            # Enviar email
+            self.mail.send(msg)
             logger.info(f'Email de confirmacion de pago enviado a {to_email} para reparacion {reparacion_id}')
 
         except Exception as e:
@@ -74,24 +66,16 @@ class EmailService:
                 year=datetime.now().year
             )
 
-            # Para pruebas: imprimir en consola en lugar de enviar
-            print("=== EMAIL DE PRUEBA - NO SE ENVÍA ===")
-            print(f"Para: {to_email}")
-            print(f"Asunto: Repair Status Update #{reparacion_id} - {estado_nuevo}")
-            print(f"Contenido: {html_body[:200]}...")
-            print("=====================================")
-
-            # En producción, descomentar estas líneas:
-            # # Crear mensaje
-            # msg = Message(
-            #     subject=f'Repair Status Update #{reparacion_id} - {estado_nuevo}',
-            #     recipients=[to_email],
-            #     charset='utf-8'
-            # )
-            # msg.html = html_body
-            # msg.content_type = 'text/html; charset=utf-8'
-            # # Enviar email
-            # self.mail.send(msg)
+            # Crear mensaje
+            msg = Message(
+                subject=f'Repair Status Update #{reparacion_id} - {estado_nuevo}',
+                recipients=[to_email],
+                charset='utf-8'
+            )
+            msg.html = html_body
+            msg.content_type = 'text/html; charset=utf-8'
+            # Enviar email
+            self.mail.send(msg)
             logger.info(f'Email de actualizacion de estado enviado a {to_email} para reparacion {reparacion_id}: {estado_anterior} -> {estado_nuevo}')
 
         except Exception as e:
@@ -112,24 +96,16 @@ class EmailService:
                 year=datetime.now().year
             )
 
-            # Para pruebas: imprimir en consola en lugar de enviar
-            print("=== EMAIL DE PRUEBA - NO SE ENVÍA ===")
-            print(f"Para: {to_email}")
-            print(f"Asunto: Factura - Reparacion #{reparacion_id}")
-            print(f"Contenido: {html_body[:200]}...")
-            print("=====================================")
-
-            # En producción, descomentar estas líneas:
-            # # Crear mensaje
-            # msg = Message(
-            #     subject=f'Factura - Reparacion #{reparacion_id}',
-            #     recipients=[to_email],
-            #     charset='utf-8'
-            # )
-            # msg.html = html_body
-            # msg.content_type = 'text/html; charset=utf-8'
-            # # Enviar email
-            # self.mail.send(msg)
+            # Crear mensaje
+            msg = Message(
+                subject=f'Factura - Reparacion #{reparacion_id}',
+                recipients=[to_email],
+                charset='utf-8'
+            )
+            msg.html = html_body
+            msg.content_type = 'text/html; charset=utf-8'
+            # Enviar email
+            self.mail.send(msg)
             logger.info(f'Email de factura enviado a {to_email} para reparación {reparacion_id}')
 
         except Exception as e:
