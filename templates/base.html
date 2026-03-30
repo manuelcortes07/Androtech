@@ -166,8 +166,8 @@
 
                 <!-- Acceso técnico -->
                 <div class="d-flex">
-                    <a href="/login" class="btn btn-outline-primary btn-sm px-3">
-                        <i class="bi bi-shield-lock me-1"></i>Acceso técnico
+                    <a href="/login" class="btn at-btn-outline-nav btn-sm px-3">
+                        <i class="bi bi-shield-lock me-1"></i>Acceso tecnico
                     </a>
                 </div>
             {% endif %}
@@ -226,69 +226,49 @@
     })();
 </script>
 
-<!-- FOOTER BASE PROFESIONAL -->
-<footer class="bg-white border-top mt-5">
-    <div class="container py-4">
-        <div class="row g-4 align-items-center">
-            <!-- Logo y descripción -->
-            <div class="col-md-4">
+<!-- FOOTER -->
+<footer class="at-footer">
+    <div class="container">
+        <div class="row g-4">
+            <!-- Marca + descripción -->
+            <div class="col-md-4 footer-col">
                 <div class="d-flex align-items-center mb-2">
-                    <i class="bi bi-gear-fill text-primary me-2 fs-5"></i>
-                    <span class="fw-bold text-primary fs-6">AndroTech</span>
+                    <img src="{{ url_for('static', filename='imagenes/logo.jpg') }}" alt="AndroTech" style="width:36px;height:36px;border-radius:50%;object-fit:cover" class="me-2">
+                    <span class="fw-bold at-footer-brand">AndroTech</span>
                 </div>
-                <p class="text-muted small mb-0">Sistema profesional de gestión para talleres técnicos.</p>
+                <p class="at-footer-desc">Taller tecnico en Huelva especializado en reparacion de moviles, tablets y ordenadores. Servicio profesional con garantia.</p>
             </div>
 
-            <!-- Enlaces rápidos -->
-            <div class="col-md-4">
-                <h6 class="fw-semibold mb-2 text-dark">Enlaces</h6>
+            <!-- Enlaces -->
+            <div class="col-md-4 footer-col">
+                <h6 class="at-footer-heading">Enlaces</h6>
                 <div class="d-flex flex-column">
                     {% if session.usuario %}
-                        <a href="/dashboard" class="text-decoration-none text-muted small mb-1">
-                            <i class="bi bi-speedometer2 me-1"></i>Dashboard
-                        </a>
-                        <a href="/clientes" class="text-decoration-none text-muted small mb-1">
-                            <i class="bi bi-people me-1"></i>Clientes
-                        </a>
-                        <a href="/reparaciones" class="text-decoration-none text-muted small">
-                            <i class="bi bi-tools me-1"></i>Reparaciones
-                        </a>
+                        <a href="/dashboard" class="at-footer-link">Dashboard</a>
+                        <a href="/clientes" class="at-footer-link">Clientes</a>
+                        <a href="/reparaciones" class="at-footer-link">Reparaciones</a>
                     {% else %}
-                        <a href="/" class="text-decoration-none text-muted small mb-1">
-                            <i class="bi bi-house me-1"></i>Inicio
-                        </a>
-                        <a href="/servicios" class="text-decoration-none text-muted small mb-1">
-                            <i class="bi bi-wrench me-1"></i>Servicios
-                        </a>
-                        <a href="/consulta" class="text-decoration-none text-muted small">
-                            <i class="bi bi-search me-1"></i>Consulta
-                        </a>
+                        <a href="/" class="at-footer-link">Inicio</a>
+                        <a href="/servicios" class="at-footer-link">Servicios</a>
+                        <a href="/consulta" class="at-footer-link">Consultar reparacion</a>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- Contacto discreto -->
-            <div class="col-md-4 text-md-end">
-                <h6 class="fw-semibold mb-2 text-dark">Contacto</h6>
-                <div class="text-muted small">
-                    <div class="mb-1">
-                        <i class="bi bi-envelope me-1"></i>contacto@androtech.es
-                    </div>
-                    <div>
-                        <i class="bi bi-telephone me-1"></i>+34 912 345 678
-                    </div>
+            <!-- Contacto -->
+            <div class="col-md-4 footer-col">
+                <h6 class="at-footer-heading">Contacto</h6>
+                <div class="at-footer-contact">
+                    <div><i class="bi bi-geo-alt me-1"></i>Huelva, Espana</div>
+                    <div><i class="bi bi-envelope me-1"></i>contacto@androtech.es</div>
+                    <div><i class="bi bi-telephone me-1"></i>+34 959 123 456</div>
                 </div>
             </div>
         </div>
 
-        <!-- Línea divisoria sutil -->
         <hr class="my-3 opacity-25">
-
-        <!-- Copyright discreto -->
         <div class="text-center">
-            <small class="text-muted">
-                &copy; <span id="footer-year"></span> AndroTech · Proyecto académico
-            </small>
+            <small class="at-footer-copy">&copy; <span id="footer-year"></span> AndroTech &middot; Proyecto academico</small>
         </div>
     </div>
 </footer>

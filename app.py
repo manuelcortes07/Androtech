@@ -379,8 +379,18 @@ def index():
     activas = conn.execute("SELECT COUNT(*) FROM reparaciones WHERE estado != 'Terminado' AND estado != 'Entregado'").fetchone()[0]
     terminadas = conn.execute("SELECT COUNT(*) FROM reparaciones WHERE estado = 'Terminado' OR estado = 'Entregado'").fetchone()[0]
     ingresos = conn.execute("SELECT COALESCE(SUM(precio), 0) FROM reparaciones WHERE estado = 'Terminado' OR estado = 'Entregado'").fetchone()[0]
+    # Desglose por estado para mini-panel del hero
+    estados_count = {}
+    for row in conn.execute("SELECT estado, COUNT(*) as c FROM reparaciones GROUP BY estado").fetchall():
+        estados_count[row['estado']] = row['c']
     conn.close()
-    return render_template("index.html", total_clientes=total_clientes, activas=activas, terminadas=terminadas, ingresos=ingresos)
+    return render_template("index.html",
+        total_clientes=total_clientes,
+        activas=activas,
+        terminadas=terminadas,
+        ingresos=ingresos,
+        estados_count=estados_count
+    )
 
 # =========================================
 # 🔸 DASHBOARD
