@@ -17,8 +17,8 @@ class EmailService:
     def __init__(self, mail_instance):
         self.mail = mail_instance
 
-    def send_payment_confirmation(self, to_email, cliente_nombre, reparacion_id, precio, descripcion):
-        """Enviar confirmación de pago por email"""
+    def send_payment_confirmation(self, to_email, cliente_nombre, reparacion_id, precio, descripcion, pdf_data=None):
+        """Enviar confirmación de pago por email, opcionalmente con factura PDF adjunta"""
         try:
             logger.debug(f"Enviando email de confirmacion de pago a reparacion {reparacion_id}")
             # Renderizar template HTML
@@ -40,6 +40,16 @@ class EmailService:
             )
             msg.html = html_body
             msg.content_type = 'text/html; charset=utf-8'
+
+            # Adjuntar factura PDF si se proporcionó
+            if pdf_data is not None:
+                msg.attach(
+                    filename=f"factura_reparacion_{reparacion_id}.pdf",
+                    content_type="application/pdf",
+                    data=pdf_data.read()
+                )
+                logger.debug(f"PDF adjuntado al email de reparacion {reparacion_id}")
+
             # Enviar email
             self.mail.send(msg)
             logger.info(f'Email de confirmacion de pago enviado a {to_email} para reparacion {reparacion_id}')

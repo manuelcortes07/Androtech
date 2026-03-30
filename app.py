@@ -1835,15 +1835,33 @@ def stripe_webhook():
                 ''', (reparacion_id,)).fetchone()
 
                 if reparacion_data:
-                    # Enviar email de confirmación
+                    # Generar factura PDF para adjuntar al email
+                    pdf_buffer = None
+                    try:
+                        pdf_reparacion = {
+                            'id': reparacion_id,
+                            'dispositivo': reparacion_data['dispositivo'],
+                            'estado': reparacion_data['estado'],
+                            'fecha_entrada': reparacion_data['fecha_entrada'],
+                            'precio': reparacion_data['precio'],
+                            'descripcion': reparacion_data['descripcion'],
+                            'cliente_nombre': reparacion_data['nombre'],
+                            'cliente_telefono': reparacion_data['telefono'],
+                        }
+                        pdf_buffer = generar_presupuesto_pdf(pdf_reparacion, tipo_documento="factura")
+                    except Exception:
+                        logger.exception(f'[WEBHOOK] Error generando PDF para reparacion {reparacion_id}, se enviara email sin adjunto')
+
+                    # Enviar email de confirmación con factura PDF adjunta
                     email_service.send_payment_confirmation(
                         to_email=reparacion_data['email'],
                         cliente_nombre=reparacion_data['nombre'],
                         reparacion_id=reparacion_id,
                         precio=reparacion_data['precio'],
-                        descripcion=reparacion_data['descripcion']
+                        descripcion=reparacion_data['descripcion'],
+                        pdf_data=pdf_buffer
                     )
-                    logger.info(f'[WEBHOOK] Email de confirmacion enviado a {reparacion_data["email"]}')
+                    logger.info(f'[WEBHOOK] Email de confirmacion enviado a {reparacion_data["email"]} (PDF adjunto: {pdf_buffer is not None})')
                 else:
                     logger.warning(f'[WEBHOOK] ⚠️ No se pudieron obtener datos para email de reparación {reparacion_id}')
 

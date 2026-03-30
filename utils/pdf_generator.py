@@ -6,6 +6,7 @@ Versión avanzada con múltiples servicios, información fiscal completa y templ
 
 import os
 import logging
+import tempfile
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 from reportlab.lib import colors
@@ -499,21 +500,22 @@ def generar_presupuesto_pdf(reparacion_data, tipo_documento="presupuesto"):
 
     # Crear buffer para retorno
     buffer = BytesIO()
+    rep_id = reparacion_data.get('id', 'temp')
 
     if tipo_documento == "factura":
-        # Generar factura
-        temp_path = f"/tmp/invoice_{reparacion_data.get('id', 'temp')}.pdf"
+        with tempfile.NamedTemporaryFile(suffix='.pdf', prefix=f'invoice_{rep_id}_', delete=False) as tmp:
+            temp_path = tmp.name
         if invoice_generator.generate_invoice(invoice_data, temp_path):
             with open(temp_path, 'rb') as f:
                 buffer.write(f.read())
-            os.remove(temp_path)
+        os.remove(temp_path)
     else:
-        # Generar presupuesto
-        temp_path = f"/tmp/quote_{reparacion_data.get('id', 'temp')}.pdf"
+        with tempfile.NamedTemporaryFile(suffix='.pdf', prefix=f'quote_{rep_id}_', delete=False) as tmp:
+            temp_path = tmp.name
         if invoice_generator.generate_quote(invoice_data, temp_path):
             with open(temp_path, 'rb') as f:
                 buffer.write(f.read())
-            os.remove(temp_path)
+        os.remove(temp_path)
 
     buffer.seek(0)
     return buffer
