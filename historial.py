@@ -10,6 +10,41 @@ import logging
 
 logger = logging.getLogger("androtech")
 
+# Estados válidos y transiciones permitidas para técnicos
+ESTADOS_VALIDOS = ('Pendiente', 'En proceso', 'Terminado', 'Entregado')
+
+TRANSICIONES_VALIDAS = {
+    'Pendiente': ('En proceso',),
+    'En proceso': ('Pendiente', 'Terminado'),
+    'Terminado': ('En proceso', 'Entregado'),
+    'Entregado': (),
+}
+
+
+def validar_transicion(estado_actual, estado_nuevo, rol='tecnico'):
+    """Valida si una transición de estado es permitida.
+
+    Los administradores pueden realizar cualquier transición entre
+    estados válidos.  Los técnicos solo pueden seguir las transiciones
+    definidas en ``TRANSICIONES_VALIDAS``.
+
+    Returns (bool, str): (es_valida, mensaje_error)
+    """
+    if estado_nuevo not in ESTADOS_VALIDOS:
+        return False, f'Estado "{estado_nuevo}" no es válido'
+
+    if estado_actual == estado_nuevo:
+        return True, ''
+
+    if rol == 'admin':
+        return True, ''
+
+    permitidos = TRANSICIONES_VALIDAS.get(estado_actual, ())
+    if estado_nuevo not in permitidos:
+        return False, f'No se puede cambiar de "{estado_actual}" a "{estado_nuevo}"'
+
+    return True, ''
+
 
 def registrar_cambio_estado(conn, reparacion_id, estado_nuevo, usuario=None):
     """Record a state change if the new value differs from the previous one.

@@ -108,10 +108,9 @@
                     <div class="mt-3">
                         <label for="estado" class="form-label fw-semibold">Estado</label>
                         <select id="estado" name="estado" class="form-select" onchange="verificarCambioEstado(this)">
-                            <option value="Pendiente" {% if reparacion.estado == 'Pendiente' %}selected{% endif %}>Pendiente</option>
-                            <option value="En proceso" {% if reparacion.estado == 'En proceso' %}selected{% endif %}>En proceso</option>
-                            <option value="Terminado" {% if reparacion.estado == 'Terminado' %}selected{% endif %}>Terminado</option>
-                            <option value="Entregado" {% if reparacion.estado == 'Entregado' %}selected{% endif %}>Entregado</option>
+                            {% for est in estados_disponibles %}
+                            <option value="{{ est }}" {% if reparacion.estado == est %}selected{% endif %}>{{ est }}</option>
+                            {% endfor %}
                         </select>
                         <small class="form-text text-muted d-block mt-1"><i class="bi bi-info-circle"></i> Cambiar de estado registra la acción en el historial.</small>
                     </div>

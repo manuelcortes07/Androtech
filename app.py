@@ -22,7 +22,7 @@ from utils.pdf_generator import generar_presupuesto_pdf
 from db import get_db
 from auth import login_required, role_required
 from alerts import calcular_alertas_reparacion
-from historial import registrar_cambio_estado
+from historial import registrar_cambio_estado, validar_transicion
 from audit import registrar_auditoria, obtener_auditoria_reciente, crear_tabla_auditoria
 from utils.security import (
     ensure_csrf_token,
@@ -990,6 +990,16 @@ def editar_reparacion(id):
         estado = request.form["estado"]
         precio = request.form["precio"]
 
+        # Validar transición de estado
+        estado_anterior = conn.execute("SELECT estado FROM reparaciones WHERE id=?", (id,)).fetchone()['estado']
+        transicion_valida, error_transicion = validar_transicion(
+            estado_anterior, estado, rol=session.get('rol', 'tecnico')
+        )
+        if not transicion_valida:
+            flash(error_transicion, 'danger')
+            conn.close()
+            return redirect(url_for('editar_reparacion', id=id))
+
         # precio validación: solo admin puede cambiar precio
         if precio:
             if not validar_precio(precio):
@@ -1007,7 +1017,6 @@ def editar_reparacion(id):
             precio = None
 
         # Registrar cambio de estado en historial (ANTES de actualizar)
-        estado_anterior = conn.execute("SELECT estado FROM reparaciones WHERE id=?", (id,)).fetchone()['estado']
         registrar_cambio_estado(conn, id, estado, usuario=session.get('usuario'))
 
         conn.execute("""
@@ -1087,6 +1096,15 @@ def editar_reparacion(id):
     # Calcular alertas
     alertas_info = calcular_alertas_reparacion(reparacion, ultima_act)
     
+    # Calcular estados disponibles según rol
+    from historial import ESTADOS_VALIDOS, TRANSICIONES_VALIDAS
+    rol = session.get('rol', 'tecnico')
+    estado_actual = reparacion['estado']
+    if rol == 'admin':
+        estados_disponibles = ESTADOS_VALIDOS
+    else:
+        estados_disponibles = (estado_actual,) + TRANSICIONES_VALIDAS.get(estado_actual, ())
+
     return render_template(
         "editar_reparacion.html",
         reparacion=reparacion,
@@ -1094,7 +1112,8 @@ def editar_reparacion(id):
         puede_editar_precio=puede_editar_precio,
         user_role=session.get('rol'),
         alertas_info=alertas_info,
-        historial=historial
+        historial=historial,
+        estados_disponibles=estados_disponibles
     )
 
 
