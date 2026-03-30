@@ -20,7 +20,7 @@ class EmailService:
     def send_payment_confirmation(self, to_email, cliente_nombre, reparacion_id, precio, descripcion):
         """Enviar confirmación de pago por email"""
         try:
-            print(f"DEBUG: Enviando email a {to_email}")
+            logger.debug(f"Enviando email de confirmacion de pago a reparacion {reparacion_id}")
             # Renderizar template HTML
             html_body = render_template(
                 'emails/payment_confirmation.html',
@@ -31,7 +31,6 @@ class EmailService:
                 fecha_pago=datetime.now().strftime('%d/%m/%Y %H:%M'),
                 year=datetime.now().year
             )
-            print(f"DEBUG: Template renderizado, longitud: {len(html_body)}")
 
             # Crear mensaje
             msg = Message(
@@ -46,8 +45,7 @@ class EmailService:
             logger.info(f'Email de confirmacion de pago enviado a {to_email} para reparacion {reparacion_id}')
 
         except Exception as e:
-            print(f"DEBUG: Error: {type(e).__name__}: {str(e)[:100]}...")
-            logger.error(f'Error enviando email de confirmacion de pago: {type(e).__name__}')
+            logger.error(f'Error enviando email de confirmacion de pago: {type(e).__name__}: {str(e)}')
             raise
 
     def send_repair_status_update(self, to_email, cliente_nombre, reparacion_id, estado_anterior, estado_nuevo, dispositivo, descripcion):
