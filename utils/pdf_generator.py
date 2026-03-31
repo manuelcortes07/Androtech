@@ -6,6 +6,7 @@ Versión avanzada con múltiples servicios, información fiscal completa y templ
 
 import os
 import logging
+import tempfile
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 from reportlab.lib import colors
@@ -16,6 +17,8 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.graphics.shapes import Drawing
+from reportlab.graphics.barcode.qr import QrCodeWidget
 from io import BytesIO
 
 logger = logging.getLogger(__name__)
@@ -126,6 +129,12 @@ class InvoiceGenerator:
 
             # Términos y condiciones
             elements.extend(self._build_terms())
+
+            # QR de consulta
+            reparacion_id = invoice_data.get('reparacion_id')
+            if reparacion_id:
+                consulta_url = f"https://androtech.es/consulta?id={reparacion_id}"
+                elements.extend(self._build_qr_code(consulta_url))
 
             # Footer
             elements.extend(self._build_footer())
@@ -307,6 +316,36 @@ class InvoiceGenerator:
 
         return elements
 
+    def _build_qr_code(self, url: str) -> List[Any]:
+        """Construir codigo QR para consulta de reparacion."""
+        elements = []
+        try:
+            qr = QrCodeWidget(url)
+            qr.barWidth = 120
+            qr.barHeight = 120
+            d = Drawing(140, 140)
+            d.add(qr)
+
+            # Tabla para centrar QR con texto
+            qr_data = [[d], [Paragraph(
+                '<para alignment="center"><font size="8" color="#7f8c8d">'
+                'Escanea para consultar el estado de tu reparacion'
+                '</font></para>',
+                self.styles['Normal']
+            )]]
+            qr_table = Table(qr_data, colWidths=[3*inch])
+            qr_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(Spacer(1, 15))
+            elements.append(qr_table)
+            elements.append(Spacer(1, 15))
+        except Exception as e:
+            logger.warning(f"No se pudo generar QR: {e}")
+        return elements
+
     def _build_footer(self) -> List[Any]:
         """Construir footer del documento."""
         elements = []
@@ -424,6 +463,13 @@ class InvoiceGenerator:
 
             # Términos para presupuesto
             elements.extend(self._build_quote_terms())
+
+            # QR de consulta
+            reparacion_id = invoice_data.get('reparacion_id')
+            if reparacion_id:
+                consulta_url = f"https://androtech.es/consulta?id={reparacion_id}"
+                elements.extend(self._build_qr_code(consulta_url))
+
             elements.extend(self._build_footer())
 
             doc.build(elements)
@@ -483,6 +529,7 @@ def generar_presupuesto_pdf(reparacion_data, tipo_documento="presupuesto"):
 
     # Convertir datos antiguos al nuevo formato
     invoice_data = {
+        'reparacion_id': reparacion_data.get('id'),
         'invoice_number': f"{'F' if tipo_documento == 'factura' else 'P'}-{reparacion_data.get('id', 'N/A'):05d}",
         'date': datetime.now().strftime('%Y-%m-%d'),
         'customer_name': reparacion_data.get('cliente_nombre', 'N/A'),
@@ -499,21 +546,22 @@ def generar_presupuesto_pdf(reparacion_data, tipo_documento="presupuesto"):
 
     # Crear buffer para retorno
     buffer = BytesIO()
+    rep_id = reparacion_data.get('id', 'temp')
 
     if tipo_documento == "factura":
-        # Generar factura
-        temp_path = f"/tmp/invoice_{reparacion_data.get('id', 'temp')}.pdf"
+        with tempfile.NamedTemporaryFile(suffix='.pdf', prefix=f'invoice_{rep_id}_', delete=False) as tmp:
+            temp_path = tmp.name
         if invoice_generator.generate_invoice(invoice_data, temp_path):
             with open(temp_path, 'rb') as f:
                 buffer.write(f.read())
-            os.remove(temp_path)
+        os.remove(temp_path)
     else:
-        # Generar presupuesto
-        temp_path = f"/tmp/quote_{reparacion_data.get('id', 'temp')}.pdf"
+        with tempfile.NamedTemporaryFile(suffix='.pdf', prefix=f'quote_{rep_id}_', delete=False) as tmp:
+            temp_path = tmp.name
         if invoice_generator.generate_quote(invoice_data, temp_path):
             with open(temp_path, 'rb') as f:
                 buffer.write(f.read())
-            os.remove(temp_path)
+        os.remove(temp_path)
 
     buffer.seek(0)
     return buffer

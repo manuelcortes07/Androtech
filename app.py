@@ -22,7 +22,7 @@ from utils.pdf_generator import generar_presupuesto_pdf
 from db import get_db
 from auth import login_required, role_required
 from alerts import calcular_alertas_reparacion
-from historial import registrar_cambio_estado
+from historial import registrar_cambio_estado, validar_transicion
 from audit import registrar_auditoria, obtener_auditoria_reciente, crear_tabla_auditoria
 from utils.security import (
     ensure_csrf_token,
@@ -43,6 +43,13 @@ app.permanent_session_lifetime = timedelta(hours=6)  # ajustable según polític
 def make_session_permanent():
     session.permanent = True
 
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    return response
+
 # -----------------------------
 # Structured/JSON logger
 # -----------------------------
@@ -61,10 +68,22 @@ class JSONFormatter(logging.Formatter):
 
 logger = logging.getLogger("androtech")
 if not logger.handlers:
+    # Stdout handler
     handler = logging.StreamHandler()
     handler.setLevel(logging.INFO)
     handler.setFormatter(JSONFormatter())
     logger.addHandler(handler)
+
+    # Archivo rotativo (max 5MB, 3 backups)
+    from logging.handlers import RotatingFileHandler
+    os.makedirs('logs', exist_ok=True)
+    file_handler = RotatingFileHandler(
+        'logs/androtech.log', maxBytes=5*1024*1024, backupCount=3, encoding='utf-8'
+    )
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(JSONFormatter())
+    logger.addHandler(file_handler)
+
 logger.setLevel(logging.INFO)
 
 # Stripe configuration (use environment variables in production)
@@ -372,8 +391,18 @@ def index():
     activas = conn.execute("SELECT COUNT(*) FROM reparaciones WHERE estado != 'Terminado' AND estado != 'Entregado'").fetchone()[0]
     terminadas = conn.execute("SELECT COUNT(*) FROM reparaciones WHERE estado = 'Terminado' OR estado = 'Entregado'").fetchone()[0]
     ingresos = conn.execute("SELECT COALESCE(SUM(precio), 0) FROM reparaciones WHERE estado = 'Terminado' OR estado = 'Entregado'").fetchone()[0]
+    # Desglose por estado para mini-panel del hero
+    estados_count = {}
+    for row in conn.execute("SELECT estado, COUNT(*) as c FROM reparaciones GROUP BY estado").fetchall():
+        estados_count[row['estado']] = row['c']
     conn.close()
-    return render_template("index.html", total_clientes=total_clientes, activas=activas, terminadas=terminadas, ingresos=ingresos)
+    return render_template("index.html",
+        total_clientes=total_clientes,
+        activas=activas,
+        terminadas=terminadas,
+        ingresos=ingresos,
+        estados_count=estados_count
+    )
 
 # =========================================
 # 🔸 DASHBOARD
@@ -623,7 +652,8 @@ def dashboard():
         ingresos_por_mes=ingresos_por_mes,
         tiempo_medio_dias=tiempo_medio_dias,
         reparaciones_por_tecnico=tecnico_dict,
-        eventos_auditoria=eventos_auditoria
+        eventos_auditoria=eventos_auditoria,
+        user_role=session.get('rol')
     )
 
 #  SECCIÓN CLIENTES
@@ -774,6 +804,118 @@ def borrar_cliente(id):
     conn.commit()
     conn.close()
     return redirect(url_for("clientes"))
+
+
+# =========================================
+#  🔸 BÚSQUEDA GLOBAL
+# =========================================
+
+@app.route("/buscar")
+@login_required
+def buscar():
+    q = request.args.get('q', '').strip()
+    if not q or len(q) < 2:
+        flash('Introduce al menos 2 caracteres para buscar.', 'warning')
+        return redirect(url_for('dashboard'))
+
+    conn = get_db()
+    like = f'%{q}%'
+
+    clientes_result = conn.execute('''
+        SELECT id, nombre, email, telefono
+        FROM clientes
+        WHERE nombre LIKE ? OR email LIKE ? OR telefono LIKE ?
+        LIMIT 20
+    ''', (like, like, like)).fetchall()
+
+    reparaciones_result = conn.execute('''
+        SELECT r.id, r.dispositivo, r.estado, r.estado_pago, r.precio,
+               r.fecha_entrada, c.nombre as cliente
+        FROM reparaciones r
+        JOIN clientes c ON r.cliente_id = c.id
+        WHERE r.dispositivo LIKE ? OR r.descripcion LIKE ?
+              OR c.nombre LIKE ? OR CAST(r.id AS TEXT) = ?
+        ORDER BY r.id DESC
+        LIMIT 20
+    ''', (like, like, like, q)).fetchall()
+
+    conn.close()
+
+    return render_template("buscar.html",
+        q=q,
+        clientes=clientes_result,
+        reparaciones=reparaciones_result
+    )
+
+
+# =========================================
+#  🔸 EXPORTAR CSV
+# =========================================
+
+import csv
+from io import StringIO, BytesIO
+
+@app.route("/exportar/reparaciones.csv")
+@login_required
+@role_required('admin')
+def exportar_reparaciones_csv():
+    conn = get_db()
+    rows = conn.execute('''
+        SELECT r.id, c.nombre as cliente, c.email, c.telefono,
+               r.dispositivo, r.descripcion, r.estado, r.estado_pago,
+               r.precio, r.fecha_entrada, r.fecha_pago, r.metodo_pago
+        FROM reparaciones r
+        JOIN clientes c ON r.cliente_id = c.id
+        ORDER BY r.id DESC
+    ''').fetchall()
+    conn.close()
+
+    si = StringIO()
+    writer = csv.writer(si)
+    writer.writerow(['ID', 'Cliente', 'Email', 'Telefono', 'Dispositivo',
+                     'Descripcion', 'Estado', 'Estado Pago', 'Precio',
+                     'Fecha Entrada', 'Fecha Pago', 'Metodo Pago'])
+    for r in rows:
+        writer.writerow([r['id'], r['cliente'], r['email'], r['telefono'],
+                         r['dispositivo'], r['descripcion'], r['estado'],
+                         r['estado_pago'], r['precio'], r['fecha_entrada'],
+                         r['fecha_pago'], r['metodo_pago']])
+
+    output = BytesIO()
+    output.write(si.getvalue().encode('utf-8-sig'))
+    output.seek(0)
+    return send_file(output, mimetype='text/csv', as_attachment=True,
+                     download_name=f'reparaciones_{datetime.now().strftime("%Y%m%d")}.csv')
+
+
+@app.route("/exportar/clientes.csv")
+@login_required
+@role_required('admin')
+def exportar_clientes_csv():
+    conn = get_db()
+    rows = conn.execute('''
+        SELECT c.id, c.nombre, c.email, c.telefono,
+               COUNT(r.id) as total_reparaciones,
+               COALESCE(SUM(CASE WHEN r.estado_pago = 'Pagado' THEN r.precio ELSE 0 END), 0) as total_pagado
+        FROM clientes c
+        LEFT JOIN reparaciones r ON r.cliente_id = c.id
+        GROUP BY c.id
+        ORDER BY c.nombre
+    ''').fetchall()
+    conn.close()
+
+    si = StringIO()
+    writer = csv.writer(si)
+    writer.writerow(['ID', 'Nombre', 'Email', 'Telefono', 'Total Reparaciones', 'Total Pagado'])
+    for r in rows:
+        writer.writerow([r['id'], r['nombre'], r['email'], r['telefono'],
+                         r['total_reparaciones'], r['total_pagado']])
+
+    output = BytesIO()
+    output.write(si.getvalue().encode('utf-8-sig'))
+    output.seek(0)
+    return send_file(output, mimetype='text/csv', as_attachment=True,
+                     download_name=f'clientes_{datetime.now().strftime("%Y%m%d")}.csv')
 
 
 # =========================================
@@ -983,6 +1125,16 @@ def editar_reparacion(id):
         estado = request.form["estado"]
         precio = request.form["precio"]
 
+        # Validar transición de estado
+        estado_anterior = conn.execute("SELECT estado FROM reparaciones WHERE id=?", (id,)).fetchone()['estado']
+        transicion_valida, error_transicion = validar_transicion(
+            estado_anterior, estado, rol=session.get('rol', 'tecnico')
+        )
+        if not transicion_valida:
+            flash(error_transicion, 'danger')
+            conn.close()
+            return redirect(url_for('editar_reparacion', id=id))
+
         # precio validación: solo admin puede cambiar precio
         if precio:
             if not validar_precio(precio):
@@ -1000,7 +1152,6 @@ def editar_reparacion(id):
             precio = None
 
         # Registrar cambio de estado en historial (ANTES de actualizar)
-        estado_anterior = conn.execute("SELECT estado FROM reparaciones WHERE id=?", (id,)).fetchone()['estado']
         registrar_cambio_estado(conn, id, estado, usuario=session.get('usuario'))
 
         conn.execute("""
@@ -1080,6 +1231,15 @@ def editar_reparacion(id):
     # Calcular alertas
     alertas_info = calcular_alertas_reparacion(reparacion, ultima_act)
     
+    # Calcular estados disponibles según rol
+    from historial import ESTADOS_VALIDOS, TRANSICIONES_VALIDAS
+    rol = session.get('rol', 'tecnico')
+    estado_actual = reparacion['estado']
+    if rol == 'admin':
+        estados_disponibles = ESTADOS_VALIDOS
+    else:
+        estados_disponibles = (estado_actual,) + TRANSICIONES_VALIDAS.get(estado_actual, ())
+
     return render_template(
         "editar_reparacion.html",
         reparacion=reparacion,
@@ -1087,7 +1247,8 @@ def editar_reparacion(id):
         puede_editar_precio=puede_editar_precio,
         user_role=session.get('rol'),
         alertas_info=alertas_info,
-        historial=historial
+        historial=historial,
+        estados_disponibles=estados_disponibles
     )
 
 
@@ -1536,6 +1697,53 @@ def consulta():
     return render_template("consulta.html", reparacion=reparacion, error=error)
 
 
+@app.route("/mis-reparaciones", methods=["GET", "POST"])
+@csrf_protect
+def mis_reparaciones():
+    """Panel publico: el cliente introduce su email y ve todas sus reparaciones."""
+    reparaciones_list = None
+    cliente_nombre = None
+    email_buscado = None
+    error = None
+
+    if request.method == "POST":
+        email_buscado = request.form.get("email", "").strip().lower()
+        if not email_buscado or '@' not in email_buscado:
+            error = "Por favor, introduce un email valido."
+        else:
+            conn = get_db()
+            cliente = conn.execute(
+                "SELECT id, nombre FROM clientes WHERE LOWER(email) = ?",
+                (email_buscado,)
+            ).fetchone()
+
+            if not cliente:
+                error = "No se encontro ningun cliente con ese email."
+                conn.close()
+            else:
+                cliente_nombre = cliente['nombre']
+                reparaciones_list = conn.execute('''
+                    SELECT r.id, r.dispositivo, r.descripcion, r.estado,
+                           r.estado_pago, r.precio, r.fecha_entrada,
+                           r.fecha_pago, r.metodo_pago
+                    FROM reparaciones r
+                    WHERE r.cliente_id = ?
+                    ORDER BY r.fecha_entrada DESC
+                ''', (cliente['id'],)).fetchall()
+                conn.close()
+
+                if not reparaciones_list:
+                    error = "No se encontraron reparaciones asociadas a este email."
+                    reparaciones_list = None
+
+    return render_template("mis_reparaciones.html",
+        reparaciones=reparaciones_list,
+        cliente_nombre=cliente_nombre,
+        email_buscado=email_buscado,
+        error=error
+    )
+
+
 @app.route('/publico/pagar/<int:id>', methods=['POST'])
 @csrf_protect
 def publico_pagar(id):
@@ -1828,15 +2036,33 @@ def stripe_webhook():
                 ''', (reparacion_id,)).fetchone()
 
                 if reparacion_data:
-                    # Enviar email de confirmación
+                    # Generar factura PDF para adjuntar al email
+                    pdf_buffer = None
+                    try:
+                        pdf_reparacion = {
+                            'id': reparacion_id,
+                            'dispositivo': reparacion_data['dispositivo'],
+                            'estado': reparacion_data['estado'],
+                            'fecha_entrada': reparacion_data['fecha_entrada'],
+                            'precio': reparacion_data['precio'],
+                            'descripcion': reparacion_data['descripcion'],
+                            'cliente_nombre': reparacion_data['nombre'],
+                            'cliente_telefono': reparacion_data['telefono'],
+                        }
+                        pdf_buffer = generar_presupuesto_pdf(pdf_reparacion, tipo_documento="factura")
+                    except Exception:
+                        logger.exception(f'[WEBHOOK] Error generando PDF para reparacion {reparacion_id}, se enviara email sin adjunto')
+
+                    # Enviar email de confirmación con factura PDF adjunta
                     email_service.send_payment_confirmation(
                         to_email=reparacion_data['email'],
                         cliente_nombre=reparacion_data['nombre'],
                         reparacion_id=reparacion_id,
                         precio=reparacion_data['precio'],
-                        descripcion=reparacion_data['descripcion']
+                        descripcion=reparacion_data['descripcion'],
+                        pdf_data=pdf_buffer
                     )
-                    logger.info(f'[WEBHOOK] Email de confirmacion enviado a {reparacion_data["email"]}')
+                    logger.info(f'[WEBHOOK] Email de confirmacion enviado a {reparacion_data["email"]} (PDF adjunto: {pdf_buffer is not None})')
                 else:
                     logger.warning(f'[WEBHOOK] ⚠️ No se pudieron obtener datos para email de reparación {reparacion_id}')
 

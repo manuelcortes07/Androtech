@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Mis Reparaciones{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<section class="at-hero" style="padding: 3rem 0 2rem;">
+    <div class="container text-center">
+        <h1 class="at-hero-title" style="font-size: 2.2rem;">Mis reparaciones</h1>
+        <p class="at-hero-sub" style="max-width: 600px; margin: 0 auto;">Introduce tu email para ver el historial completo de tus reparaciones en AndroTech.</p>
+    </div>
+</section>
+
+<!-- FORMULARIO -->
+<section class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-5">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <form method="POST" class="needs-validation" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <div class="mb-3">
+                            <label for="email" class="form-label fw-semibold">
+                                <i class="bi bi-envelope me-1"></i>Tu email
+                            </label>
+                            <input type="email" class="form-control form-control-lg" id="email" name="email"
+                                   required placeholder="tu.email@ejemplo.com"
+                                   value="{{ email_buscado or '' }}">
+                            <div class="form-text">El email que diste al registrar tu reparacion.</div>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn at-btn-primary btn-lg">
+                                <i class="bi bi-search me-2"></i>Ver mis reparaciones
+                            </button>
+                        </div>
+                    </form>
+
+                    {% if error %}
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <i class="bi bi-exclamation-triangle me-1"></i>{{ error }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- RESULTADOS -->
+{% if reparaciones %}
+<section class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3 class="fw-bold mb-1" style="color: #0F1923;">Hola, {{ cliente_nombre }}</h3>
+                    <p class="text-muted mb-0">Tienes {{ reparaciones|length }} reparacion{{ 'es' if reparaciones|length != 1 else '' }} registrada{{ 's' if reparaciones|length != 1 else '' }}.</p>
+                </div>
+                <span class="at-pill">{{ email_buscado }}</span>
+            </div>
+
+            <!-- Resumen rapido -->
+            <div class="at-stats-bar mb-4" style="border-radius: .75rem; padding: 1.25rem 0;">
+                {% set pendientes = reparaciones|selectattr('estado', 'equalto', 'Pendiente')|list|length %}
+                {% set en_proceso = reparaciones|selectattr('estado', 'equalto', 'En proceso')|list|length %}
+                {% set terminadas = reparaciones|selectattr('estado', 'equalto', 'Terminado')|list|length + reparaciones|selectattr('estado', 'equalto', 'Entregado')|list|length %}
+                <div class="at-stats-grid">
+                    <div class="at-stat">
+                        <span class="at-stat-number" style="font-size: 1.5rem;">{{ pendientes }}</span>
+                        <span class="at-stat-label">Pendientes</span>
+                    </div>
+                    <div class="at-stat-divider"></div>
+                    <div class="at-stat">
+                        <span class="at-stat-number" style="font-size: 1.5rem;">{{ en_proceso }}</span>
+                        <span class="at-stat-label">En proceso</span>
+                    </div>
+                    <div class="at-stat-divider"></div>
+                    <div class="at-stat">
+                        <span class="at-stat-number" style="font-size: 1.5rem;">{{ terminadas }}</span>
+                        <span class="at-stat-label">Completadas</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de reparaciones -->
+            {% for rep in reparaciones %}
+            <div class="card shadow-sm border-0 mb-3">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h5 class="fw-bold mb-1" style="color: #0F1923;">
+                                #{{ rep.id }} &mdash; {{ rep.dispositivo }}
+                            </h5>
+                            <p class="text-muted small mb-0">{{ rep.descripcion or 'Sin descripcion' }}</p>
+                        </div>
+                        <span class="badge
+                            {% if rep.estado == 'Entregado' %}bg-success
+                            {% elif rep.estado == 'Terminado' %}bg-success
+                            {% elif rep.estado == 'En proceso' %}bg-primary
+                            {% elif rep.estado == 'Pendiente' %}bg-warning text-dark
+                            {% else %}bg-secondary{% endif %} fs-6">
+                            {{ rep.estado }}
+                        </span>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <div class="row g-3">
+                        <div class="col-sm-4">
+                            <small class="text-muted d-block">Fecha entrada</small>
+                            <span class="fw-semibold">{{ rep.fecha_entrada or 'N/A' }}</span>
+                        </div>
+                        <div class="col-sm-4">
+                            <small class="text-muted d-block">Precio</small>
+                            <span class="fw-semibold">
+                                {% if rep.precio %}{{ "%.2f"|format(rep.precio) }} &euro;{% else %}Pendiente{% endif %}
+                            </span>
+                        </div>
+                        <div class="col-sm-4">
+                            <small class="text-muted d-block">Pago</small>
+                            {% if rep.estado_pago == 'Pagado' %}
+                                <span class="text-success fw-semibold">Pagado</span>
+                            {% else %}
+                                <span class="text-warning fw-semibold">Pendiente</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Boton para ver detalle o pagar -->
+                    <div class="mt-3 d-flex gap-2">
+                        <form method="POST" action="/consulta" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <input type="hidden" name="id_reparacion" value="{{ rep.id }}">
+                            <button type="submit" class="btn btn-sm at-btn-outline">
+                                <i class="bi bi-eye me-1"></i>Ver detalle
+                            </button>
+                        </form>
+                        {% if rep.precio and rep.estado_pago != 'Pagado' %}
+                        <a href="/consulta" class="btn btn-sm at-btn-primary">
+                            <i class="bi bi-credit-card me-1"></i>Pagar
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ENLACE A CONSULTA INDIVIDUAL -->
+<section class="container mb-5">
+    <div class="text-center">
+        <p class="text-muted">¿Tienes el numero de reparacion?</p>
+        <a href="/consulta" class="btn at-btn-outline">
+            <i class="bi bi-hash me-1"></i>Buscar por numero de reparacion
+        </a>
+    </div>
+</section>
+
+<script src="https://unpkg.com/scrollreveal"></script>
+<script>
+    ScrollReveal().reveal('.card', { interval: 100, distance: '15px', origin: 'bottom' });
+</script>
+
+{% endblock %}

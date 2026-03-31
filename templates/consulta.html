@@ -581,8 +581,13 @@
                     </p>
                     <div class="row g-3 justify-content-center">
                         <div class="col-auto">
-                            <a href="tel:+34912345678" class="btn btn-outline-primary">
-                                <i class="bi bi-telephone me-2"></i>+34 912 345 678
+                            <a href="https://wa.me/34959123456{% if reparacion %}?text=Hola%2C%20consulto%20sobre%20mi%20reparacion%20%23{{ reparacion.id }}{% endif %}" target="_blank" rel="noopener" class="btn btn-success">
+                                <i class="bi bi-whatsapp me-2"></i>WhatsApp
+                            </a>
+                        </div>
+                        <div class="col-auto">
+                            <a href="tel:+34959123456" class="btn btn-outline-primary">
+                                <i class="bi bi-telephone me-2"></i>+34 959 123 456
                             </a>
                         </div>
                         <div class="col-auto">

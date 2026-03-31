@@ -2,108 +2,63 @@
 
 {% block content %}
 
-<!-- HERO -->
-<section class="hero text-center">
+<!-- HERO — dos columnas -->
+<section class="at-hero">
     <div class="container">
-        <h1 class="display-5 fw-bold mb-2">AndroTech - Tu Taller de Confianza</h1>
-        <p class="lead text-muted mb-4">Reparamos móviles, ordenadores y recuperamos datos. Consulta el estado de tu reparación al instante.</p>
-        <div class="d-flex justify-content-center gap-3">
-            <a href="/consulta" class="btn btn-primary btn-lg">Consultar reparación</a>
-            <a href="/servicios" class="btn btn-outline-primary btn-lg">Nuestros servicios</a>
-        </div>
-    </div>
-</section>
+        <div class="at-hero-grid">
+            <!-- Columna izquierda -->
+            <div class="at-hero-left">
+                <span class="at-pill">Servicio Tecnico Profesional</span>
+                <h1 class="at-hero-title">Reparamos tus dispositivos con garantia</h1>
+                <p class="at-hero-sub">Moviles, tablets y ordenadores. Consulta el estado de tu reparacion al instante desde cualquier lugar.</p>
+                <div class="at-hero-buttons">
+                    <a href="/consulta" class="btn at-btn-primary btn-lg">Consultar reparacion</a>
+                    <a href="/servicios" class="btn at-btn-outline btn-lg">Ver servicios</a>
+                </div>
+            </div>
 
-<!-- Wave Separator 1 -->
-<div class="wave-separator">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120">
-        <path fill="#ffffff" d="M0,80 C480,160 960,0 1440,80 V120 H0 Z"></path>
-    </svg>
-</div>
-
-<!-- ESTADÍSTICAS (KPI) -->
-<section class="container mb-4">
-    <div class="row g-3">
-
-        <div class="col-6 col-md-3">
-            <div class="card kpi-card shadow-sm p-3">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 bg-light rounded-3 p-2"><i class="bi bi-people kpi-icon"></i></div>
-                    <div>
-                        <div class="small text-muted">Clientes atendidos</div>
-                        <div class="h5 fw-bold">{{ total_clientes }}</div>
+            <!-- Columna derecha — panel oscuro KPIs -->
+            <div class="at-hero-panel">
+                <div class="at-panel-header">Estadisticas en tiempo real</div>
+                <div class="at-panel-kpis">
+                    <div class="at-panel-kpi">
+                        <span class="at-panel-number">{{ total_clientes }}</span>
+                        <span class="at-panel-label">Clientes</span>
+                    </div>
+                    <div class="at-panel-kpi">
+                        <span class="at-panel-number">{{ activas }}</span>
+                        <span class="at-panel-label">En curso</span>
+                    </div>
+                    <div class="at-panel-kpi">
+                        <span class="at-panel-number">{{ terminadas }}</span>
+                        <span class="at-panel-label">Completadas</span>
+                    </div>
+                    <div class="at-panel-kpi">
+                        <span class="at-panel-number">&euro;{{ ingresos|int }}</span>
+                        <span class="at-panel-label">Ingresos</span>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <div class="col-6 col-md-3">
-            <div class="card kpi-card shadow-sm p-3">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 bg-light rounded-3 p-2"><i class="bi bi-wrench kpi-icon text-info"></i></div>
-                    <div>
-                        <div class="small text-muted">Reparaciones en proceso</div>
-                        <div class="h5 fw-bold">{{ activas }}</div>
+                <!-- Mini estado reparaciones -->
+                <div class="at-panel-status">
+                    <div class="at-status-row">
+                        <span class="at-status-dot" style="background:#f59e0b"></span>
+                        <span class="at-status-text">Pendiente</span>
+                        <span class="at-status-count">{{ estados_count.get('Pendiente', 0) }}</span>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-6 col-md-3">
-            <div class="card kpi-card shadow-sm p-3">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 bg-light rounded-3 p-2"><i class="bi bi-check2-square kpi-icon text-success"></i></div>
-                    <div>
-                        <div class="small text-muted">Reparaciones completadas</div>
-                        <div class="h5 fw-bold">{{ terminadas }}</div>
+                    <div class="at-status-row">
+                        <span class="at-status-dot" style="background:#2B8AC4"></span>
+                        <span class="at-status-text">En proceso</span>
+                        <span class="at-status-count">{{ estados_count.get('En proceso', 0) }}</span>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-6 col-md-3">
-            <div class="card kpi-card shadow-sm p-3">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 bg-light rounded-3 p-2"><i class="bi bi-currency-euro kpi-icon text-warning"></i></div>
-                    <div>
-                        <div class="small text-muted">Ingresos estimados</div>
-                        <div class="h5 fw-bold">€ {{ ingresos }}</div>
+                    <div class="at-status-row">
+                        <span class="at-status-dot" style="background:#10b981"></span>
+                        <span class="at-status-text">Terminado</span>
+                        <span class="at-status-count">{{ estados_count.get('Terminado', 0) }}</span>
                     </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-</section>
-
-<!-- NUESTROS SERVICIOS -->
-<section class="container mb-5">
-    <div class="row">
-        <div class="col-lg-7">
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    <h5 class="card-title">Nuestros Servicios</h5>
-                    <p class="text-muted">Ofrecemos soluciones completas para la reparación y mantenimiento de tus dispositivos tecnológicos.</p>
-
-                    <ul class="list-unstyled feature-list">
-                        <li class="mb-2"><i class="bi bi-phone-fill"></i> Reparación de móviles y smartphones</li>
-                        <li class="mb-2"><i class="bi bi-laptop"></i> Reparación de ordenadores y laptops</li>
-                        <li class="mb-2"><i class="bi bi-hdd"></i> Recuperación de datos perdidos</li>
-                        <li class="mb-2"><i class="bi bi-shield-check"></i> Mantenimiento preventivo</li>
-                        <li class="mb-2"><i class="bi bi-search"></i> Diagnóstico técnico profesional</li>
-                        <li class="mb-2"><i class="bi bi-headset"></i> Soporte y asesoramiento personalizado</li>
-                    </ul>
-
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-5 d-none d-lg-block">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body d-flex align-items-center justify-content-center">
-                    <div class="text-center text-muted">
-                        <i class="bi bi-tools" style="font-size:3rem"></i>
-                        <p class="mt-3 mb-0">Equipos especializados y herramientas de última generación para garantizar la calidad de nuestros servicios.</p>
+                    <div class="at-status-row">
+                        <span class="at-status-dot" style="background:#8b5cf6"></span>
+                        <span class="at-status-text">Entregado</span>
+                        <span class="at-status-count">{{ estados_count.get('Entregado', 0) }}</span>
                     </div>
                 </div>
             </div>
@@ -111,226 +66,256 @@
     </div>
 </section>
 
-<!-- SOBRE ANDROTECH -->
-<section class="container mb-5">
-    <div class="row align-items-center g-4">
-        <!-- Columna 1: Imagen -->
-        <div class="col-lg-5">
-            <div class="about-image-container rounded overflow-hidden shadow-sm">
-                <img src="{{ url_for('static', filename='img/about.jpg') }}" alt="AndroTech - Taller técnico profesional" class="img-fluid w-100" style="object-fit: cover; height: 380px;">
+<!-- STATS BAR -->
+<section class="at-stats-bar">
+    <div class="container">
+        <div class="at-stats-grid">
+            <div class="at-stat">
+                <span class="at-stat-number">{{ total_clientes }}</span>
+                <span class="at-stat-label">Clientes atendidos</span>
             </div>
-        </div>
-
-        <!-- Columna 2: Contenido -->
-        <div class="col-lg-7">
-            <div>
-                <h2 class="h3 fw-bold mb-2">Sobre AndroTech</h2>
-                <p class="text-muted mb-4">Tu solución completa para la gestión profesional de un taller técnico de reparaciones. Diseñado con la experiencia de talleres reales, para optimizar tiempos y mejorar la organización.</p>
-
-                <!-- Valores del taller -->
-                <ul class="list-unstyled about-values">
-                    <li class="mb-3 d-flex align-items-start">
-                        <div class="about-icon me-3"><i class="bi bi-check-circle-fill"></i></div>
-                        <div>
-                            <h6 class="mb-1">Atención profesional</h6>
-                            <small class="text-muted">Equipos capacitados para diagnosticar y resolver cualquier inconveniente técnico.</small>
-                        </div>
-                    </li>
-                    <li class="mb-3 d-flex align-items-start">
-                        <div class="about-icon me-3"><i class="bi bi-lightning-fill"></i></div>
-                        <div>
-                            <h6 class="mb-1">Reparaciones rápidas</h6>
-                            <small class="text-muted">Procesos optimizados para entrega ágil sin comprometer calidad.</small>
-                        </div>
-                    </li>
-                    <li class="mb-3 d-flex align-items-start">
-                        <div class="about-icon me-3"><i class="bi bi-search"></i></div>
-                        <div>
-                            <h6 class="mb-1">Diagnósticos precisos</h6>
-                            <small class="text-muted">Metodología rigurosa para identificar raíces de problemas técnicos.</small>
-                        </div>
-                    </li>
-                    <li class="d-flex align-items-start">
-                        <div class="about-icon me-3"><i class="bi bi-shield-check"></i></div>
-                        <div>
-                            <h6 class="mb-1">Garantía en servicios</h6>
-                            <small class="text-muted">Confianza y respaldo en cada reparación realizada en el taller.</small>
-                        </div>
-                    </li>
-                </ul>
+            <div class="at-stat-divider"></div>
+            <div class="at-stat">
+                <span class="at-stat-number">{{ activas }}</span>
+                <span class="at-stat-label">Reparaciones activas</span>
+            </div>
+            <div class="at-stat-divider"></div>
+            <div class="at-stat">
+                <span class="at-stat-number">{{ terminadas }}</span>
+                <span class="at-stat-label">Completadas</span>
+            </div>
+            <div class="at-stat-divider"></div>
+            <div class="at-stat">
+                <span class="at-stat-number">&euro;{{ ingresos|int }}</span>
+                <span class="at-stat-label">Facturado</span>
             </div>
         </div>
     </div>
 </section>
 
-<!-- TESTIMONIOS DE CLIENTES -->
-<section class="container mb-5">
-    <div class="row mb-4">
-        <div class="col-12 text-center">
-            <h2 class="h3 fw-bold mb-2">Opiniones de nuestros clientes</h2>
-            <p class="text-muted">Lo que dicen sobre la calidad de nuestro servicio.</p>
+<!-- SERVICIOS — grid 3x2 -->
+<section class="container at-section">
+    <div class="text-center mb-5">
+        <h2 class="at-section-title">Nuestros servicios</h2>
+        <p class="at-section-sub">Soluciones completas para todos tus dispositivos</p>
+    </div>
+    <div class="at-services-grid">
+        <!-- 1 -->
+        <div class="at-service-card">
+            <div class="at-service-icon">
+                <svg width="28" height="28" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>
+            </div>
+            <h5 class="at-service-title">Reparacion de moviles</h5>
+            <p class="at-service-desc">Pantallas, baterias, conectores y mas. Todas las marcas.</p>
+            <span class="at-service-price">Desde 29&euro;</span>
+        </div>
+        <!-- 2 -->
+        <div class="at-service-card">
+            <div class="at-service-icon">
+                <svg width="28" height="28" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <h5 class="at-service-title">Reparacion de ordenadores</h5>
+            <p class="at-service-desc">Portatiles y sobremesa. Hardware y software.</p>
+            <span class="at-service-price">Desde 39&euro;</span>
+        </div>
+        <!-- 3 -->
+        <div class="at-service-card">
+            <div class="at-service-icon">
+                <svg width="28" height="28" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="12" y1="16" x2="12" y2="16.01"/><line x1="9" y1="4" x2="9" y2="2"/><line x1="15" y1="4" x2="15" y2="2"/></svg>
+            </div>
+            <h5 class="at-service-title">Reparacion de tablets</h5>
+            <p class="at-service-desc">iPad, Samsung Galaxy Tab y todas las marcas del mercado.</p>
+            <span class="at-service-price">Desde 35&euro;</span>
+        </div>
+        <!-- 4 -->
+        <div class="at-service-card">
+            <div class="at-service-icon">
+                <svg width="28" height="28" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </div>
+            <h5 class="at-service-title">Recuperacion de datos</h5>
+            <p class="at-service-desc">Discos duros, memorias USB, tarjetas SD y moviles.</p>
+            <span class="at-service-price">Desde 49&euro;</span>
+        </div>
+        <!-- 5 -->
+        <div class="at-service-card">
+            <div class="at-service-icon">
+                <svg width="28" height="28" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <h5 class="at-service-title">Mantenimiento preventivo</h5>
+            <p class="at-service-desc">Limpieza, optimizacion y revision completa del equipo.</p>
+            <span class="at-service-price">Desde 25&euro;</span>
+        </div>
+        <!-- 6 -->
+        <div class="at-service-card">
+            <div class="at-service-icon">
+                <svg width="28" height="28" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <h5 class="at-service-title">Diagnostico profesional</h5>
+            <p class="at-service-desc">Analisis completo y presupuesto sin compromiso.</p>
+            <span class="at-service-price">Gratis</span>
         </div>
     </div>
+</section>
 
+<!-- SOBRE ANDROTECH — dos columnas -->
+<section class="at-about-section">
+    <div class="container">
+        <div class="at-about-grid">
+            <!-- Izquierda -->
+            <div class="at-about-text">
+                <h2 class="at-section-title" style="text-align:left">Sobre AndroTech</h2>
+                <p class="at-about-desc">Somos un taller tecnico en Huelva especializado en la reparacion de dispositivos moviles, tablets y ordenadores. Nuestro equipo combina experiencia real con herramientas profesionales para ofrecer un servicio rapido, transparente y con garantia.</p>
+                <p class="at-about-desc">Cada reparacion se registra en nuestro sistema, para que puedas consultar el estado de tu dispositivo en cualquier momento desde la web.</p>
+            </div>
+            <!-- Derecha — 4 features -->
+            <div class="at-about-features">
+                <div class="at-feature">
+                    <div class="at-feature-icon">
+                        <svg width="22" height="22" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </div>
+                    <div>
+                        <h6 class="at-feature-title">Atencion profesional</h6>
+                        <p class="at-feature-desc">Equipo capacitado para diagnosticar y resolver cualquier problema tecnico.</p>
+                    </div>
+                </div>
+                <div class="at-feature">
+                    <div class="at-feature-icon">
+                        <svg width="22" height="22" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    </div>
+                    <div>
+                        <h6 class="at-feature-title">Reparaciones rapidas</h6>
+                        <p class="at-feature-desc">Procesos optimizados para entrega agil sin comprometer calidad.</p>
+                    </div>
+                </div>
+                <div class="at-feature">
+                    <div class="at-feature-icon">
+                        <svg width="22" height="22" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    </div>
+                    <div>
+                        <h6 class="at-feature-title">Diagnosticos precisos</h6>
+                        <p class="at-feature-desc">Metodologia rigurosa para identificar la raiz de cada problema.</p>
+                    </div>
+                </div>
+                <div class="at-feature">
+                    <div class="at-feature-icon">
+                        <svg width="22" height="22" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    </div>
+                    <div>
+                        <h6 class="at-feature-title">Garantia en servicios</h6>
+                        <p class="at-feature-desc">3 meses de garantia en piezas y mano de obra.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- TESTIMONIOS -->
+<section class="container at-section">
+    <div class="text-center mb-5">
+        <h2 class="at-section-title">Lo que dicen nuestros clientes</h2>
+        <p class="at-section-sub">Opiniones reales de personas que confiaron en nosotros</p>
+    </div>
     <div class="row g-4">
         <!-- Testimonio 1 -->
         <div class="col-md-6 col-lg-4">
-            <div class="card testimonial-card shadow-sm border-0 h-100">
-                <div class="card-body d-flex flex-column">
-                    <!-- Icono de comillas -->
-                    <div class="mb-3">
-                        <i class="bi bi-quote" style="font-size: 1.8rem; color: var(--primary); opacity: 0.3;"></i>
-                    </div>
-
-                    <!-- Texto de reseña -->
-                    <p class="text-muted mb-4 flex-grow-1">Excelente servicio, personal muy profesional y rápido. Repararon mi dispositivo en 48 horas y quedó como nuevo. Muy recomendado.</p>
-
-                    <!-- Rating -->
-                    <div class="mb-3">
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                    </div>
-
-                    <!-- Avatar y nombre -->
-                    <div class="d-flex align-items-center">
-                        <img src="{{ url_for('static', filename='img/user1.jpg') }}" alt="Cliente 1" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover; margin-right: 12px;">
-                        <div>
-                            <h6 class="mb-0">Carlos Martínez</h6>
-                            <small class="text-muted">Cliente verificado</small>
-                        </div>
-                    </div>
+            <div class="at-testimonial">
+                <span class="at-testimonial-quote">&ldquo;</span>
+                <p class="at-testimonial-text">Excelente servicio, personal muy profesional y rapido. Repararon mi movil en 48 horas y quedo como nuevo. Muy recomendado.</p>
+                <div class="at-testimonial-stars">
+                    <svg width="18" height="18" fill="#f59e0b" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg width="18" height="18" fill="#f59e0b" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg width="18" height="18" fill="#f59e0b" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg width="18" height="18" fill="#f59e0b" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg width="18" height="18" fill="#f59e0b" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                </div>
+                <div class="at-testimonial-author">
+                    <strong>Carlos Martinez</strong>
+                    <span>Cliente verificado</span>
                 </div>
             </div>
         </div>
-
         <!-- Testimonio 2 -->
         <div class="col-md-6 col-lg-4">
-            <div class="card testimonial-card shadow-sm border-0 h-100">
-                <div class="card-body d-flex flex-column">
-                    <!-- Icono de comillas -->
-                    <div class="mb-3">
-                        <i class="bi bi-quote" style="font-size: 1.8rem; color: var(--primary); opacity: 0.3;"></i>
-                    </div>
-
-                    <!-- Texto de reseña -->
-                    <p class="text-muted mb-4 flex-grow-1">Taller de confianza, con garantía en todos los servicios. El diagnóstico fue preciso y el precio justo. Volveré sin dudarlo.</p>
-
-                    <!-- Rating -->
-                    <div class="mb-3">
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                    </div>
-
-                    <!-- Avatar y nombre -->
-                    <div class="d-flex align-items-center">
-                        <img src="{{ url_for('static', filename='img/user2.jpg') }}" alt="Cliente 2" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover; margin-right: 12px;">
-                        <div>
-                            <h6 class="mb-0">Elena García</h6>
-                            <small class="text-muted">Cliente verificado</small>
-                        </div>
-                    </div>
+            <div class="at-testimonial">
+                <span class="at-testimonial-quote">&ldquo;</span>
+                <p class="at-testimonial-text">Taller de confianza, con garantia en todos los servicios. El diagnostico fue preciso y el precio justo. Volvere sin dudarlo.</p>
+                <div class="at-testimonial-stars">
+                    <svg width="18" height="18" fill="#f59e0b" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg width="18" height="18" fill="#f59e0b" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg width="18" height="18" fill="#f59e0b" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg width="18" height="18" fill="#f59e0b" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg width="18" height="18" fill="#f59e0b" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                </div>
+                <div class="at-testimonial-author">
+                    <strong>Elena Garcia</strong>
+                    <span>Cliente verificado</span>
                 </div>
             </div>
         </div>
-
         <!-- Testimonio 3 -->
         <div class="col-md-6 col-lg-4">
-            <div class="card testimonial-card shadow-sm border-0 h-100">
-                <div class="card-body d-flex flex-column">
-                    <!-- Icono de comillas -->
-                    <div class="mb-3">
-                        <i class="bi bi-quote" style="font-size: 1.8rem; color: var(--primary); opacity: 0.3;"></i>
-                    </div>
-
-                    <!-- Texto de reseña -->
-                    <p class="text-muted mb-4 flex-grow-1">Increíble atención al cliente. Solucionaron mi problema técnico de manera profesional y meticulosa. Equipo excepcional.</p>
-
-                    <!-- Rating -->
-                    <div class="mb-3">
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                    </div>
-
-                    <!-- Avatar y nombre -->
-                    <div class="d-flex align-items-center">
-                        <img src="{{ url_for('static', filename='img/user3.jpg') }}" alt="Cliente 3" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover; margin-right: 12px;">
-                        <div>
-                            <h6 class="mb-0">Jorge Fernández</h6>
-                            <small class="text-muted">Cliente verificado</small>
-                        </div>
-                    </div>
+            <div class="at-testimonial">
+                <span class="at-testimonial-quote">&ldquo;</span>
+                <p class="at-testimonial-text">Increible atencion al cliente. Solucionaron mi problema tecnico de manera profesional y meticulosa. Equipo excepcional.</p>
+                <div class="at-testimonial-stars">
+                    <svg width="18" height="18" fill="#f59e0b" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg width="18" height="18" fill="#f59e0b" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg width="18" height="18" fill="#f59e0b" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg width="18" height="18" fill="#f59e0b" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg width="18" height="18" fill="#f59e0b" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                </div>
+                <div class="at-testimonial-author">
+                    <strong>Jorge Fernandez</strong>
+                    <span>Cliente verificado</span>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- MAPA: ubicación del taller (iframe de Google Maps - cambia por tu ubicación) -->
-<section class="container mb-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h6 class="mb-3">Ubicación del taller</h6>
-                    <div class="ratio ratio-16x9 rounded" style="overflow:hidden;">
-                        <iframe
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3048.373803646332!2d-3.703790584607508!3d40.41677597936306!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd4229a7f4b2a1b7%3A0x4b4b5c4f3f2d6b2!2sMadrid%2C%20España!5e0!3m2!1ses!2ses!4v1600000000000!5m2!1ses!2ses"
-                            width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+<!-- CTA — reemplaza el mapa de Google -->
+<section class="at-cta">
+    <div class="container">
+        <div class="at-cta-inner">
+            <div class="at-cta-content">
+                <h2 class="at-cta-title">Encuentranos en Huelva</h2>
+                <p class="at-cta-text">Estamos en el centro de Huelva, listos para atenderte de lunes a viernes.</p>
+                <div class="at-cta-schedule">
+                    <div class="at-cta-schedule-row">
+                        <span>Lunes - Viernes</span>
+                        <span>09:30 - 14:00 / 17:00 - 20:00</span>
                     </div>
+                    <div class="at-cta-schedule-row">
+                        <span>Sabados</span>
+                        <span>10:00 - 13:30</span>
+                    </div>
+                    <div class="at-cta-schedule-row">
+                        <span>Domingos</span>
+                        <span>Cerrado</span>
+                    </div>
+                </div>
+                <div class="d-flex gap-3 justify-content-center mt-4 flex-wrap">
+                    <a href="/consulta" class="btn at-btn-primary btn-lg">Consultar mi reparacion</a>
+                    <a href="https://wa.me/34959123456?text=Hola%2C%20necesito%20informacion%20sobre%20una%20reparacion" target="_blank" rel="noopener" class="btn btn-lg" style="background:#25D366;color:#fff;border:none;font-weight:600;">
+                        <i class="bi bi-whatsapp me-2"></i>WhatsApp
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Wave Separator 3 -->
-<div class="wave-separator">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120">
-        <path fill="#ffffff" d="M0,80 C480,160 960,0 1440,80 V120 H0 Z"></path>
-    </svg>
-</div>
-
-<!-- Pequeño script para animar iconos al cargar -->
-<script>
-        document.addEventListener('DOMContentLoaded', function () {
-                // Animación de iconos KPI y lista de features
-                const icons = document.querySelectorAll('.kpi-icon, .feature-list i');
-                icons.forEach((el, idx) => {
-                        el.style.transform = 'translateY(6px)';
-                        el.style.opacity = 0;
-                        setTimeout(() => {
-                                el.style.transition = 'transform .35s ease, opacity .35s ease';
-                                el.style.transform = 'translateY(0)';
-                                el.style.opacity = 1;
-                        }, 120 * idx);
-                });
-        });
-</script>
-
-<!-- ScrollReveal para animaciones de scroll reveal -->
+<!-- ScrollReveal -->
 <script src="https://unpkg.com/scrollreveal"></script>
-
 <script>
-        // ScrollReveal config
-        ScrollReveal().reveal('.hero', { delay: 120, distance: '20px', duration: 800 });
-        ScrollReveal().reveal('.quick-card', { interval: 120, distance: '20px', origin: 'bottom' });
-        ScrollReveal().reveal('.kpi-card', { interval: 100, distance: '20px', origin: 'bottom' });
-        ScrollReveal().reveal('.feature-list li', { interval: 80, distance: '12px', origin: 'left' });
-        ScrollReveal().reveal('.card.shadow-sm', { interval: 120 });
-        ScrollReveal().reveal('.about-image-container', { delay: 120, distance: '30px', origin: 'left' });
-        ScrollReveal().reveal('.about-values li', { interval: 100, distance: '15px', origin: 'bottom' });
-        ScrollReveal().reveal('.testimonial-card', { interval: 100, distance: '20px', origin: 'bottom' });
-        ScrollReveal().reveal('.footer-col', { interval: 100, distance: '15px', origin: 'bottom' });
+    ScrollReveal().reveal('.at-hero-left', { delay: 100, distance: '20px', duration: 800, origin: 'left' });
+    ScrollReveal().reveal('.at-hero-panel', { delay: 250, distance: '20px', duration: 800, origin: 'right' });
+    ScrollReveal().reveal('.at-stat', { interval: 100, distance: '15px', origin: 'bottom' });
+    ScrollReveal().reveal('.at-service-card', { interval: 100, distance: '20px', origin: 'bottom' });
+    ScrollReveal().reveal('.at-feature', { interval: 100, distance: '15px', origin: 'right' });
+    ScrollReveal().reveal('.at-testimonial', { interval: 120, distance: '20px', origin: 'bottom' });
+    ScrollReveal().reveal('.at-cta-inner', { delay: 100, distance: '20px', duration: 800 });
 </script>
 
 {% endblock %}
-
