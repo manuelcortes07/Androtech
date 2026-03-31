@@ -109,10 +109,15 @@
                 </ul>
 
                 <!-- Búsqueda global en navbar -->
-                <form class="d-flex ms-auto me-3" action="/reparaciones" method="get">
-                    <input class="form-control form-control-sm me-2" type="search" placeholder="Buscar..." aria-label="Buscar" name="q" value="{{ request.args.get('q','') }}">
+                <form class="d-flex ms-auto me-3" action="/buscar" method="get">
+                    <input class="form-control form-control-sm me-2" type="search" placeholder="Buscar cliente, reparacion..." aria-label="Buscar" name="q" value="{{ request.args.get('q','') }}" minlength="2">
                     <button class="btn btn-outline-primary btn-sm" type="submit"><i class="bi bi-search"></i></button>
                 </form>
+
+                <!-- Modo oscuro (privado) -->
+                <button id="darkModeToggle" class="btn btn-sm btn-outline-secondary border-0 px-2 me-2" title="Modo oscuro" aria-label="Cambiar tema">
+                    <i class="bi bi-moon-fill"></i>
+                </button>
 
                 <!-- Usuario y logout -->
                 <ul class="navbar-nav">
@@ -170,8 +175,11 @@
                     
                 </ul>
 
-                <!-- Acceso técnico -->
-                <div class="d-flex">
+                <!-- Modo oscuro + Acceso técnico -->
+                <div class="d-flex align-items-center gap-2">
+                    <button id="darkModeToggle" class="btn btn-sm btn-outline-secondary border-0 px-2" title="Modo oscuro" aria-label="Cambiar tema">
+                        <i class="bi bi-moon-fill"></i>
+                    </button>
                     <a href="/login" class="btn at-btn-outline-nav btn-sm px-3">
                         <i class="bi bi-shield-lock me-1"></i>Acceso tecnico
                     </a>
@@ -269,6 +277,7 @@
                     <div><i class="bi bi-geo-alt me-1"></i>Huelva, Espana</div>
                     <div><i class="bi bi-envelope me-1"></i>contacto@androtech.es</div>
                     <div><i class="bi bi-telephone me-1"></i>+34 959 123 456</div>
+                    <div><a href="https://wa.me/34959123456" target="_blank" rel="noopener" class="at-footer-link"><i class="bi bi-whatsapp me-1" style="color:#25D366 !important;"></i>WhatsApp</a></div>
                 </div>
             </div>
         </div>
@@ -315,6 +324,33 @@
         const footerYear = document.getElementById('footer-year');
         if (footerYear) {
             footerYear.textContent = new Date().getFullYear();
+        }
+
+        // ── Dark mode toggle ──────────────────────────────────
+        const toggleBtn = document.getElementById('darkModeToggle');
+        if (toggleBtn) {
+            const icon = toggleBtn.querySelector('i');
+            const html = document.documentElement;
+
+            // Restaurar preferencia guardada
+            const saved = localStorage.getItem('at-theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                html.setAttribute('data-theme', 'dark');
+                icon.classList.replace('bi-moon-fill', 'bi-sun-fill');
+            }
+
+            toggleBtn.addEventListener('click', function () {
+                const isDark = html.getAttribute('data-theme') === 'dark';
+                if (isDark) {
+                    html.removeAttribute('data-theme');
+                    icon.classList.replace('bi-sun-fill', 'bi-moon-fill');
+                    localStorage.setItem('at-theme', 'light');
+                } else {
+                    html.setAttribute('data-theme', 'dark');
+                    icon.classList.replace('bi-moon-fill', 'bi-sun-fill');
+                    localStorage.setItem('at-theme', 'dark');
+                }
+            });
         }
     });
 </script>

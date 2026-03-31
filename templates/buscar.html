@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Buscar - {{ q }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <h2 class="fw-bold mb-1"><i class="bi bi-search me-2"></i>Resultados para "{{ q }}"</h2>
+    <p class="text-muted mb-4">{{ clientes|length }} cliente{{ 's' if clientes|length != 1 else '' }} y {{ reparaciones|length }} reparacion{{ 'es' if reparaciones|length != 1 else '' }} encontrada{{ 's' if reparaciones|length != 1 else '' }}</p>
+
+    {% if not clientes and not reparaciones %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>No se encontraron resultados para "{{ q }}".
+    </div>
+    {% endif %}
+
+    <!-- CLIENTES -->
+    {% if clientes %}
+    <h5 class="fw-semibold mb-3"><i class="bi bi-people me-2"></i>Clientes ({{ clientes|length }})</h5>
+    <div class="table-responsive mb-5">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Telefono</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in clientes %}
+                <tr>
+                    <td><span class="badge bg-secondary">{{ c.id }}</span></td>
+                    <td class="fw-semibold">{{ c.nombre }}</td>
+                    <td class="text-muted">{{ c.email or '-' }}</td>
+                    <td class="text-muted">{{ c.telefono or '-' }}</td>
+                    <td>
+                        <a href="/clientes/editar/{{ c.id }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- REPARACIONES -->
+    {% if reparaciones %}
+    <h5 class="fw-semibold mb-3"><i class="bi bi-tools me-2"></i>Reparaciones ({{ reparaciones|length }})</h5>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Cliente</th>
+                    <th>Dispositivo</th>
+                    <th>Estado</th>
+                    <th>Pago</th>
+                    <th>Precio</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in reparaciones %}
+                <tr>
+                    <td><span class="badge bg-secondary">{{ r.id }}</span></td>
+                    <td class="fw-semibold">{{ r.cliente }}</td>
+                    <td>{{ r.dispositivo }}</td>
+                    <td>
+                        <span class="badge
+                            {% if r.estado == 'Entregado' or r.estado == 'Terminado' %}bg-success
+                            {% elif r.estado == 'En proceso' %}bg-primary
+                            {% elif r.estado == 'Pendiente' %}bg-warning text-dark
+                            {% else %}bg-secondary{% endif %}">
+                            {{ r.estado }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if r.estado_pago == 'Pagado' %}
+                            <span class="badge bg-success">Pagado</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">Pendiente</span>
+                        {% endif %}
+                    </td>
+                    <td>{% if r.precio %}{{ "%.2f"|format(r.precio) }}&euro;{% else %}-{% endif %}</td>
+                    <td>
+                        <a href="/reparaciones/editar/{{ r.id }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

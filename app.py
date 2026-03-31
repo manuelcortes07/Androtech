@@ -68,10 +68,22 @@ class JSONFormatter(logging.Formatter):
 
 logger = logging.getLogger("androtech")
 if not logger.handlers:
+    # Stdout handler
     handler = logging.StreamHandler()
     handler.setLevel(logging.INFO)
     handler.setFormatter(JSONFormatter())
     logger.addHandler(handler)
+
+    # Archivo rotativo (max 5MB, 3 backups)
+    from logging.handlers import RotatingFileHandler
+    os.makedirs('logs', exist_ok=True)
+    file_handler = RotatingFileHandler(
+        'logs/androtech.log', maxBytes=5*1024*1024, backupCount=3, encoding='utf-8'
+    )
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(JSONFormatter())
+    logger.addHandler(file_handler)
+
 logger.setLevel(logging.INFO)
 
 # Stripe configuration (use environment variables in production)
@@ -792,6 +804,48 @@ def borrar_cliente(id):
     conn.commit()
     conn.close()
     return redirect(url_for("clientes"))
+
+
+# =========================================
+#  🔸 BÚSQUEDA GLOBAL
+# =========================================
+
+@app.route("/buscar")
+@login_required
+def buscar():
+    q = request.args.get('q', '').strip()
+    if not q or len(q) < 2:
+        flash('Introduce al menos 2 caracteres para buscar.', 'warning')
+        return redirect(url_for('dashboard'))
+
+    conn = get_db()
+    like = f'%{q}%'
+
+    clientes_result = conn.execute('''
+        SELECT id, nombre, email, telefono
+        FROM clientes
+        WHERE nombre LIKE ? OR email LIKE ? OR telefono LIKE ?
+        LIMIT 20
+    ''', (like, like, like)).fetchall()
+
+    reparaciones_result = conn.execute('''
+        SELECT r.id, r.dispositivo, r.estado, r.estado_pago, r.precio,
+               r.fecha_entrada, c.nombre as cliente
+        FROM reparaciones r
+        JOIN clientes c ON r.cliente_id = c.id
+        WHERE r.dispositivo LIKE ? OR r.descripcion LIKE ?
+              OR c.nombre LIKE ? OR CAST(r.id AS TEXT) = ?
+        ORDER BY r.id DESC
+        LIMIT 20
+    ''', (like, like, like, q)).fetchall()
+
+    conn.close()
+
+    return render_template("buscar.html",
+        q=q,
+        clientes=clientes_result,
+        reparaciones=reparaciones_result
+    )
 
 
 # =========================================
