@@ -640,7 +640,8 @@ def dashboard():
         ingresos_por_mes=ingresos_por_mes,
         tiempo_medio_dias=tiempo_medio_dias,
         reparaciones_por_tecnico=tecnico_dict,
-        eventos_auditoria=eventos_auditoria
+        eventos_auditoria=eventos_auditoria,
+        user_role=session.get('rol')
     )
 
 #  SECCIÓN CLIENTES
@@ -791,6 +792,76 @@ def borrar_cliente(id):
     conn.commit()
     conn.close()
     return redirect(url_for("clientes"))
+
+
+# =========================================
+#  🔸 EXPORTAR CSV
+# =========================================
+
+import csv
+from io import StringIO, BytesIO
+
+@app.route("/exportar/reparaciones.csv")
+@login_required
+@role_required('admin')
+def exportar_reparaciones_csv():
+    conn = get_db()
+    rows = conn.execute('''
+        SELECT r.id, c.nombre as cliente, c.email, c.telefono,
+               r.dispositivo, r.descripcion, r.estado, r.estado_pago,
+               r.precio, r.fecha_entrada, r.fecha_pago, r.metodo_pago
+        FROM reparaciones r
+        JOIN clientes c ON r.cliente_id = c.id
+        ORDER BY r.id DESC
+    ''').fetchall()
+    conn.close()
+
+    si = StringIO()
+    writer = csv.writer(si)
+    writer.writerow(['ID', 'Cliente', 'Email', 'Telefono', 'Dispositivo',
+                     'Descripcion', 'Estado', 'Estado Pago', 'Precio',
+                     'Fecha Entrada', 'Fecha Pago', 'Metodo Pago'])
+    for r in rows:
+        writer.writerow([r['id'], r['cliente'], r['email'], r['telefono'],
+                         r['dispositivo'], r['descripcion'], r['estado'],
+                         r['estado_pago'], r['precio'], r['fecha_entrada'],
+                         r['fecha_pago'], r['metodo_pago']])
+
+    output = BytesIO()
+    output.write(si.getvalue().encode('utf-8-sig'))
+    output.seek(0)
+    return send_file(output, mimetype='text/csv', as_attachment=True,
+                     download_name=f'reparaciones_{datetime.now().strftime("%Y%m%d")}.csv')
+
+
+@app.route("/exportar/clientes.csv")
+@login_required
+@role_required('admin')
+def exportar_clientes_csv():
+    conn = get_db()
+    rows = conn.execute('''
+        SELECT c.id, c.nombre, c.email, c.telefono,
+               COUNT(r.id) as total_reparaciones,
+               COALESCE(SUM(CASE WHEN r.estado_pago = 'Pagado' THEN r.precio ELSE 0 END), 0) as total_pagado
+        FROM clientes c
+        LEFT JOIN reparaciones r ON r.cliente_id = c.id
+        GROUP BY c.id
+        ORDER BY c.nombre
+    ''').fetchall()
+    conn.close()
+
+    si = StringIO()
+    writer = csv.writer(si)
+    writer.writerow(['ID', 'Nombre', 'Email', 'Telefono', 'Total Reparaciones', 'Total Pagado'])
+    for r in rows:
+        writer.writerow([r['id'], r['nombre'], r['email'], r['telefono'],
+                         r['total_reparaciones'], r['total_pagado']])
+
+    output = BytesIO()
+    output.write(si.getvalue().encode('utf-8-sig'))
+    output.seek(0)
+    return send_file(output, mimetype='text/csv', as_attachment=True,
+                     download_name=f'clientes_{datetime.now().strftime("%Y%m%d")}.csv')
 
 
 # =========================================
@@ -1570,6 +1641,53 @@ def consulta():
                 error = "Por favor, introduce un número válido."
 
     return render_template("consulta.html", reparacion=reparacion, error=error)
+
+
+@app.route("/mis-reparaciones", methods=["GET", "POST"])
+@csrf_protect
+def mis_reparaciones():
+    """Panel publico: el cliente introduce su email y ve todas sus reparaciones."""
+    reparaciones_list = None
+    cliente_nombre = None
+    email_buscado = None
+    error = None
+
+    if request.method == "POST":
+        email_buscado = request.form.get("email", "").strip().lower()
+        if not email_buscado or '@' not in email_buscado:
+            error = "Por favor, introduce un email valido."
+        else:
+            conn = get_db()
+            cliente = conn.execute(
+                "SELECT id, nombre FROM clientes WHERE LOWER(email) = ?",
+                (email_buscado,)
+            ).fetchone()
+
+            if not cliente:
+                error = "No se encontro ningun cliente con ese email."
+                conn.close()
+            else:
+                cliente_nombre = cliente['nombre']
+                reparaciones_list = conn.execute('''
+                    SELECT r.id, r.dispositivo, r.descripcion, r.estado,
+                           r.estado_pago, r.precio, r.fecha_entrada,
+                           r.fecha_pago, r.metodo_pago
+                    FROM reparaciones r
+                    WHERE r.cliente_id = ?
+                    ORDER BY r.fecha_entrada DESC
+                ''', (cliente['id'],)).fetchall()
+                conn.close()
+
+                if not reparaciones_list:
+                    error = "No se encontraron reparaciones asociadas a este email."
+                    reparaciones_list = None
+
+    return render_template("mis_reparaciones.html",
+        reparaciones=reparaciones_list,
+        cliente_nombre=cliente_nombre,
+        email_buscado=email_buscado,
+        error=error
+    )
 
 
 @app.route('/publico/pagar/<int:id>', methods=['POST'])
