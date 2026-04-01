@@ -1,137 +1,102 @@
 {% extends "base.html" %}
-
 {% block title %}Editar Usuario - AndroTech{% endblock %}
 
 {% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-xl-6 col-lg-7 col-md-9">
+            <span class="at-pill"><i class="bi bi-pencil-square me-1"></i>Usuarios</span>
+            <h1 class="at-section-title mt-2 mb-1">Editar Usuario</h1>
+            <p class="at-section-sub">Modifica datos del usuario: <strong>{{ usuario.usuario }}</strong></p>
 
-<div class="container py-5">
-    
-    <!-- ENCABEZADO -->
-    <div class="row mb-4">
-        <div class="col-md-8 offset-md-2">
-            <h1 class="display-6 fw-bold mb-2">
-                <i class="bi bi-pencil-fill" style="color: #2B8AC4;"></i> Editar Usuario
-            </h1>
-            <p class="text-muted">Modifica datos del usuario: <strong>{{ usuario.usuario }}</strong></p>
-        </div>
-    </div>
-
-    <!-- FORMULARIO -->
-    <div class="row">
-        <div class="col-md-6 offset-md-3">
-            <div class="card border-0 shadow-lg" style="border-top: 4px solid #2B8AC4 !important;">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0"><i class="bi bi-pencil-square" style="color: #2B8AC4;"></i> Formulario de Edicion</h5>
+            <div class="at-admin-card mt-4">
+                <div class="at-admin-card-header d-flex align-items-center justify-content-between">
+                    <span><i class="bi bi-pencil-square me-2"></i>Formulario de Edicion</span>
+                    <span class="badge" style="background: #EBF5FB; color: #2B8AC4;">Administracion</span>
                 </div>
-                <div class="card-body p-4">
-                    <form method="POST" novalidate>
-                        
-                        <!-- CSRF Token -->
+                <div class="p-4">
+                    <form method="POST" class="at-admin-form needs-validation" novalidate>
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
-                        <!-- Usuario (ReadOnly) -->
-                        <div class="mb-4">
-                            <label for="usuario" class="form-label fw-bold">
-                                <i class="bi bi-person-badge"></i> Nombre de Usuario
+                        <div class="mb-3">
+                            <label for="usuario" class="form-label fw-semibold">
+                                <i class="bi bi-person-badge me-1"></i>Nombre de Usuario
                             </label>
-                            <input 
-                                type="text" 
-                                class="form-control form-control-lg" 
-                                id="usuario"
-                                value="{{ usuario.usuario }}"
-                                disabled
-                            >
-                            <small class="text-muted d-block mt-2">
-                                <i class="bi bi-lock-fill"></i>
-                                No se puede cambiar el nombre de usuario
-                            </small>
+                            <input type="text" class="form-control form-control-lg" id="usuario"
+                                   value="{{ usuario.usuario }}" disabled>
+                            <div class="form-text">
+                                <i class="bi bi-lock-fill me-1"></i>No se puede cambiar el nombre de usuario
+                            </div>
                         </div>
 
-                        <!-- Cambiar Contraseña -->
-                        <div class="mb-4 p-3 bg-light rounded">
-                            <label class="form-label fw-bold">
-                                <i class="bi bi-lock"></i> Cambiar Contraseña (Opcional)
+                        <div class="mb-3 p-3 rounded" style="background: #EBF5FB;">
+                            <label for="nueva_contraseña" class="form-label fw-semibold">
+                                <i class="bi bi-lock me-1"></i>Cambiar Contrasena (Opcional)
                             </label>
-                            <p class="text-muted small mb-2">
-                                Deja vacío para mantener la contraseña actual
-                            </p>
-                            <input 
-                                type="password" 
-                                class="form-control form-control-lg" 
-                                id="nueva_contraseña" 
-                                name="nueva_contraseña"
-                                placeholder="Nueva contraseña (mínimo 6 caracteres)"
-                                minlength="6"
-                            >
-                            <small class="text-muted d-block mt-2">
-                                <i class="bi bi-shield-check"></i>
-                                Si completas este campo, la contraseña será actualizada
-                            </small>
+                            <p class="text-muted small mb-2">Deja vacio para mantener la contrasena actual</p>
+                            <input type="password" class="form-control form-control-lg" id="nueva_contraseña"
+                                   name="nueva_contraseña" placeholder="Nueva contrasena (minimo 6 caracteres)" minlength="6">
+                            <div class="form-text">
+                                <i class="bi bi-shield-check me-1"></i>Si completas este campo, la contrasena sera actualizada
+                            </div>
                         </div>
 
-                        <!-- Rol -->
-                        <div class="mb-4">
-                            <label for="rol" class="form-label fw-bold">
-                                <i class="bi bi-shield-check"></i> Rol
+                        <div class="mb-3">
+                            <label for="rol" class="form-label fw-semibold">
+                                <i class="bi bi-shield-check me-1"></i>Rol <span class="text-danger">*</span>
                             </label>
                             <select class="form-select form-select-lg" id="rol" name="rol" required>
                                 <option value="tecnico" {% if usuario.rol == 'tecnico' %}selected{% endif %}>
-                                    👨‍🔧 Técnico (Acceso a reparaciones y clientes)
+                                    Tecnico (Acceso a reparaciones y clientes)
                                 </option>
                                 <option value="admin" {% if usuario.rol == 'admin' %}selected{% endif %}>
-                                    🛡️ Administrador (Acceso completo)
+                                    Administrador (Acceso completo)
                                 </option>
                             </select>
                         </div>
 
-                        <!-- Información de auditoría -->
-                        <div class="alert alert-info mb-4">
-                            <i class="bi bi-info-circle"></i>
-                            <strong>Auditoría:</strong> Todos los cambios se registran automáticamente en los logs del sistema
+                        <div class="alert mb-4" style="background: #EBF5FB; color: #1a6fbd; border: 1px solid #4da6d8;">
+                            <i class="bi bi-info-circle me-1"></i>
+                            <strong>Auditoria:</strong> Todos los cambios se registran automaticamente en los logs del sistema
                         </div>
 
-                        <!-- Botones -->
-                        <div class="d-grid gap-2 d-md-flex mt-5">
-                            <button type="submit" class="btn btn-lg flex-md-fill at-btn-primary text-white" style="background-color: #2B8AC4;">
-                                <i class="bi bi-check-circle"></i> Guardar Cambios
+                        <div class="d-flex flex-wrap gap-2 mt-4">
+                            <button type="submit" class="at-btn-primary flex-fill">
+                                <i class="bi bi-check-circle me-1"></i>Guardar Cambios
                             </button>
-                            <a href="{{ url_for('admin_usuarios') }}" class="btn btn-lg flex-md-fill at-btn-outline" style="color: #2B8AC4; border-color: #2B8AC4;">
-                                <i class="bi bi-arrow-left"></i> Cancelar
+                            <a href="{{ url_for('admin_usuarios') }}" class="at-btn-outline flex-fill text-center">
+                                <i class="bi bi-arrow-left me-1"></i>Cancelar
                             </a>
                         </div>
-
                     </form>
                 </div>
             </div>
 
-            <!-- DATOS DEL USUARIO -->
-            <div class="card border-0 shadow-sm mt-4">
-                <div class="card-header bg-light">
-                    <h6 class="mb-0"><i class="bi bi-info-circle"></i> Información del Usuario</h6>
+            <!-- Informacion del Usuario -->
+            <div class="at-admin-card mt-4">
+                <div class="at-admin-card-header">
+                    <i class="bi bi-info-circle me-2"></i>Informacion del Usuario
                 </div>
-                <div class="card-body">
-                    <div class="row mb-3">
+                <div class="p-4">
+                    <div class="row">
                         <div class="col-6">
                             <small class="text-muted">ID Usuario</small>
-                            <p class="mb-0"><strong>{{ usuario.id }}</strong></p>
+                            <p class="mb-0 fw-semibold">{{ usuario.id }}</p>
                         </div>
                         <div class="col-6">
                             <small class="text-muted">Rol Actual</small>
                             <p class="mb-0">
                                 {% if usuario.rol == 'admin' %}
-                                    <span class="badge bg-danger">Administrador</span>
+                                    <span class="badge" style="background: #2B8AC4;">Administrador</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">Técnico</span>
+                                    <span class="badge bg-secondary">Tecnico</span>
                                 {% endif %}
                             </p>
                         </div>
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
-
 </div>
-
 {% endblock %}

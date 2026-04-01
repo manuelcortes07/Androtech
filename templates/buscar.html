@@ -4,96 +4,121 @@
 {% block content %}
 <div class="container py-4">
 
-    <h2 class="fw-bold mb-1"><i class="bi bi-search me-2"></i>Resultados para "{{ q }}"</h2>
-    <p class="text-muted mb-4">{{ clientes|length }} cliente{{ 's' if clientes|length != 1 else '' }} y {{ reparaciones|length }} reparacion{{ 'es' if reparaciones|length != 1 else '' }} encontrada{{ 's' if reparaciones|length != 1 else '' }}</p>
+    <!-- ENCABEZADO -->
+    <div class="row mb-4">
+        <div class="col">
+            <span class="at-pill"><i class="bi bi-search me-1"></i>Buscar</span>
+            <h1 class="at-section-title mt-2 mb-1">Resultados para "{{ q }}"</h1>
+            <p class="at-section-sub" style="margin:0;max-width:none;">
+                {{ clientes|length }} cliente{{ 's' if clientes|length != 1 else '' }} y {{ reparaciones|length }} reparaci&oacute;n{{ 'es' if reparaciones|length != 1 else '' }} encontrada{{ 's' if reparaciones|length != 1 else '' }}
+            </p>
+        </div>
+    </div>
 
+    <!-- EMPTY STATE -->
     {% if not clientes and not reparaciones %}
-    <div class="alert alert-info">
-        <i class="bi bi-info-circle me-2"></i>No se encontraron resultados para "{{ q }}".
+    <div class="at-empty-state">
+        <i class="bi bi-search"></i>
+        <h5>Sin resultados</h5>
+        <p>No se encontraron resultados para "{{ q }}". Intenta con otro t&eacute;rmino de b&uacute;squeda.</p>
     </div>
     {% endif %}
 
     <!-- CLIENTES -->
     {% if clientes %}
-    <h5 class="fw-semibold mb-3"><i class="bi bi-people me-2"></i>Clientes ({{ clientes|length }})</h5>
-    <div class="table-responsive mb-5">
-        <table class="table table-hover align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th>ID</th>
-                    <th>Nombre</th>
-                    <th>Email</th>
-                    <th>Telefono</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for c in clientes %}
-                <tr>
-                    <td><span class="badge bg-secondary">{{ c.id }}</span></td>
-                    <td class="fw-semibold">{{ c.nombre }}</td>
-                    <td class="text-muted">{{ c.email or '-' }}</td>
-                    <td class="text-muted">{{ c.telefono or '-' }}</td>
-                    <td>
-                        <a href="/clientes/editar/{{ c.id }}" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-pencil"></i>
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="at-admin-card mb-4">
+        <div class="d-flex align-items-center px-3 pt-3 pb-2">
+            <i class="bi bi-people me-2" style="color:#2B8AC4;"></i>
+            <h5 class="fw-bold mb-0" style="color:#0F1923;">Clientes</h5>
+            <span class="badge ms-2" style="background:rgba(43,138,196,.12);color:#2B8AC4;">{{ clientes|length }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="at-admin-table table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Tel&eacute;fono</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in clientes %}
+                    <tr class="align-middle">
+                        <td><span class="badge" style="background:rgba(43,138,196,.12);color:#2B8AC4;">{{ c.id }}</span></td>
+                        <td class="fw-semibold">{{ c.nombre }}</td>
+                        <td class="text-muted">{{ c.email or '-' }}</td>
+                        <td class="text-muted">{{ c.telefono or '-' }}</td>
+                        <td class="text-center">
+                            <a href="/clientes/editar/{{ c.id }}" class="at-btn-outline btn btn-sm">
+                                <i class="bi bi-pencil me-1"></i>Editar
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
     {% endif %}
 
     <!-- REPARACIONES -->
     {% if reparaciones %}
-    <h5 class="fw-semibold mb-3"><i class="bi bi-tools me-2"></i>Reparaciones ({{ reparaciones|length }})</h5>
-    <div class="table-responsive">
-        <table class="table table-hover align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th>ID</th>
-                    <th>Cliente</th>
-                    <th>Dispositivo</th>
-                    <th>Estado</th>
-                    <th>Pago</th>
-                    <th>Precio</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for r in reparaciones %}
-                <tr>
-                    <td><span class="badge bg-secondary">{{ r.id }}</span></td>
-                    <td class="fw-semibold">{{ r.cliente }}</td>
-                    <td>{{ r.dispositivo }}</td>
-                    <td>
-                        <span class="badge
-                            {% if r.estado == 'Entregado' or r.estado == 'Terminado' %}bg-success
-                            {% elif r.estado == 'En proceso' %}bg-primary
-                            {% elif r.estado == 'Pendiente' %}bg-warning text-dark
-                            {% else %}bg-secondary{% endif %}">
-                            {{ r.estado }}
-                        </span>
-                    </td>
-                    <td>
-                        {% if r.estado_pago == 'Pagado' %}
-                            <span class="badge bg-success">Pagado</span>
-                        {% else %}
-                            <span class="badge bg-warning text-dark">Pendiente</span>
-                        {% endif %}
-                    </td>
-                    <td>{% if r.precio %}{{ "%.2f"|format(r.precio) }}&euro;{% else %}-{% endif %}</td>
-                    <td>
-                        <a href="/reparaciones/editar/{{ r.id }}" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-pencil"></i>
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="at-admin-card mb-4">
+        <div class="d-flex align-items-center px-3 pt-3 pb-2">
+            <i class="bi bi-tools me-2" style="color:#2B8AC4;"></i>
+            <h5 class="fw-bold mb-0" style="color:#0F1923;">Reparaciones</h5>
+            <span class="badge ms-2" style="background:rgba(43,138,196,.12);color:#2B8AC4;">{{ reparaciones|length }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="at-admin-table table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Cliente</th>
+                        <th>Dispositivo</th>
+                        <th class="text-center">Estado</th>
+                        <th class="text-center">Pago</th>
+                        <th class="text-end">Precio</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in reparaciones %}
+                    <tr class="align-middle">
+                        <td><span class="badge" style="background:rgba(43,138,196,.12);color:#2B8AC4;">{{ r.id }}</span></td>
+                        <td class="fw-semibold">{{ r.cliente }}</td>
+                        <td>{{ r.dispositivo }}</td>
+                        <td class="text-center">
+                            {% if r.estado == 'Pendiente' %}
+                                <span class="badge" style="background:rgba(255,193,7,.15);color:#997a00;">{{ r.estado }}</span>
+                            {% elif r.estado == 'En proceso' %}
+                                <span class="badge" style="background:rgba(43,138,196,.12);color:#2B8AC4;">{{ r.estado }}</span>
+                            {% elif r.estado in ['Terminado', 'Entregado'] %}
+                                <span class="badge" style="background:rgba(25,135,84,.12);color:#198754;">{{ r.estado }}</span>
+                            {% else %}
+                                <span class="badge" style="background:rgba(108,117,125,.12);color:#6c757d;">{{ r.estado }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if r.estado_pago == 'Pagado' %}
+                                <span class="badge" style="background:rgba(25,135,84,.12);color:#198754;">Pagado</span>
+                            {% else %}
+                                <span class="badge" style="background:rgba(220,53,69,.1);color:#dc3545;">Pendiente</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end fw-semibold">{% if r.precio %}{{ "%.2f"|format(r.precio) }}&euro;{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                        <td class="text-center">
+                            <a href="/reparaciones/editar/{{ r.id }}" class="at-btn-outline btn btn-sm">
+                                <i class="bi bi-pencil me-1"></i>Editar
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
     {% endif %}
 
