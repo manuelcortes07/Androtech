@@ -10,12 +10,12 @@
     <div class="row mb-4">
         <div class="col-12 d-flex justify-content-between align-items-center">
             <div>
-                <h1 class="display-6 fw-bold text-primary mb-2">
-                    <i class="bi bi-people-fill"></i> Gestión de Usuarios
+                <h1 class="display-6 fw-bold mb-2">
+                    <i class="bi bi-people-fill" style="color: #2B8AC4;"></i> Gestion de Usuarios
                 </h1>
                 <p class="text-muted">Administra usuarios y roles del sistema</p>
             </div>
-            <a href="{{ url_for('nuevo_usuario') }}" class="btn btn-primary btn-lg">
+            <a href="{{ url_for('nuevo_usuario') }}" class="at-btn-primary btn btn-lg">
                 <i class="bi bi-plus-circle"></i> Nuevo Usuario
             </a>
         </div>
@@ -25,8 +25,8 @@
     <div class="row">
         <div class="col-12">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-bottom border-light">
-                    <h5 class="mb-0"><i class="bi bi-list-ul"></i> Usuarios Registrados ({{ usuarios|length }})</h5>
+                <div class="card-header bg-white" style="border-top: 4px solid #2B8AC4;">
+                    <h5 class="mb-0"><i class="bi bi-list-ul" style="color: #2B8AC4;"></i> Usuarios Registrados ({{ usuarios|length }})</h5>
                 </div>
                 <div class="card-body">
                     {% if usuarios %}

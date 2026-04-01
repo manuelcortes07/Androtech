@@ -3,107 +3,387 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AndroTech - Iniciar Sesión</title>
+    <title>AndroTech - Iniciar Sesion</title>
 
-    <!-- Bootstrap -->
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-        rel="stylesheet">
+    <!-- Bootstrap 5.3 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Estilos propios -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
-        <!-- Estilos propios -->
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-        <!-- Iconos (Bootstrap Icons) -->
-        <link rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Dark mode: aplicar antes del render para evitar flash -->
+    <script>
+        (function(){
+            var theme = localStorage.getItem('at-theme');
+            if(theme === 'dark'){
+                document.documentElement.setAttribute('data-theme','dark');
+            }
+        })();
+    </script>
+
+    <style>
+        /* ---- AndroTech Login - Scoped Styles ---- */
+        .at-login-wrapper {
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* Left brand panel */
+        .at-login-brand {
+            background-color: #0F1923;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem 2.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .at-login-brand::before {
+            content: '';
+            position: absolute;
+            top: -40%;
+            right: -30%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(43,138,196,0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .at-login-brand::after {
+            content: '';
+            position: absolute;
+            bottom: -20%;
+            left: -20%;
+            width: 350px;
+            height: 350px;
+            background: radial-gradient(circle, rgba(77,166,216,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .at-brand-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #2B8AC4, #4da6d8);
+            border-radius: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.25rem;
+            color: #fff;
+            margin-bottom: 1.75rem;
+            box-shadow: 0 8px 32px rgba(43,138,196,0.3);
+        }
+
+        .at-brand-title {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.75rem;
+        }
+
+        .at-brand-subtitle {
+            font-size: 1rem;
+            color: rgba(255,255,255,0.6);
+            text-align: center;
+            max-width: 280px;
+            line-height: 1.6;
+        }
+
+        .at-brand-features {
+            list-style: none;
+            padding: 0;
+            margin: 2.5rem 0 0 0;
+        }
+
+        .at-brand-features li {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.9rem;
+            padding: 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .at-brand-features li i {
+            color: #4da6d8;
+            font-size: 1.1rem;
+        }
+
+        /* Right form panel */
+        .at-login-form-panel {
+            background-color: #EBF5FB;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem 2rem;
+        }
+
+        .at-login-card {
+            width: 100%;
+            max-width: 420px;
+            background: #ffffff;
+            border-radius: 1rem;
+            padding: 2.5rem 2rem;
+            box-shadow: 0 4px 24px rgba(15,25,35,0.08);
+            border: 1px solid rgba(43,138,196,0.08);
+        }
+
+        .at-login-heading {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0F1923;
+            margin-bottom: 0.25rem;
+        }
+
+        .at-login-subtext {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 1.75rem;
+        }
+
+        .at-form-label {
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #0F1923;
+        }
+
+        .at-form-control {
+            border: 1.5px solid #d6e4ed;
+            border-radius: 0.625rem;
+            padding: 0.7rem 1rem;
+            font-size: 0.95rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .at-form-control:focus {
+            border-color: #2B8AC4;
+            box-shadow: 0 0 0 3px rgba(43,138,196,0.15);
+        }
+
+        .at-btn-login {
+            background: linear-gradient(135deg, #2B8AC4, #1a6fbd);
+            border: none;
+            border-radius: 0.625rem;
+            padding: 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #fff;
+            transition: transform 0.15s ease, box-shadow 0.2s ease;
+        }
+
+        .at-btn-login:hover {
+            background: linear-gradient(135deg, #1a6fbd, #155a9a);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(43,138,196,0.3);
+            color: #fff;
+        }
+
+        .at-btn-login:active {
+            transform: translateY(0);
+        }
+
+        .at-back-link {
+            color: #2B8AC4;
+            font-size: 0.85rem;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .at-back-link:hover {
+            color: #1a6fbd;
+            text-decoration: underline;
+        }
+
+        .at-login-footer {
+            margin-top: 1.5rem;
+            text-align: center;
+            font-size: 0.78rem;
+            color: #6c757d;
+        }
+
+        /* ---- Dark mode overrides ---- */
+        [data-theme="dark"] .at-login-form-panel {
+            background-color: #141e28;
+        }
+
+        [data-theme="dark"] .at-login-card {
+            background: #1c2a36;
+            border-color: rgba(77,166,216,0.12);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+        }
+
+        [data-theme="dark"] .at-login-heading {
+            color: #e8eef3;
+        }
+
+        [data-theme="dark"] .at-login-subtext {
+            color: #8da0b0;
+        }
+
+        [data-theme="dark"] .at-form-label {
+            color: #c9d6e0;
+        }
+
+        [data-theme="dark"] .at-form-control {
+            background-color: #0F1923;
+            border-color: #2a3f52;
+            color: #e0e8ef;
+        }
+
+        [data-theme="dark"] .at-form-control::placeholder {
+            color: #5a7080;
+        }
+
+        [data-theme="dark"] .at-form-control:focus {
+            border-color: #4da6d8;
+            box-shadow: 0 0 0 3px rgba(77,166,216,0.15);
+        }
+
+        [data-theme="dark"] .at-back-link {
+            color: #4da6d8;
+        }
+
+        [data-theme="dark"] .at-back-link:hover {
+            color: #7ec4e8;
+        }
+
+        [data-theme="dark"] .at-login-footer {
+            color: #5a7080;
+        }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 767.98px) {
+            .at-login-brand {
+                display: none !important;
+            }
+            .at-login-form-panel {
+                min-height: 100vh;
+            }
+            .at-login-card {
+                padding: 2rem 1.5rem;
+            }
+        }
+
+        /* Fade-in animation */
+        .at-fade-in {
+            animation: atLoginFadeIn 0.5s ease both;
+        }
+
+        @keyframes atLoginFadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
 
-<body class="bg-light">
+<body>
 
-<!-- NAVBAR SIMPLIFICADO PARA LOGIN -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-    <div class="container">
-        <a class="navbar-brand fw-bold" href="/">AndroTech</a>
+<div class="at-login-wrapper">
+    <!-- Left: Brand Panel (hidden on mobile) -->
+    <div class="col-md-5 col-lg-5 at-login-brand d-none d-md-flex">
+        <div class="at-brand-icon">
+            <i class="bi bi-phone"></i>
+        </div>
+        <h1 class="at-brand-title">AndroTech</h1>
+        <p class="at-brand-subtitle">
+            Sistema integral de gestion de reparaciones de dispositivos moviles
+        </p>
+        <ul class="at-brand-features">
+            <li><i class="bi bi-check-circle-fill"></i> Seguimiento en tiempo real</li>
+            <li><i class="bi bi-check-circle-fill"></i> Historial completo de reparaciones</li>
+            <li><i class="bi bi-check-circle-fill"></i> Notificaciones automaticas</li>
+            <li><i class="bi bi-check-circle-fill"></i> Informes y estadisticas</li>
+        </ul>
     </div>
-</nav>
 
-<!-- CONTENIDO PRINCIPAL -->
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-5">
-            <!-- Tarjeta de Login -->
-            <div class="card shadow-lg border-0" data-sr="enter bottom over 0.6s">
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <i class="bi bi-shield-lock-fill text-primary" style="font-size: 3rem;"></i>
-                        <h2 class="mt-3 fw-bold">Iniciar Sesión</h2>
-                        <p class="text-muted">Accede a tu cuenta de AndroTech</p>
-                    </div>
+    <!-- Right: Login Form -->
+    <div class="col-md-7 col-lg-7 col-12 at-login-form-panel">
+        <div class="at-login-card at-fade-in">
+            <!-- Mobile-only brand hint -->
+            <div class="text-center d-md-none mb-4">
+                <i class="bi bi-phone" style="font-size:2rem;color:#2B8AC4;"></i>
+                <div class="at-login-heading mt-1">AndroTech</div>
+            </div>
 
-                    <!-- Formulario de Login -->
-                    <form method="POST" class="needs-validation" novalidate>
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                        <!-- Campo Usuario -->
-                        <div class="mb-3">
-                            <label for="usuario" class="form-label fw-semibold">
-                                <i class="bi bi-person-fill me-2"></i>Usuario
-                            </label>
-                            <input type="text"
-                                   class="form-control form-control-lg"
-                                   id="usuario"
-                                   name="usuario"
-                                   required
-                                   placeholder="Ingresa tu usuario">
-                            <div class="invalid-feedback">
-                                Por favor ingresa tu usuario.
-                            </div>
+            <h2 class="at-login-heading d-none d-md-block">Iniciar Sesion</h2>
+            <p class="at-login-subtext">Accede al panel de gestion de AndroTech</p>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show py-2" role="alert">
+                            <small>{{ message }}</small>
+                            <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
                         </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
 
-                        <!-- Campo Contraseña -->
-                        <div class="mb-4">
-                            <label for="contraseña" class="form-label fw-semibold">
-                                <i class="bi bi-lock-fill me-2"></i>Contraseña
-                            </label>
-                            <input type="password"
-                                   class="form-control form-control-lg"
-                                   id="contraseña"
-                                   name="contraseña"
-                                   required
-                                   placeholder="Ingresa tu contraseña">
-                            <div class="invalid-feedback">
-                                Por favor ingresa tu contraseña.
-                            </div>
-                        </div>
+            <!-- Login Form -->
+            <form method="POST" class="needs-validation" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
-                        <!-- Botón de Enviar -->
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg fw-semibold">
-                                <i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión
-                            </button>
-                        </div>
-                    </form>
-
-                    <!-- Mensajes de Error -->
-                    {% with messages = get_flashed_messages(with_categories=true) %}
-                        {% if messages %}
-                            <div class="mt-4">
-                                {% for category, message in messages %}
-                                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                                        {{ message }}
-                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    {% endwith %}
-
-                    <!-- Información adicional -->
-                    <div class="text-center mt-4">
-                        <small class="text-muted">
-                            <i class="bi bi-info-circle me-1"></i>
-                            Sistema de gestión AndroTech - Proyecto académico 2º SMR
-                        </small>
+                <!-- Usuario -->
+                <div class="mb-3">
+                    <label for="usuario" class="form-label at-form-label">
+                        <i class="bi bi-person-fill me-1"></i>Usuario
+                    </label>
+                    <input type="text"
+                           class="form-control at-form-control"
+                           id="usuario"
+                           name="usuario"
+                           required
+                           autocomplete="username"
+                           placeholder="Ingresa tu usuario">
+                    <div class="invalid-feedback">
+                        Por favor ingresa tu usuario.
                     </div>
                 </div>
+
+                <!-- Contrasena -->
+                <div class="mb-4">
+                    <label for="contraseña" class="form-label at-form-label">
+                        <i class="bi bi-lock-fill me-1"></i>Contrasena
+                    </label>
+                    <input type="password"
+                           class="form-control at-form-control"
+                           id="contraseña"
+                           name="contraseña"
+                           required
+                           autocomplete="current-password"
+                           placeholder="Ingresa tu contrasena">
+                    <div class="invalid-feedback">
+                        Por favor ingresa tu contrasena.
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <div class="d-grid">
+                    <button type="submit" class="btn at-btn-login">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesion
+                    </button>
+                </div>
+            </form>
+
+            <!-- Back link -->
+            <div class="text-center mt-4">
+                <a href="/" class="at-back-link">
+                    <i class="bi bi-arrow-left me-1"></i>Volver al inicio
+                </a>
+            </div>
+
+            <!-- Footer -->
+            <div class="at-login-footer">
+                <i class="bi bi-shield-check me-1"></i>
+                Sistema de gestion AndroTech &mdash; Proyecto academico 2 SMR
             </div>
         </div>
     </div>
@@ -112,34 +392,20 @@
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- ScrollReveal para animaciones -->
-<script src="https://unpkg.com/scrollreveal@4.0.9/dist/scrollreveal.min.js"></script>
-<script>
-    ScrollReveal().reveal('[data-sr]', {
-        distance: '20px',
-        duration: 600,
-        easing: 'ease-in-out'
-    });
-</script>
-
-<!-- Script de validación de formularios (Bootstrap) -->
+<!-- Bootstrap form validation -->
 <script>
     (function () {
-        'use strict'
-
-        // Selecciona todos los formularios que requieran validación
-        var forms = document.querySelectorAll('.needs-validation')
-
-        Array.prototype.slice.call(forms)
-            .forEach(function (form) {
-                form.addEventListener('submit', function (event) {
-                    if (!form.checkValidity()) {
-                        event.preventDefault()
-                        event.stopPropagation()
-                    }
-                    form.classList.add('was-validated')
-                }, false)
-            })
+        'use strict';
+        var forms = document.querySelectorAll('.needs-validation');
+        Array.prototype.slice.call(forms).forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
     })();
 </script>
 

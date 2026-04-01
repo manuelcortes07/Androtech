@@ -6,14 +6,14 @@
     <div class="col-12">
 
         <div class="card shadow-sm border-0">
-            <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between">
+            <div class="card-header d-flex align-items-center justify-content-between" style="border-top: 4px solid #2B8AC4; background: #fff;">
                 <div>
-                    <h4 class="mb-0">Listado de Reparaciones</h4>
-                    <small class="text-white-50">Gestión y visualización de todas las reparaciones registradas</small>
+                    <h4 class="mb-0 text-dark">Listado de Reparaciones</h4>
+                    <small class="text-muted">Gestión y visualización de todas las reparaciones registradas</small>
                 </div>
                 <div class="text-end">
-                    <a href="/reparaciones/nueva" class="btn btn-light btn-sm text-primary">➕ Nueva Reparación</a>
-                    <a href="{{ url_for('export_reparaciones', **request.args) }}" class="btn btn-outline-light btn-sm ms-2">
+                    <a href="/reparaciones/nueva" class="btn btn-sm text-white at-btn-primary" style="background-color: #2B8AC4; border-color: #2B8AC4;">➕ Nueva Reparación</a>
+                    <a href="{{ url_for('export_reparaciones', **request.args) }}" class="btn btn-sm ms-2" style="color: #2B8AC4; border: 1px solid #2B8AC4;">
                         <i class="bi bi-download me-1"></i> Exportar CSV
                     </a>
                 </div>
