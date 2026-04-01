@@ -4,246 +4,237 @@
 
 {% block content %}
 
-<!-- HERO PEQUEÑO -->
-<section class="hero text-center mb-5">
+<!-- HERO -->
+<section class="at-hero" style="padding: 4rem 0 3rem;">
+    <div class="container text-center">
+        <span class="at-pill">Sobre AndroTech</span>
+        <h1 class="at-hero-title">Tecnologia, confianza y compromiso</h1>
+        <p class="at-hero-sub" style="max-width: 620px; margin: 0 auto;">Conoce la historia, los valores y el equipo que hacen posible un servicio tecnico profesional en Huelva.</p>
+    </div>
+</section>
+
+<!-- NUESTRA HISTORIA -->
+<section class="container at-section">
+    <div class="text-center mb-5">
+        <h2 class="at-section-title">Nuestra Historia</h2>
+        <p class="at-section-sub">De un pequeno taller a un referente en Huelva</p>
+    </div>
+    <div class="at-about-grid">
+        <!-- Izquierda: texto -->
+        <div class="at-about-text">
+            <p class="at-about-desc">
+                AndroTech nacio en 2018 con una vision clara: transformar la gestion de talleres tecnicos
+                a traves de la tecnologia. Lo que comenzo como un pequeno taller de reparaciones en el centro
+                de Huelva se ha convertido en un referente de profesionalismo y eficiencia.
+            </p>
+            <p class="at-about-desc">
+                Durante estos anos, hemos atendido a miles de clientes satisfechos, desde usuarios particulares
+                hasta pequenos negocios. Cada reparacion, cada cliente, cada feedback nos ha permitido mejorar
+                continuamente nuestro servicio y crear herramientas que faciliten el trabajo diario.
+            </p>
+            <p class="at-about-desc">
+                Hoy, AndroTech es mas que un taller: es una plataforma integral que combina experiencia tecnica
+                real con soluciones digitales innovadoras. Nuestro compromiso sigue siendo el mismo desde el inicio:
+                proporcionar un servicio de calidad, transparente y accesible para todos.
+            </p>
+        </div>
+        <!-- Derecha: hitos -->
+        <div class="at-about-features">
+            <div class="at-feature">
+                <div class="at-feature-icon">
+                    <svg width="22" height="22" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div>
+                    <h6 class="at-feature-title">Fundado en 2018</h6>
+                    <p class="at-feature-desc">Mas de 5 anos ofreciendo servicio tecnico profesional en Huelva.</p>
+                </div>
+            </div>
+            <div class="at-feature">
+                <div class="at-feature-icon">
+                    <svg width="22" height="22" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                </div>
+                <div>
+                    <h6 class="at-feature-title">Miles de clientes</h6>
+                    <p class="at-feature-desc">Particulares y negocios confian en nuestro equipo cada dia.</p>
+                </div>
+            </div>
+            <div class="at-feature">
+                <div class="at-feature-icon">
+                    <svg width="22" height="22" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                </div>
+                <div>
+                    <h6 class="at-feature-title">Plataforma digital</h6>
+                    <p class="at-feature-desc">Sistema propio para consultar el estado de cada reparacion online.</p>
+                </div>
+            </div>
+            <div class="at-feature">
+                <div class="at-feature-icon">
+                    <svg width="22" height="22" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                </div>
+                <div>
+                    <h6 class="at-feature-title">Mejora continua</h6>
+                    <p class="at-feature-desc">Adoptamos nuevas tecnologias y metodologias constantemente.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- MISION Y VALORES -->
+<section class="container at-section">
+    <div class="text-center mb-5">
+        <h2 class="at-section-title">Mision y Valores</h2>
+        <p class="at-section-sub">Los pilares que nos definen</p>
+    </div>
+    <div class="at-services-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+        <!-- Confianza -->
+        <div class="at-service-card">
+            <div class="at-service-icon">
+                <svg width="28" height="28" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+            </div>
+            <h5 class="at-service-title">Confianza</h5>
+            <p class="at-service-desc">Cada cliente es importante. Trabajamos con transparencia y responsabilidad en cada reparacion.</p>
+        </div>
+        <!-- Profesionalidad -->
+        <div class="at-service-card">
+            <div class="at-service-icon">
+                <svg width="28" height="28" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+            </div>
+            <h5 class="at-service-title">Profesionalidad</h5>
+            <p class="at-service-desc">Tecnicos capacitados y equipados con herramientas modernas para resolver cualquier problema.</p>
+        </div>
+        <!-- Transparencia -->
+        <div class="at-service-card">
+            <div class="at-service-icon">
+                <svg width="28" height="28" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/></svg>
+            </div>
+            <h5 class="at-service-title">Transparencia</h5>
+            <p class="at-service-desc">Presupuestos claros, sin sorpresas. Informamos al cliente en cada paso del proceso.</p>
+        </div>
+        <!-- Innovacion -->
+        <div class="at-service-card">
+            <div class="at-service-icon">
+                <svg width="28" height="28" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
+            <h5 class="at-service-title">Innovacion</h5>
+            <p class="at-service-desc">Mejora continua. Adoptamos nuevas tecnologias para servir mejor a nuestros clientes.</p>
+        </div>
+    </div>
+</section>
+
+<!-- EQUIPO TECNICO -->
+<section class="container at-section">
+    <div class="text-center mb-5">
+        <h2 class="at-section-title">El Equipo Tecnico</h2>
+        <p class="at-section-sub">Profesionales con experiencia y dedicacion</p>
+    </div>
+    <div class="row g-4 justify-content-center">
+        <!-- Tecnico 1 -->
+        <div class="col-md-6 col-lg-4">
+            <div class="at-service-card" style="text-align: center; padding: 2.2rem 1.5rem;">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: #EBF5FB; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.2rem;">
+                    <i class="bi bi-person-fill" style="font-size: 2.2rem; color: #2B8AC4;"></i>
+                </div>
+                <h5 class="at-service-title">David Rodriguez</h5>
+                <p style="color: #2B8AC4; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.8rem;">Tecnico Senior</p>
+                <p class="at-service-desc">Especialista en reparacion de dispositivos moviles con 8 anos de experiencia. Apasionado por resolver los problemas mas complejos.</p>
+            </div>
+        </div>
+        <!-- Tecnico 2 -->
+        <div class="col-md-6 col-lg-4">
+            <div class="at-service-card" style="text-align: center; padding: 2.2rem 1.5rem;">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: #EBF5FB; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.2rem;">
+                    <i class="bi bi-person-fill" style="font-size: 2.2rem; color: #2B8AC4;"></i>
+                </div>
+                <h5 class="at-service-title">Maria Gonzalez</h5>
+                <p style="color: #2B8AC4; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.8rem;">Especialista en Laptops</p>
+                <p class="at-service-desc">Experta en reparacion y mantenimiento de computadoras portatiles. Conocimiento profundo en hardware y software.</p>
+            </div>
+        </div>
+        <!-- Tecnico 3 -->
+        <div class="col-md-6 col-lg-4">
+            <div class="at-service-card" style="text-align: center; padding: 2.2rem 1.5rem;">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: #EBF5FB; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.2rem;">
+                    <i class="bi bi-person-fill" style="font-size: 2.2rem; color: #2B8AC4;"></i>
+                </div>
+                <h5 class="at-service-title">Carlos Lopez</h5>
+                <p style="color: #2B8AC4; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.8rem;">Tecnico de Soporte</p>
+                <p class="at-service-desc">Dedicado a garantizar la mejor experiencia del cliente. Comunicacion clara y seguimiento personalizado en cada caso.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- POR QUE ELEGIRNOS -->
+<section class="at-about-section">
     <div class="container">
-        <div style="font-size: 3.5rem; color: var(--primary); margin-bottom: 1rem;">
-            <i class="bi bi-building"></i>
+        <div class="text-center mb-5">
+            <h2 class="at-section-title">Por que elegirnos</h2>
+            <p class="at-section-sub">Razones para confiar en AndroTech</p>
         </div>
-        <h1 class="display-5 fw-bold mb-2">Sobre Nosotros</h1>
-        <p class="lead text-muted">Conoce la historia y misión de AndroTech</p>
-    </div>
-</section>
-
-<!-- SECCIÓN: NUESTRA HISTORIA -->
-<section class="container mb-5">
-    <div class="row about-section">
-        <div class="col-12">
-            <div class="card shadow-sm border-0">
-                <div class="card-body p-5">
-                    <h2 class="h3 fw-bold mb-4">Nuestra Historia</h2>
-                    <p class="text-muted lead mb-3">
-                        AndroTech nació en 2018 con una visión clara: transformar la gestión de talleres técnicos 
-                        a través de la tecnología. Lo que comenzó como un pequeño taller de reparaciones en el centro 
-                        de Madrid se ha convertido en un referente de profesionalismo y eficiencia.
-                    </p>
-                    <p class="text-muted mb-3">
-                        Durante estos años, hemos atendido a miles de clientes satisfechos, desde usuarios particulares 
-                        hasta pequeños negocios. Cada reparación, cada cliente, cada feedback nos ha permitido mejorar 
-                        continuamente nuestro servicio y crear herramientas que faciliten el trabajo diario de talleres 
-                        como el tuyo.
-                    </p>
-                    <p class="text-muted">
-                        Hoy, AndroTech es más que un taller: es una plataforma integral que combina experiencia técnica 
-                        real con soluciones digitales innovadoras. Nuestro compromiso sigue siendo el mismo desde el inicio: 
-                        proporcionar un servicio de calidad, transparente y accesible para todos.
-                    </p>
+        <div class="at-about-grid">
+            <!-- Izquierda -->
+            <div class="at-about-features">
+                <div class="at-feature">
+                    <div class="at-feature-icon">
+                        <svg width="22" height="22" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </div>
+                    <div>
+                        <h6 class="at-feature-title">Experiencia probada</h6>
+                        <p class="at-feature-desc">Mas de 5 anos reparando dispositivos con satisfaccion garantizada.</p>
+                    </div>
+                </div>
+                <div class="at-feature">
+                    <div class="at-feature-icon">
+                        <svg width="22" height="22" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                    </div>
+                    <div>
+                        <h6 class="at-feature-title">Atencion personalizada</h6>
+                        <p class="at-feature-desc">Cada cliente recibe un trato unico y soluciones adaptadas a sus necesidades.</p>
+                    </div>
+                </div>
+                <div class="at-feature">
+                    <div class="at-feature-icon">
+                        <svg width="22" height="22" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    </div>
+                    <div>
+                        <h6 class="at-feature-title">Garantia en reparaciones</h6>
+                        <p class="at-feature-desc">Todos nuestros servicios incluyen garantia de calidad en el trabajo realizado.</p>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
-</section>
-
-<!-- SECCIÓN: MISIÓN Y VALORES -->
-<section class="container mb-5">
-    <div class="row mb-4">
-        <div class="col-12 text-center">
-            <h2 class="h3 fw-bold">Misión y Valores</h2>
-            <p class="text-muted">Los pilares que nos definen</p>
-        </div>
-    </div>
-
-    <div class="row g-4 values-section">
-        <!-- Valor 1: Confianza -->
-        <div class="col-md-6 col-lg-3">
-            <div class="card shadow-sm border-0 value-card h-100">
-                <div class="card-body text-center py-4">
-                    <div class="mb-3" style="font-size: 2.5rem; color: var(--primary);">
-                        <i class="bi bi-shield-check"></i>
+            <!-- Derecha -->
+            <div class="at-about-features">
+                <div class="at-feature">
+                    <div class="at-feature-icon">
+                        <svg width="22" height="22" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
                     </div>
-                    <h5 class="fw-bold mb-2">Confianza</h5>
-                    <p class="text-muted small">
-                        Cada cliente es importante. Trabajamos con transparencia y responsabilidad en cada reparación.
-                    </p>
+                    <div>
+                        <h6 class="at-feature-title">Precios justos</h6>
+                        <p class="at-feature-desc">Presupuestos transparentes sin costos ocultos. Lo que ves es lo que pagas.</p>
+                    </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Valor 2: Profesionalidad -->
-        <div class="col-md-6 col-lg-3">
-            <div class="card shadow-sm border-0 value-card h-100">
-                <div class="card-body text-center py-4">
-                    <div class="mb-3" style="font-size: 2.5rem; color: var(--success);">
-                        <i class="bi bi-tools"></i>
+                <div class="at-feature">
+                    <div class="at-feature-icon">
+                        <svg width="22" height="22" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                     </div>
-                    <h5 class="fw-bold mb-2">Profesionalidad</h5>
-                    <p class="text-muted small">
-                        Técnicos capacitados y equipados con herramientas modernas para resolver cualquier problema.
-                    </p>
+                    <div>
+                        <h6 class="at-feature-title">Tecnologia moderna</h6>
+                        <p class="at-feature-desc">Equipos y software de ultima generacion para diagnosticos rapidos y precisos.</p>
+                    </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Valor 3: Transparencia -->
-        <div class="col-md-6 col-lg-3">
-            <div class="card shadow-sm border-0 value-card h-100">
-                <div class="card-body text-center py-4">
-                    <div class="mb-3" style="font-size: 2.5rem; color: #ffc107;">
-                        <i class="bi bi-eye-fill"></i>
+                <div class="at-feature">
+                    <div class="at-feature-icon">
+                        <svg width="22" height="22" fill="none" stroke="#2B8AC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                     </div>
-                    <h5 class="fw-bold mb-2">Transparencia</h5>
-                    <p class="text-muted small">
-                        Presupuestos claros, sin sorpresas. Informamos al cliente en cada paso del proceso.
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Valor 4: Innovación -->
-        <div class="col-md-6 col-lg-3">
-            <div class="card shadow-sm border-0 value-card h-100">
-                <div class="card-body text-center py-4">
-                    <div class="mb-3" style="font-size: 2.5rem; color: #17a2b8;">
-                        <i class="bi bi-lightning-fill"></i>
+                    <div>
+                        <h6 class="at-feature-title">Disponibilidad</h6>
+                        <p class="at-feature-desc">Horarios amplios y flexibles. Trabajamos para adaptarnos a ti.</p>
                     </div>
-                    <h5 class="fw-bold mb-2">Innovación</h5>
-                    <p class="text-muted small">
-                        Mejora continua. Adoptamos nuevas tecnologías para servir mejor a nuestros clientes.
-                    </p>
                 </div>
             </div>
         </div>
     </div>
 </section>
-
-<!-- SECCIÓN: EL EQUIPO TÉCNICO -->
-<section class="container mb-5">
-    <div class="row mb-4">
-        <div class="col-12 text-center">
-            <h2 class="h3 fw-bold">El Equipo Técnico</h2>
-            <p class="text-muted">Profesionales con experiencia y dedicación</p>
-        </div>
-    </div>
-
-    <div class="row g-4 team-section">
-        <!-- Técnico 1 -->
-        <div class="col-md-6 col-lg-4">
-            <div class="card shadow-sm border-0 team-card h-100">
-                <img src="https://via.placeholder.com/300x300?text=Técnico+Senior" alt="Técnico Senior" class="card-img-top" style="height: 250px; object-fit: cover;">
-                <div class="card-body text-center">
-                    <h5 class="fw-bold mb-1">David Rodríguez</h5>
-                    <p class="text-primary small mb-3">Técnico Senior</p>
-                    <p class="text-muted small">
-                        Especialista en reparación de dispositivos móviles con 8 años de experiencia. 
-                        Apasionado por resolver los problemas más complejos.
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Técnico 2 -->
-        <div class="col-md-6 col-lg-4">
-            <div class="card shadow-sm border-0 team-card h-100">
-                <img src="https://via.placeholder.com/300x300?text=Técnica+Especialista" alt="Técnica Especialista" class="card-img-top" style="height: 250px; object-fit: cover;">
-                <div class="card-body text-center">
-                    <h5 class="fw-bold mb-1">María González</h5>
-                    <p class="text-success small mb-3">Especialista en Laptops</p>
-                    <p class="text-muted small">
-                        Experta en reparación y mantenimiento de computadoras portátiles. 
-                        Conocimiento profundo en hardware y software.
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Técnico 3 -->
-        <div class="col-md-6 col-lg-4">
-            <div class="card shadow-sm border-0 team-card h-100">
-                <img src="https://via.placeholder.com/300x300?text=Técnico+Soporte" alt="Técnico Soporte" class="card-img-top" style="height: 250px; object-fit: cover;">
-                <div class="card-body text-center">
-                    <h5 class="fw-bold mb-1">Carlos López</h5>
-                    <p class="text-info small mb-3">Técnico de Soporte</p>
-                    <p class="text-muted small">
-                        Dedicado a garantizar la mejor experiencia del cliente. 
-                        Comunicación clara y seguimiento personalizado en cada caso.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- SECCIÓN: ¿POR QUÉ ELEGIRNOS? -->
-<section class="container mb-5">
-    <div class="row mb-4">
-        <div class="col-12 text-center">
-            <h2 class="h3 fw-bold">¿Por qué elegirnos?</h2>
-            <p class="text-muted">Razones para confiar en AndroTech</p>
-        </div>
-    </div>
-
-    <div class="row why-us-section">
-        <div class="col-lg-6 offset-lg-3">
-            <ul class="list-unstyled">
-                <li class="mb-3 d-flex align-items-start">
-                    <i class="bi bi-check-circle-fill text-success me-3" style="font-size: 1.3rem; flex-shrink: 0;"></i>
-                    <div>
-                        <h6 class="fw-bold mb-1">Experiencia probada</h6>
-                        <p class="text-muted small">Más de 5 años reparando dispositivos con satisfacción garantizada.</p>
-                    </div>
-                </li>
-
-                <li class="mb-3 d-flex align-items-start">
-                    <i class="bi bi-check-circle-fill text-success me-3" style="font-size: 1.3rem; flex-shrink: 0;"></i>
-                    <div>
-                        <h6 class="fw-bold mb-1">Atención personalizada</h6>
-                        <p class="text-muted small">Cada cliente recibe un trato único y soluciones adaptadas a sus necesidades.</p>
-                    </div>
-                </li>
-
-                <li class="mb-3 d-flex align-items-start">
-                    <i class="bi bi-check-circle-fill text-success me-3" style="font-size: 1.3rem; flex-shrink: 0;"></i>
-                    <div>
-                        <h6 class="fw-bold mb-1">Garantía en reparaciones</h6>
-                        <p class="text-muted small">Todos nuestros servicios incluyen garantía de calidad en el trabajo realizado.</p>
-                    </div>
-                </li>
-
-                <li class="mb-3 d-flex align-items-start">
-                    <i class="bi bi-check-circle-fill text-success me-3" style="font-size: 1.3rem; flex-shrink: 0;"></i>
-                    <div>
-                        <h6 class="fw-bold mb-1">Precios justos</h6>
-                        <p class="text-muted small">Presupuestos transparentes sin costos ocultos. Lo que ves es lo que pagas.</p>
-                    </div>
-                </li>
-
-                <li class="mb-3 d-flex align-items-start">
-                    <i class="bi bi-check-circle-fill text-success me-3" style="font-size: 1.3rem; flex-shrink: 0;"></i>
-                    <div>
-                        <h6 class="fw-bold mb-1">Tecnología moderna</h6>
-                        <p class="text-muted small">Equipos y software de última generación para diagnósticos rápidos y precisos.</p>
-                    </div>
-                </li>
-
-                <li class="d-flex align-items-start">
-                    <i class="bi bi-check-circle-fill text-success me-3" style="font-size: 1.3rem; flex-shrink: 0;"></i>
-                    <div>
-                        <h6 class="fw-bold mb-1">Disponibilidad</h6>
-                        <p class="text-muted small">Horarios amplios y flexibles. Trabajamos para adaptarnos a ti.</p>
-                    </div>
-                </li>
-            </ul>
-        </div>
-    </div>
-</section>
-
-<!-- ScrollReveal para animaciones -->
-<script src="https://unpkg.com/scrollreveal"></script>
-<script>
-    ScrollReveal().reveal('.about-section', { delay: 120, distance: '30px', origin: 'bottom' });
-    ScrollReveal().reveal('.values-section .value-card', { interval: 100, distance: '20px', origin: 'bottom' });
-    ScrollReveal().reveal('.team-section .team-card', { interval: 100, distance: '20px', origin: 'bottom' });
-    ScrollReveal().reveal('.why-us-section', { delay: 120, distance: '30px', origin: 'bottom' });
-</script>
 
 {% endblock %}

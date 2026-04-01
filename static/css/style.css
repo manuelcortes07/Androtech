@@ -1003,13 +1003,16 @@ ul, ol {
   transition: transform 0.1s ease;
 }
 
-/* REGLA DE EMERGENCIA: Forzar visibilidad del texto (excluye secciones at-*) */
-body, .container:not(.at-footer .container):not(.at-cta .container),
-.card:not([class*="at-"]), .card-body, .navbar {
+/* REGLA DE EMERGENCIA: Forzar visibilidad del texto (excluye secciones at-* y dark mode) */
+html:not([data-theme="dark"]) body,
+html:not([data-theme="dark"]) .container:not(.at-footer .container):not(.at-cta .container),
+html:not([data-theme="dark"]) .card:not([class*="at-"]),
+html:not([data-theme="dark"]) .card-body,
+html:not([data-theme="dark"]) .navbar {
   color: #212529 !important;
 }
 
-.bg-light {
+html:not([data-theme="dark"]) .bg-light {
   background-color: #f8f9fa !important;
 }
 
@@ -1593,7 +1596,9 @@ body, .container:not(.at-footer .container):not(.at-cta .container),
   --muted: #8a929a;
 }
 
-/* Body & general backgrounds */
+/* Body & general backgrounds — triple specificity to beat Bootstrap .bg-light !important */
+html[data-theme="dark"] body,
+html[data-theme="dark"] body.bg-light,
 [data-theme="dark"] body,
 [data-theme="dark"] body.bg-light {
   background-color: #0F1923 !important;
@@ -1858,6 +1863,184 @@ html[data-theme="dark"] .bg-white,
 }
 [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   background: #4a5568;
+}
+
+/* Links */
+[data-theme="dark"] a:not(.btn):not(.nav-link):not(.dropdown-item):not(.at-footer-link) {
+  color: #4da6d8;
+}
+
+/* Card headers */
+[data-theme="dark"] .card-header.bg-primary {
+  background-color: #1a6fbd !important;
+}
+[data-theme="dark"] .card-header {
+  background-color: #1a2332 !important;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+/* Input groups */
+[data-theme="dark"] .input-group-text {
+  background-color: #243040;
+  border-color: rgba(255,255,255,.1);
+  color: #9ba5b0;
+}
+
+/* Modals */
+[data-theme="dark"] .modal-content {
+  background-color: #1a2332;
+  border: 1px solid rgba(255,255,255,.08);
+}
+[data-theme="dark"] .modal-header {
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+[data-theme="dark"] .modal-footer {
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+
+/* Progress bars */
+[data-theme="dark"] .progress {
+  background-color: #243040;
+}
+
+/* Card footer */
+[data-theme="dark"] .card-footer,
+[data-theme="dark"] .card-footer.bg-light {
+  background-color: #1a2332 !important;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+
+/* Bootstrap text utilities */
+[data-theme="dark"] .text-primary {
+  color: #4da6d8 !important;
+}
+[data-theme="dark"] .text-success {
+  color: #75d4a4 !important;
+}
+[data-theme="dark"] .text-danger {
+  color: #f09ca4 !important;
+}
+[data-theme="dark"] .text-warning {
+  color: #ffd95c !important;
+}
+[data-theme="dark"] .text-info {
+  color: #6cd9f0 !important;
+}
+
+/* Labels and small text */
+[data-theme="dark"] .form-label,
+[data-theme="dark"] label {
+  color: #e4e8ec;
+}
+[data-theme="dark"] small {
+  color: #8a929a;
+}
+
+/* List groups */
+[data-theme="dark"] .list-group-item {
+  background-color: #1a2332;
+  border-color: rgba(255,255,255,.06);
+  color: #e4e8ec;
+}
+
+/* Pagination */
+[data-theme="dark"] .page-link {
+  background-color: #1a2332;
+  border-color: rgba(255,255,255,.08);
+  color: #4da6d8;
+}
+[data-theme="dark"] .page-item.active .page-link {
+  background-color: #2B8AC4;
+  border-color: #2B8AC4;
+}
+[data-theme="dark"] .page-item.disabled .page-link {
+  background-color: #0F1923;
+  color: #6c757d;
+}
+
+/* Breadcrumbs */
+[data-theme="dark"] .breadcrumb {
+  background-color: transparent;
+}
+[data-theme="dark"] .breadcrumb-item a {
+  color: #4da6d8;
+}
+
+/* Hero and wave separator */
+[data-theme="dark"] .hero {
+  background: transparent;
+}
+[data-theme="dark"] .wave-separator svg path {
+  fill: #0F1923;
+}
+
+/* Close button on alerts/modals */
+[data-theme="dark"] .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Dividers */
+[data-theme="dark"] hr {
+  border-color: rgba(255,255,255,.1);
+  opacity: 1;
+}
+
+/* Login page standalone dark mode */
+[data-theme="dark"] .at-login-form {
+  background-color: #1a2332 !important;
+}
+[data-theme="dark"] .at-login-card {
+  background-color: #243040 !important;
+  border-color: rgba(255,255,255,.08) !important;
+}
+
+/* Navbar dark variant (login page) */
+html[data-theme="dark"] .navbar.navbar-dark.bg-dark {
+  background-color: #0F1923 !important;
+}
+
+/* Select option elements */
+[data-theme="dark"] option {
+  background-color: #243040;
+  color: #e4e8ec;
+}
+
+/* Badge variants */
+[data-theme="dark"] .badge.bg-secondary {
+  background-color: #364050 !important;
+}
+[data-theme="dark"] .badge.bg-warning {
+  color: #0F1923 !important;
+}
+
+/* Table striped */
+[data-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) {
+  --bs-table-striped-bg: rgba(255,255,255,.02);
+}
+
+/* Alert light */
+[data-theme="dark"] .alert-light {
+  background-color: #243040 !important;
+  color: #e4e8ec;
+  border-color: rgba(255,255,255,.06);
+}
+
+/* Navbar toggler */
+[data-theme="dark"] .navbar-toggler-icon {
+  filter: invert(1);
+}
+[data-theme="dark"] .navbar-toggler {
+  border-color: rgba(255,255,255,.1);
+}
+
+/* White text on card headers that already have bg-primary */
+[data-theme="dark"] .card-header.bg-primary .text-white-50 {
+  color: rgba(255,255,255,.5) !important;
+}
+
+/* Inline border-left KPI cards on dashboard */
+[data-theme="dark"] .card[style*="border-left"] {
+  border-left-color: #4da6d8 !important;
 }
 
 /* Smooth transition for theme switch */

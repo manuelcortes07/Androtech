@@ -1,13 +1,31 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
+{% block title %}Error {{ code }}{% endblock %}
 
 {% block content %}
-<div class="container mt-6">
-  <div class="row justify-content-center">
-    <div class="col-md-8 text-center">
-      <h1 class="display-4">Error {{ code }}</h1>
-      <p class="lead">{{ message }}</p>
-      <a href="{{ url_for('index') }}" class="btn btn-primary">Volver al inicio</a>
+
+<div class="row justify-content-center py-5">
+    <div class="col-lg-6 col-xl-5">
+        <div class="at-service-card text-center py-5 px-4">
+
+            <!-- Icono -->
+            <div class="mb-4">
+                <i class="bi bi-exclamation-triangle" style="font-size: 4rem; color: #2B8AC4;"></i>
+            </div>
+
+            <!-- Titulo -->
+            <h2 class="fw-bold mb-2" style="color: #0F1923;">Error {{ code }}</h2>
+
+            <!-- Mensaje -->
+            <p class="text-muted mb-4">{{ message }}</p>
+
+            <!-- Boton -->
+            <a href="{{ url_for('index') }}" class="at-btn-primary">
+                <i class="bi bi-house-fill me-2"></i>Volver al inicio
+            </a>
+
+        </div>
     </div>
-  </div>
 </div>
+
 {% endblock %}

@@ -4,69 +4,42 @@
 
 {% block content %}
 
-<!-- PÁGINA DE ÉXITO -->
-<div class="row justify-content-center mb-5">
+<div class="row justify-content-center py-5">
     <div class="col-lg-6 col-xl-5">
-        <div class="card shadow-sm border-0 success-card text-center py-5">
-            
-            <!-- Icono de éxito -->
+        <div class="at-service-card text-center py-5 px-4">
+
+            <!-- Icono -->
             <div class="mb-4">
-                <i class="bi bi-check-circle-fill" style="font-size: 4rem; color: #198754;"></i>
+                <i class="bi bi-check-circle-fill" style="font-size: 4rem; color: #2B8AC4;"></i>
             </div>
 
-            <!-- Título -->
-            <h2 class="fw-bold mb-2">¡Mensaje enviado con éxito!</h2>
+            <!-- Titulo -->
+            <h2 class="fw-bold mb-2" style="color: #0F1923;">Mensaje enviado con exito</h2>
 
-            <!-- Subtítulo y descripción -->
+            <!-- Saludo -->
             <p class="text-muted mb-3">
                 Hola <strong>{{ nombre }}</strong>, hemos recibido tu mensaje.
+                Nuestro equipo revisara tu consulta y nos pondremos en contacto contigo en breve.
             </p>
 
-            <p class="text-muted mb-4">
-                Nuestro equipo revisará tu consulta y nos pondremos en contacto contigo en breve 
-                a través del correo electrónico o teléfono que proporcionaste.
-            </p>
-
-            <!-- Información adicional -->
-            <div class="alert alert-light border-0 bg-light py-3 mb-4">
-                <i class="bi bi-clock-history me-2 text-primary"></i>
-                <small class="text-muted">
-                    Tiempo de respuesta aproximado: <strong>24-48 horas</strong>
-                </small>
+            <!-- Tiempo de respuesta -->
+            <div class="rounded-3 py-3 px-4 mb-4" style="background: #EBF5FB;">
+                <i class="bi bi-clock-history me-2" style="color: #2B8AC4;"></i>
+                <small style="color: #0F1923;">Tiempo de respuesta aproximado: <strong>24-48 horas</strong></small>
             </div>
 
-            <!-- Botón de regreso -->
-            <a href="/" class="btn btn-primary">
-                <i class="bi bi-house-fill me-2"></i>Volver al inicio
-            </a>
-
-            <!-- Botón secundario para contactar nuevamente -->
-            <a href="/contacto" class="btn btn-outline-secondary mt-3">
-                <i class="bi bi-pencil-square me-2"></i>Enviar otro mensaje
-            </a>
+            <!-- Botones -->
+            <div class="d-flex flex-column flex-sm-row justify-content-center gap-2">
+                <a href="/" class="at-btn-primary">
+                    <i class="bi bi-house-fill me-2"></i>Volver al inicio
+                </a>
+                <a href="/contacto" class="at-btn-outline">
+                    <i class="bi bi-pencil-square me-2"></i>Enviar otro mensaje
+                </a>
+            </div>
 
         </div>
     </div>
 </div>
-
-<!-- ScrollReveal para animación -->
-<script src="https://unpkg.com/scrollreveal"></script>
-<script>
-    ScrollReveal().reveal('.success-card', { delay: 120, distance: '30px', origin: 'bottom', duration: 800 });
-    
-    // Animación del icono
-    document.addEventListener('DOMContentLoaded', function () {
-        const icon = document.querySelector('.bi-check-circle-fill');
-        if (icon) {
-            icon.style.opacity = '0';
-            icon.style.transform = 'scale(0.5) rotate(-20deg)';
-            setTimeout(() => {
-                icon.style.transition = 'all .6s cubic-bezier(0.34, 1.56, 0.64, 1)';
-                icon.style.opacity = '1';
-                icon.style.transform = 'scale(1) rotate(0deg)';
-            }, 200);
-        }
-    });
-</script>
 
 {% endblock %}

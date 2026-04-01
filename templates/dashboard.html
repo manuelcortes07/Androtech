@@ -9,18 +9,18 @@
     <!-- ENCABEZADO -->
     <div class="row mb-4">
         <div class="col-12">
-            <h1 class="display-6 fw-bold text-primary mb-2">
-                <i class="bi bi-speedometer2"></i> Panel de Control
+            <h1 class="display-6 fw-bold mb-2">
+                <i class="bi bi-speedometer2" style="color: #2B8AC4;"></i> Panel de Control
             </h1>
             <p class="text-muted">Resumen en tiempo real de tu negocio</p>
         </div>
         {% if user_role == 'admin' %}
         <div class="col-12">
             <div class="d-flex gap-2 mb-2">
-                <a href="/exportar/reparaciones.csv" class="btn btn-sm btn-outline-secondary">
+                <a href="/exportar/reparaciones.csv" class="btn btn-sm" style="color: #2B8AC4; border: 1px solid #2B8AC4;">
                     <i class="bi bi-download me-1"></i>Exportar reparaciones CSV
                 </a>
-                <a href="/exportar/clientes.csv" class="btn btn-sm btn-outline-secondary">
+                <a href="/exportar/clientes.csv" class="btn btn-sm" style="color: #2B8AC4; border: 1px solid #2B8AC4;">
                     <i class="bi bi-download me-1"></i>Exportar clientes CSV
                 </a>
             </div>
