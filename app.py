@@ -625,8 +625,14 @@ def dashboard():
     iva_total = round(ingresos_total * 0.21, 2)
     iva_mes = round(ingresos_mes * 0.21, 2)
 
+    _dias = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo']
+    _meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+    _ahora = datetime.now()
+    now = f"{_dias[_ahora.weekday()]} {_ahora.day} de {_meses[_ahora.month-1]} de {_ahora.year}, {_ahora.strftime('%H:%M')}"
+
     return render_template(
         "dashboard.html",
+        now=now,
         total_clientes=total_clientes,
         total_reparaciones=total_reparaciones,
         reparaciones_activas=reparaciones_activas,

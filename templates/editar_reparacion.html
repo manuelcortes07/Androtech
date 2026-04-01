@@ -1,223 +1,283 @@
 {% extends "base.html" %}
 
+{% block title %}Editar Reparacion - AndroTech{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center py-4">
-    <div class="col-xl-7 col-lg-8 col-md-10">
 
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white d-flex align-items-center justify-content-between" style="border-top: 4px solid #2B8AC4;">
-                <div>
-                    <h4 class="mb-0 text-dark"><i class="bi bi-pencil-square me-2" style="color: #2B8AC4;"></i>Editar Reparacion</h4>
-                    <small class="text-muted">Actualiza los datos de la reparacion y guarda los cambios</small>
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-xl-8 col-lg-9 col-md-11">
+
+            <!-- ENCABEZADO -->
+            <div class="mb-4">
+                <span class="at-pill"><i class="bi bi-pencil-square me-1"></i>Administracion</span>
+                <h1 class="at-section-title mt-2 mb-1">Editar Reparacion #{{ reparacion.id }}</h1>
+                <p class="at-section-sub" style="margin:0;max-width:none;">Actualiza los datos de la reparacion y guarda los cambios</p>
+            </div>
+
+            <!-- TIMELINE DE ESTADOS -->
+            {% if historial %}
+            <div class="at-admin-card mb-4">
+                <div class="at-admin-card-header d-flex align-items-center gap-2"
+                     style="border-bottom:1px solid rgba(0,0,0,.06);">
+                    <i class="bi bi-clock-history" style="color:#2B8AC4;"></i>
+                    Timeline de Estados
                 </div>
-                <div class="text-end">
-                    <small class="badge" style="background: #EBF5FB; color: #2B8AC4;">Administracion</small>
+                <div style="padding:1.25rem 1.5rem;">
+                    {% for h in historial %}
+                    <div class="d-flex align-items-start gap-3 {% if not loop.last %}mb-3{% endif %}"
+                         style="position:relative;">
+                        <!-- Dot + Line -->
+                        <div class="d-flex flex-column align-items-center" style="min-width:10px;">
+                            <span class="at-dash-dot flex-shrink-0"
+                                  style="background:{% if loop.first %}#2B8AC4{% elif loop.last %}#198754{% else %}#6c757d{% endif %};"></span>
+                            {% if not loop.last %}
+                            <div style="width:2px;flex:1;min-height:24px;background:rgba(0,0,0,.1);margin-top:4px;"></div>
+                            {% endif %}
+                        </div>
+                        <!-- Content -->
+                        <div style="padding-bottom:{% if not loop.last %}0.25rem{% else %}0{% endif %};">
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                <span class="badge" style="background:rgba(43,138,196,.1);color:#2B8AC4;font-weight:600;font-size:.75rem;">
+                                    {{ h.fecha_cambio|strftime('%d/%m/%Y %H:%M') }}
+                                </span>
+                                {% if h.usuario %}
+                                <span class="text-muted" style="font-size:.8rem;">por {{ h.usuario }}</span>
+                                {% endif %}
+                            </div>
+                            <span style="font-size:.9rem;">
+                                {{ h.estado_anterior }}
+                                <i class="bi bi-arrow-right mx-1" style="font-size:.7rem;color:#6c757d;"></i>
+                                <strong>{{ h.estado_nuevo }}</strong>
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- ALERTAS INTELIGENTES -->
+            {% if alertas_info.tiene_alertas %}
+            <div class="alert alert-{{ 'danger' if alertas_info.urgencia == 'critico' else 'warning' if alertas_info.urgencia in ['importante', 'advertencia'] else 'info' }} alert-dismissible fade show border-0 shadow-sm mb-4"
+                 role="alert"
+                 style="border-left:4px solid {% if alertas_info.urgencia == 'critico' %}#dc3545{% elif alertas_info.urgencia in ['importante','advertencia'] %}#ffc107{% else %}#2B8AC4{% endif %} !important; border-radius:12px;">
+                <strong>
+                    {% if alertas_info.urgencia == 'critico' %}
+                        <i class="bi bi-exclamation-octagon-fill me-1"></i> Estado critico:
+                    {% elif alertas_info.urgencia == 'importante' %}
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i> Situacion importante:
+                    {% else %}
+                        <i class="bi bi-info-circle-fill me-1"></i> Informacion:
+                    {% endif %}
+                </strong>
+                <ul class="mb-0 mt-2" style="font-size:.92rem;padding-left:1.2rem;">
+                    {% for alerta in alertas_info.alertas %}
+                    <li>{{ alerta.icono }} <strong>{{ alerta.tipo|replace('_', ' ')|title }}:</strong> {{ alerta.mensaje }}</li>
+                    {% endfor %}
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endif %}
+
+            <!-- FORMULARIO PRINCIPAL -->
+            <div class="at-admin-card">
+                <div class="at-admin-card-header d-flex align-items-center gap-2"
+                     style="border-bottom:1px solid rgba(0,0,0,.06);">
+                    <i class="bi bi-tools" style="color:#2B8AC4;"></i>
+                    Datos de la Reparacion
+                </div>
+
+                <div style="padding:1.5rem;">
+                    <form action="/reparaciones/editar/{{ reparacion.id }}" method="POST"
+                          class="at-admin-form needs-validation" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                        <!-- Cliente -->
+                        <div class="mb-3">
+                            <label for="cliente_id" class="form-label">Cliente <span class="text-danger">*</span></label>
+                            <select id="cliente_id" name="cliente_id" class="form-select" required>
+                                <option value="" disabled>Selecciona un cliente...</option>
+                                {% for cliente in clientes %}
+                                    <option value="{{ cliente.id }}" {% if cliente.id == reparacion.cliente_id %}selected{% endif %}>{{ cliente.nombre }}</option>
+                                {% else %}
+                                    <option disabled>No hay clientes registrados</option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">Selecciona el cliente asociado a esta reparacion.</div>
+                        </div>
+
+                        <!-- Dispositivo + Precio -->
+                        <div class="row g-3">
+                            <div class="col-md-7">
+                                <label for="dispositivo" class="form-label">Dispositivo <span class="text-danger">*</span></label>
+                                <input id="dispositivo" name="dispositivo" type="text" class="form-control" required
+                                       value="{{ reparacion.dispositivo }}"
+                                       placeholder="Ej: Samsung S21 - Base no enciende">
+                                <div class="invalid-feedback">Introduce el nombre o modelo del dispositivo.</div>
+                            </div>
+                            <div class="col-md-5">
+                                <label for="precio" class="form-label">Precio</label>
+                                <div class="input-group">
+                                    <span class="input-group-text" style="border-radius:10px 0 0 10px;border:1px solid rgba(0,0,0,.1);background:rgba(43,138,196,.05);color:#2B8AC4;font-weight:600;">&euro;</span>
+                                    <input id="precio" name="precio" type="number" step="0.01" class="form-control"
+                                           value="{{ reparacion.precio }}" placeholder="49.99"
+                                           {% if not puede_editar_precio %}readonly style="background-color:rgba(0,0,0,.03);"{% endif %}>
+                                </div>
+                                <div class="form-text" style="font-size:.8rem;">
+                                    {% if puede_editar_precio %}
+                                        Precio estimado o cobrado por la reparacion.
+                                    {% else %}
+                                        <span style="color:#e6a800;"><i class="bi bi-lock-fill me-1"></i>Solo administradores pueden editar precios.</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Descripcion -->
+                        <div class="mt-3">
+                            <label for="descripcion" class="form-label">Descripcion del problema</label>
+                            <textarea id="descripcion" name="descripcion" rows="4" class="form-control"
+                                      placeholder="Escribe detalles adicionales que ayuden al diagnostico">{{ reparacion.descripcion }}</textarea>
+                        </div>
+
+                        <!-- Estado -->
+                        <div class="mt-3">
+                            <label for="estado" class="form-label">Estado</label>
+                            <select id="estado" name="estado" class="form-select" onchange="verificarCambioEstado(this)">
+                                {% for est in estados_disponibles %}
+                                <option value="{{ est }}" {% if reparacion.estado == est %}selected{% endif %}>{{ est }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text" style="font-size:.8rem;">
+                                <i class="bi bi-info-circle me-1"></i>Cambiar de estado registra la accion en el historial.
+                            </div>
+                        </div>
+
+                        <!-- ESTADO DE PAGO -->
+                        <div class="mt-4 at-dash-card" style="border-left:4px solid {% if reparacion.estado_pago == 'Pagado' %}#198754{% else %}#e6a800{% endif %} !important;border-radius:12px;">
+                            <div style="padding:1rem 1.25rem;">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <div>
+                                        <div class="fw-semibold mb-1" style="font-size:.85rem;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;">Estado de Pago</div>
+                                        {% if reparacion.estado_pago == 'Pagado' %}
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge" style="background:rgba(25,135,84,.1);color:#198754;font-size:.85rem;padding:.4rem .75rem;border-radius:8px;">
+                                                <i class="bi bi-check-circle-fill me-1"></i>Pagado
+                                            </span>
+                                            <span class="text-muted" style="font-size:.85rem;">
+                                                {{ reparacion.fecha_pago }} &middot; {{ reparacion.metodo_pago }}
+                                            </span>
+                                        </div>
+                                        {% else %}
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                            <span class="badge" style="background:rgba(230,168,0,.1);color:#e6a800;font-size:.85rem;padding:.4rem .75rem;border-radius:8px;">
+                                                <i class="bi bi-hourglass-split me-1"></i>Pendiente de pago
+                                            </span>
+                                            <button type="button" class="at-btn-primary btn btn-sm"
+                                                    style="background:#198754;font-size:.8rem;padding:.3rem .75rem;"
+                                                    data-bs-toggle="modal" data-bs-target="#modalMarcarPagado">
+                                                <i class="bi bi-check-lg me-1"></i>Marcar como Pagado
+                                            </button>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BOTONES -->
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-3" style="border-top:1px solid rgba(0,0,0,.06);">
+                            <a href="/reparaciones" class="at-btn-outline btn">
+                                <i class="bi bi-x-lg me-1"></i>Cancelar
+                            </a>
+                            <button type="submit" class="at-btn-primary btn">
+                                <i class="bi bi-check-lg me-1"></i>Guardar Cambios
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
 
-            <div class="card-body">
-
-                <!-- ALERTAS INTELIGENTES -->
-                <!-- TIMELINE DE ESTADOS -->
-                {% if historial %}
-                <div class="mb-4">
-                    <h5 class="fw-semibold">Timeline de Estados</h5>
-                    <ul class="timeline">
-                        {% for h in historial %}
-                        <li>
-                            <span class="badge bg-secondary me-2">{{ h.fecha_cambio|strftime('%d/%m/%Y %H:%M') }}</span>
-                            <span class="small">{{ h.estado_anterior }} → <strong>{{ h.estado_nuevo }}</strong></span>
-                            {% if h.usuario %}<small class="text-muted">({{ h.usuario }})</small>{% endif %}
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                <style>
-                .timeline { list-style: none; padding-left: 0; }
-                .timeline li { position: relative; padding-left: 1.5rem; margin-bottom: 0.5rem; }
-                .timeline li:before { content: ''; position: absolute; left: 0; top: 0.5rem; width: 0.5rem; height: 0.5rem; background-color: #0d6efd; border-radius: 50%; }
-                </style>
-                {% endif %}
-
-                <!-- ALERTAS INTELIGENTES -->
-                {% if alertas_info.tiene_alertas %}
-                <div class="alert alert-{{ 'danger' if alertas_info.urgencia == 'critico' else 'warning' if alertas_info.urgencia in ['importante', 'advertencia'] else 'info' }} alert-dismissible fade show" role="alert">
-                    <strong>
-                        {% if alertas_info.urgencia == 'critico' %}
-                            🚨 Estado crítico:
-                        {% elif alertas_info.urgencia == 'importante' %}
-                            ⚠️ Situación importante:
-                        {% else %}
-                            ℹ️ Información:
-                        {% endif %}
-                    </strong>
-                    <ul class="mb-0 mt-2" style="font-size: 0.95rem;">
-                        {% for alerta in alertas_info.alertas %}
-                        <li>{{ alerta.icono }} <strong>{{ alerta.tipo|replace('_', ' ')|title }}:</strong> {{ alerta.mensaje }}</li>
-                        {% endfor %}
-                    </ul>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-                {% endif %}
-
-                <form action="/reparaciones/editar/{{ reparacion.id }}" method="POST" class="needs-validation" novalidate>
-                    {# Si usas CSRF (Flask-WTF) descomenta la siguiente línea #}
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-
-                    <div class="mb-3">
-                        <label for="cliente_id" class="form-label fw-semibold">Cliente <span class="text-danger">*</span></label>
-                        <select id="cliente_id" name="cliente_id" class="form-select form-select-lg" required>
-                            <option value="" disabled>Selecciona un cliente...</option>
-                            {% for cliente in clientes %}
-                                <option value="{{ cliente.id }}" {% if cliente.id == reparacion.cliente_id %}selected{% endif %}>{{ cliente.nombre }}</option>
-                            {% else %}
-                                <option disabled>No hay clientes registrados</option>
-                            {% endfor %}
-                        </select>
-                        <div class="invalid-feedback">Selecciona el cliente asociado a esta reparación.</div>
-                    </div>
-
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label for="dispositivo" class="form-label fw-semibold">Dispositivo <span class="text-danger">*</span></label>
-                            <input id="dispositivo" name="dispositivo" type="text" class="form-control" required value="{{ reparacion.dispositivo }}" placeholder="Ej: Samsung S21 - Base no enciende">
-                            <div class="invalid-feedback">Introduce el nombre o modelo del dispositivo.</div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label for="precio" class="form-label fw-semibold">Precio (€)</label>
-                            <div class="input-group">
-                                <span class="input-group-text">€</span>
-                                <input id="precio" name="precio" type="number" step="0.01" class="form-control" value="{{ reparacion.precio }}" placeholder="Ej: 49.99" {% if not puede_editar_precio %}readonly style="background-color: #f5f5f5;"{% endif %}>
-                            </div>
-                            <div class="form-text">
-                                {% if puede_editar_precio %}
-                                    Precio estimado o cobrado por la reparación.
-                                {% else %}
-                                    <small class="text-warning"><i class="bi bi-lock"></i> Solo administradores pueden editar precios. Campo bloqueado para lectura.</small>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mt-3">
-                        <label for="descripcion" class="form-label">Descripción del problema</label>
-                        <textarea id="descripcion" name="descripcion" rows="4" class="form-control" placeholder="Escribe detalles adicionales que ayuden al diagnóstico">{{ reparacion.descripcion }}</textarea>
-                    </div>
-
-                    <div class="mt-3">
-                        <label for="estado" class="form-label fw-semibold">Estado</label>
-                        <select id="estado" name="estado" class="form-select" onchange="verificarCambioEstado(this)">
-                            {% for est in estados_disponibles %}
-                            <option value="{{ est }}" {% if reparacion.estado == est %}selected{% endif %}>{{ est }}</option>
-                            {% endfor %}
-                        </select>
-                        <small class="form-text text-muted d-block mt-1"><i class="bi bi-info-circle"></i> Cambiar de estado registra la acción en el historial.</small>
-                    </div>
-
-                    <!-- ESTADO DE PAGO -->
-                    <div class="mt-4 p-3 border-start border-3" style="border-color: {% if reparacion.estado_pago == 'Pagado' %}#198754{% else %}#ffc107{% endif %};">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <label class="form-label fw-semibold mb-1">Estado de Pago</label>
-                                {% if reparacion.estado_pago == 'Pagado' %}
-                                    <div class="alert alert-success py-2 mb-0">
-                                        <i class="bi bi-check-circle-fill"></i> <strong>Pagado el {{ reparacion.fecha_pago }}</strong> ({{ reparacion.metodo_pago }})
-                                    </div>
-                                {% else %}
-                                    <div class="alert alert-warning py-2 mb-0">
-                                        <i class="bi bi-hourglass-split"></i> <strong>Pendiente de pago</strong>
-                                    </div>
-                                    <button type="button" class="btn btn-success btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#modalMarcarPagado">
-                                        ✓ Marcar como Pagado
-                                    </button>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row mt-4">
-                        <div class="col-12 col-md-6 mb-2 mb-md-0">
-                            <a href="/reparaciones" class="btn btn-secondary w-100">Cancelar</a>
-                        </div>
-
-                        <div class="col-6 col-md-3 d-none d-md-block">
-                            <button type="reset" class="btn btn-primary w-100">Limpiar</button>
-                        </div>
-
-                        <div class="col-6 col-md-3">
-                            <button type="submit" class="btn btn-success w-100">Guardar Cambios</button>
-                        </div>
-                    </div>
-
-                </form>
-
-            </div>
-
-            <div class="card-footer bg-light small text-muted d-flex justify-content-between align-items-center">
-                <div><span class="text-danger">*</span> campos obligatorios</div>
-                <div>Diseñado para Bootstrap 5 — responsive</div>
+            <!-- FOOTER NOTE -->
+            <div class="d-flex justify-content-between align-items-center mt-3 px-1" style="font-size:.78rem;color:#9ba5b0;">
+                <span><span class="text-danger">*</span> Campos obligatorios</span>
+                <span>Reparacion #{{ reparacion.id }}</span>
             </div>
 
         </div>
-
     </div>
 </div>
 
 <!-- MODAL: Marcar como Pagado -->
 <div class="modal fade" id="modalMarcarPagado" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white border-0">
-                <h5 class="modal-title" id="modalLabel"><i class="bi bi-check-circle-fill"></i> Registrar Pago</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border:none;border-radius:14px;overflow:hidden;">
+            <div class="modal-header bg-white" style="border-bottom:1px solid rgba(0,0,0,.06);padding:1.25rem 1.5rem;">
+                <div class="d-flex align-items-center gap-2">
+                    <div style="width:4px;height:24px;background:#198754;border-radius:2px;"></div>
+                    <h5 class="modal-title mb-0" id="modalLabel" style="font-weight:700;font-size:1.05rem;">
+                        <i class="bi bi-check-circle-fill me-1" style="color:#198754;"></i>Registrar Pago
+                    </h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form action="/reparaciones/{{ reparacion.id }}/marcar-pagado" method="POST">
-                <div class="modal-body">
-                    <p class="text-muted mb-3">Registra el pago de esta reparación ({{ reparacion.precio }}€)</p>
-                    
+                <div class="modal-body at-admin-form" style="padding:1.5rem;">
+                    <p class="text-muted mb-3" style="font-size:.9rem;">Registra el pago de esta reparacion ({{ reparacion.precio }}&euro;)</p>
+
                     <div class="mb-3">
-                        <label for="metodo_pago" class="form-label fw-semibold">Método de Pago <span class="text-danger">*</span></label>
-                        <select id="metodo_pago" name="metodo_pago" class="form-select form-select-lg" required>
-                            <option value="" selected disabled>Selecciona un método...</option>
-                            <option value="Efectivo">💵 Efectivo</option>
-                            <option value="Tarjeta de Débito">💳 Tarjeta de Débito</option>
-                            <option value="Tarjeta de Crédito">💳 Tarjeta de Crédito</option>
-                            <option value="Transferencia Bancaria">🏦 Transferencia Bancaria</option>
-                            <option value="Cheque">📋 Cheque</option>
-                            <option value="Otro">❓ Otro</option>
+                        <label for="metodo_pago" class="form-label">Metodo de Pago <span class="text-danger">*</span></label>
+                        <select id="metodo_pago" name="metodo_pago" class="form-select" required>
+                            <option value="" selected disabled>Selecciona un metodo...</option>
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Tarjeta de Debito">Tarjeta de Debito</option>
+                            <option value="Tarjeta de Credito">Tarjeta de Credito</option>
+                            <option value="Transferencia Bancaria">Transferencia Bancaria</option>
+                            <option value="Cheque">Cheque</option>
+                            <option value="Otro">Otro</option>
                         </select>
-                        <div class="invalid-feedback">Por favor, selecciona un método de pago.</div>
+                        <div class="invalid-feedback">Por favor, selecciona un metodo de pago.</div>
                     </div>
 
-                    <div class="alert alert-info small">
-                        <i class="bi bi-info-circle"></i> 
-                        Fecha de pago: <strong>{{ ''|strftime('%d/%m/%Y') }}</strong>
+                    <div class="d-flex align-items-center gap-2 p-2" style="background:rgba(43,138,196,.05);border-radius:8px;font-size:.85rem;">
+                        <i class="bi bi-calendar-check" style="color:#2B8AC4;"></i>
+                        <span class="text-muted">Fecha de pago: <strong>{{ ''|strftime('%d/%m/%Y') }}</strong></span>
                     </div>
                 </div>
-                <div class="modal-footer border-top">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-success">Confirmar Pago</button>
+                <div class="modal-footer bg-white" style="border-top:1px solid rgba(0,0,0,.06);padding:1rem 1.5rem;">
+                    <button type="button" class="at-btn-outline btn btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="at-btn-primary btn btn-sm" style="background:#198754;">
+                        <i class="bi bi-check-lg me-1"></i>Confirmar Pago
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Modal de Confirmación para Cambios de Estado Importantes -->
+<!-- MODAL: Confirmacion de Cambio de Estado -->
 <div class="modal fade" id="confirmEstadoModal" tabindex="-1" aria-labelledby="confirmEstadoLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-warning">
-            <div class="modal-header bg-warning text-dark">
-                <h5 class="modal-title" id="confirmEstadoLabel">Confirmar cambio de estado</h5>
+        <div class="modal-content" style="border:none;border-radius:14px;overflow:hidden;">
+            <div class="modal-header bg-white" style="border-bottom:1px solid rgba(0,0,0,.06);padding:1.25rem 1.5rem;">
+                <div class="d-flex align-items-center gap-2">
+                    <div style="width:4px;height:24px;background:#e6a800;border-radius:2px;"></div>
+                    <h5 class="modal-title mb-0" id="confirmEstadoLabel" style="font-weight:700;font-size:1.05rem;">
+                        <i class="bi bi-exclamation-triangle-fill me-1" style="color:#e6a800;"></i>Confirmar cambio de estado
+                    </h5>
+                </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body" id="confirmEstadoMsg">
-                ¿Cambiar el estado de la reparación?
+            <div class="modal-body" id="confirmEstadoMsg" style="padding:1.5rem;font-size:.95rem;">
+                Cambiar el estado de la reparacion?
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-warning" id="confirmEstadoBtn" onclick="confirmarCambioEstado()">Sí, cambiar estado</button>
+            <div class="modal-footer bg-white" style="border-top:1px solid rgba(0,0,0,.06);padding:1rem 1.5rem;">
+                <button type="button" class="at-btn-outline btn btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="at-btn-primary btn btn-sm" id="confirmEstadoBtn"
+                        style="background:#e6a800;" onclick="confirmarCambioEstado()">
+                    <i class="bi bi-check-lg me-1"></i>Si, cambiar estado
+                </button>
             </div>
         </div>
     </div>
@@ -229,25 +289,24 @@ let estadoNuevo = estadoActual;
 
 function verificarCambioEstado(selectElement) {
     const nuevoEstado = selectElement.value;
-    
-    // Cambios que requieren confirmación
+
     const cambiosCriticos = [
         { de: 'Pendiente', a: 'En proceso' },
         { de: 'En proceso', a: 'Terminado' },
         { de: 'Terminado', a: 'Entregado' }
     ];
-    
-    const requiereConfirmacion = cambiosCriticos.some(c => 
+
+    const requiereConfirmacion = cambiosCriticos.some(c =>
         c.de === estadoActual && c.a === nuevoEstado
     );
-    
+
     if (requiereConfirmacion && nuevoEstado !== estadoActual) {
         estadoNuevo = nuevoEstado;
-        document.getElementById('confirmEstadoMsg').innerHTML = 
-            `<strong>Cambio importante:</strong><br>
-             ¿Cambiar estado de <strong>"${estadoActual}"</strong> a <strong>"${nuevoEstado}"</strong>?<br>
-             <small class="text-muted">Esta acción será registrada en el historial.</small>`;
-        
+        document.getElementById('confirmEstadoMsg').innerHTML =
+            `<div class="mb-2"><strong>Cambio importante:</strong></div>
+             <p class="mb-1">Cambiar estado de <span class="badge" style="background:rgba(108,117,125,.1);color:#6c757d;">${estadoActual}</span> a <span class="badge" style="background:rgba(43,138,196,.1);color:#2B8AC4;">${nuevoEstado}</span></p>
+             <small class="text-muted"><i class="bi bi-info-circle me-1"></i>Esta accion sera registrada en el historial.</small>`;
+
         const modal = new bootstrap.Modal(document.getElementById('confirmEstadoModal'));
         modal.show();
     } else {
@@ -256,7 +315,6 @@ function verificarCambioEstado(selectElement) {
 }
 
 function confirmarCambioEstado() {
-    // El estado ya está actualizado en el select
     bootstrap.Modal.getInstance(document.getElementById('confirmEstadoModal')).hide();
 }
 </script>

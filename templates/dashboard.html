@@ -5,23 +5,22 @@
 {% block content %}
 
 <div class="container-fluid py-4">
-    
+
     <!-- ENCABEZADO -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <h1 class="display-6 fw-bold mb-2">
-                <i class="bi bi-speedometer2" style="color: #2B8AC4;"></i> Panel de Control
-            </h1>
-            <p class="text-muted">Resumen en tiempo real de tu negocio</p>
+    <div class="row mb-4 align-items-end">
+        <div class="col">
+            <span class="at-pill"><i class="bi bi-speedometer2 me-1"></i>Panel de Control</span>
+            <h1 class="at-section-title mt-2 mb-1">Bienvenido, {{ session.usuario }}</h1>
+            <p class="at-section-sub" style="margin:0;max-width:none;">Resumen en tiempo real de tu negocio — {{ now }}</p>
         </div>
         {% if user_role == 'admin' %}
-        <div class="col-12">
-            <div class="d-flex gap-2 mb-2">
-                <a href="/exportar/reparaciones.csv" class="btn btn-sm" style="color: #2B8AC4; border: 1px solid #2B8AC4;">
-                    <i class="bi bi-download me-1"></i>Exportar reparaciones CSV
+        <div class="col-auto">
+            <div class="d-flex gap-2">
+                <a href="/exportar/reparaciones.csv" class="at-btn-outline btn btn-sm">
+                    <i class="bi bi-download me-1"></i>Reparaciones CSV
                 </a>
-                <a href="/exportar/clientes.csv" class="btn btn-sm" style="color: #2B8AC4; border: 1px solid #2B8AC4;">
-                    <i class="bi bi-download me-1"></i>Exportar clientes CSV
+                <a href="/exportar/clientes.csv" class="at-btn-outline btn btn-sm">
+                    <i class="bi bi-download me-1"></i>Clientes CSV
                 </a>
             </div>
         </div>
@@ -32,16 +31,12 @@
     {% if reparaciones_atrasadas %}
     <div class="row mb-4">
         <div class="col-12">
-            <div class="alert alert-warning alert-dismissible fade show border-0 shadow-sm" role="alert">
+            <div class="alert alert-warning alert-dismissible fade show border-0 shadow-sm" role="alert" style="border-left: 4px solid #ffc107 !important;">
                 <div class="d-flex align-items-center">
-                    <i class="bi bi-exclamation-triangle-fill me-3 fs-5"></i>
+                    <i class="bi bi-exclamation-triangle-fill me-3 fs-4" style="color:#ffc107;"></i>
                     <div>
-                        <h5 class="alert-heading mb-1">
-                            ⚠️ {{ reparaciones_atrasadas|length }} reparación(es) atrasada(s)
-                        </h5>
-                        <p class="mb-0 small text-muted">
-                            {{ reparaciones_atrasadas|length }} reparación(es) en estado activo sin actualización hace más de 7 días.
-                        </p>
+                        <strong>{{ reparaciones_atrasadas|length }} reparacion(es) atrasada(s)</strong>
+                        <p class="mb-0 small text-muted">En estado activo sin actualizacion hace mas de 7 dias.</p>
                     </div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -51,106 +46,81 @@
     {% endif %}
 
     <!-- FILA 1: KPIs PRINCIPALES -->
-    <div class="row g-4 mb-5">
-        
-        <!-- Total Clientes -->
-        <div class="col-md-6 col-lg-3">
-            <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #0d6efd;">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <p class="text-muted small mb-1">Total Clientes</p>
-                            <h2 class="h1 fw-bold text-primary mb-0">{{ total_clientes }}</h2>
-                        </div>
-                        <div class="text-primary" style="font-size: 2.5rem; opacity: 0.2;">
-                            <i class="bi bi-people-fill"></i>
-                        </div>
-                    </div>
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="at-dash-kpi">
+                <div class="at-dash-kpi-icon" style="background: rgba(43,138,196,.1);">
+                    <i class="bi bi-people-fill" style="color: #2B8AC4;"></i>
+                </div>
+                <div>
+                    <div class="at-dash-kpi-value" style="color: #2B8AC4;">{{ total_clientes }}</div>
+                    <div class="at-dash-kpi-label">Clientes</div>
                 </div>
             </div>
         </div>
-
-        <!-- Total Reparaciones -->
-        <div class="col-md-6 col-lg-3">
-            <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #6c757d;">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <p class="text-muted small mb-1">Total Reparaciones</p>
-                            <h2 class="h1 fw-bold" style="color: #6c757d; margin: 0;">{{ total_reparaciones }}</h2>
-                        </div>
-                        <div style="font-size: 2.5rem; opacity: 0.2; color: #6c757d;">
-                            <i class="bi bi-tools"></i>
-                        </div>
-                    </div>
+        <div class="col-6 col-lg-3">
+            <div class="at-dash-kpi">
+                <div class="at-dash-kpi-icon" style="background: rgba(108,117,125,.1);">
+                    <i class="bi bi-tools" style="color: #6c757d;"></i>
+                </div>
+                <div>
+                    <div class="at-dash-kpi-value" style="color: #6c757d;">{{ total_reparaciones }}</div>
+                    <div class="at-dash-kpi-label">Reparaciones</div>
                 </div>
             </div>
         </div>
-
-        <!-- Pendientes -->
-        <div class="col-md-6 col-lg-3">
-            <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #ffc107;">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <p class="text-muted small mb-1">Pendientes</p>
-                            <h2 class="h1 fw-bold" style="color: #ffc107; margin: 0;">{{ reparaciones_activas }}</h2>
-                        </div>
-                        <div style="font-size: 2.5rem; opacity: 0.2; color: #ffc107;">
-                            <i class="bi bi-hourglass-split"></i>
-                        </div>
-                    </div>
+        <div class="col-6 col-lg-3">
+            <div class="at-dash-kpi">
+                <div class="at-dash-kpi-icon" style="background: rgba(255,193,7,.1);">
+                    <i class="bi bi-hourglass-split" style="color: #ffc107;"></i>
+                </div>
+                <div>
+                    <div class="at-dash-kpi-value" style="color: #e6a800;">{{ reparaciones_activas }}</div>
+                    <div class="at-dash-kpi-label">Pendientes</div>
                 </div>
             </div>
         </div>
-
-        <!-- Completadas -->
-        <div class="col-md-6 col-lg-3">
-            <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #198754;">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <p class="text-muted small mb-1">Completadas</p>
-                            <h2 class="h1 fw-bold text-success mb-0">{{ reparaciones_terminadas }}</h2>
-                        </div>
-                        <div class="text-success" style="font-size: 2.5rem; opacity: 0.2;">
-                            <i class="bi bi-check-circle-fill"></i>
-                        </div>
-                    </div>
+        <div class="col-6 col-lg-3">
+            <div class="at-dash-kpi">
+                <div class="at-dash-kpi-icon" style="background: rgba(25,135,84,.1);">
+                    <i class="bi bi-check-circle-fill" style="color: #198754;"></i>
+                </div>
+                <div>
+                    <div class="at-dash-kpi-value" style="color: #198754;">{{ reparaciones_terminadas }}</div>
+                    <div class="at-dash-kpi-label">Completadas</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- FILA 2: INGRESOS Y ESTADÍSTICAS DEL MES -->
-    <div class="row g-4 mb-5">
-
-        <!-- Ingresos Este Mes -->
+    <!-- FILA 2: INGRESOS -->
+    <div class="row g-3 mb-4">
+        <!-- Este Mes -->
         <div class="col-lg-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-primary text-white border-0">
-                    <h5 class="mb-0"><i class="bi bi-calendar-month"></i> Este Mes</h5>
+            <div class="at-dash-card">
+                <div class="at-dash-card-header">
+                    <i class="bi bi-calendar-month"></i> Este Mes
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p class="text-muted small">Ingresos (sin IVA)</p>
-                            <h3 class="fw-bold text-primary">{{ "%.2f"|format(ingresos_mes) }}€</h3>
+                <div class="at-dash-card-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="at-dash-kpi-label">Ingresos (sin IVA)</div>
+                            <div class="at-dash-kpi-value" style="color: #2B8AC4; font-size: 1.5rem;">{{ "%.2f"|format(ingresos_mes) }}€</div>
                         </div>
-                        <div class="col-md-6">
-                            <p class="text-muted small">IVA (21%)</p>
-                            <h3 class="fw-bold" style="color: #6c757d;">{{ "%.2f"|format(iva_mes) }}€</h3>
+                        <div class="col-6">
+                            <div class="at-dash-kpi-label">IVA (21%)</div>
+                            <div class="at-dash-kpi-value" style="color: #6c757d; font-size: 1.5rem;">{{ "%.2f"|format(iva_mes) }}€</div>
                         </div>
                     </div>
-                    <hr>
-                    <div class="row">
+                    <hr style="opacity:.08;">
+                    <div class="row g-3">
                         <div class="col-6">
-                            <p class="text-muted small">Reparaciones</p>
-                            <h4 class="fw-bold">{{ reparaciones_mes }}</h4>
+                            <div class="at-dash-kpi-label">Reparaciones</div>
+                            <div class="fw-bold fs-5">{{ reparaciones_mes }}</div>
                         </div>
                         <div class="col-6">
-                            <p class="text-muted small">Completadas</p>
-                            <h4 class="fw-bold text-success">{{ reparaciones_completadas_mes }}</h4>
+                            <div class="at-dash-kpi-label">Completadas</div>
+                            <div class="fw-bold fs-5" style="color: #198754;">{{ reparaciones_completadas_mes }}</div>
                         </div>
                     </div>
                 </div>
@@ -159,114 +129,107 @@
 
         <!-- Ingresos Totales -->
         <div class="col-lg-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-success text-white border-0">
-                    <h5 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Ingresos Totales</h5>
+            <div class="at-dash-card">
+                <div class="at-dash-card-header">
+                    <i class="bi bi-graph-up-arrow"></i> Ingresos Totales
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p class="text-muted small">Base Imponible</p>
-                            <h3 class="fw-bold text-success">{{ "%.2f"|format(ingresos_total) }}€</h3>
+                <div class="at-dash-card-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="at-dash-kpi-label">Base Imponible</div>
+                            <div class="at-dash-kpi-value" style="color: #198754; font-size: 1.5rem;">{{ "%.2f"|format(ingresos_total) }}€</div>
                         </div>
-                        <div class="col-md-6">
-                            <p class="text-muted small">IVA Acumulado</p>
-                            <h3 class="fw-bold" style="color: #6c757d;">{{ "%.2f"|format(iva_total) }}€</h3>
+                        <div class="col-6">
+                            <div class="at-dash-kpi-label">IVA Acumulado</div>
+                            <div class="at-dash-kpi-value" style="color: #6c757d; font-size: 1.5rem;">{{ "%.2f"|format(iva_total) }}€</div>
                         </div>
                     </div>
-                    <hr>
-                    <p class="text-muted small mb-2">Total con IVA</p>
-                    <h2 class="fw-bold text-success">{{ "%.2f"|format(ingresos_total + iva_total) }}€</h2>
+                    <hr style="opacity:.08;">
+                    <div class="at-dash-kpi-label">Total con IVA</div>
+                    <div class="at-dash-kpi-value" style="color: #2B8AC4; font-size: 1.75rem;">{{ "%.2f"|format(ingresos_total + iva_total) }}€</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- FILA 2B: COBROS Y PENDIENTES -->
-    <div class="row g-4 mb-5">
-
+    <!-- FILA 3: COBROS -->
+    <div class="row g-3 mb-4">
         <!-- Dinero Cobrado -->
         <div class="col-lg-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-success text-white border-0">
-                    <h5 class="mb-0"><i class="bi bi-check-circle-fill"></i> Dinero Cobrado</h5>
+            <div class="at-dash-card">
+                <div class="at-dash-card-header" style="color: #198754;">
+                    <i class="bi bi-check-circle-fill"></i> Dinero Cobrado
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p class="text-muted small">Cobrado</p>
-                            <h3 class="fw-bold text-success">{{ "%.2f"|format(dinero_cobrado) }}€</h3>
+                <div class="at-dash-card-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <div class="at-dash-kpi-label">Cobrado</div>
+                            <div class="at-dash-kpi-value" style="color: #198754; font-size: 1.5rem;">{{ "%.2f"|format(dinero_cobrado) }}€</div>
                         </div>
-                        <div class="col-md-6">
-                            <p class="text-muted small">Reparaciones</p>
-                            <h3 class="fw-bold" style="color: #6c757d;">{{ reparaciones_pagadas }}</h3>
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="progress" style="height: 20px;">
-                        <div class="progress-bar bg-success" style="width: {{ tasa_cobro }}%">
-                            {{ tasa_cobro }}% cobrado
+                        <div class="col-6">
+                            <div class="at-dash-kpi-label">Reparaciones pagadas</div>
+                            <div class="at-dash-kpi-value" style="color: #6c757d; font-size: 1.5rem;">{{ reparaciones_pagadas }}</div>
                         </div>
                     </div>
+                    <div class="progress" style="height: 8px; border-radius: 4px; background: rgba(25,135,84,.1);">
+                        <div class="progress-bar" style="width: {{ tasa_cobro }}%; background: #198754; border-radius: 4px;"></div>
+                    </div>
+                    <small class="text-muted mt-1 d-block">{{ tasa_cobro }}% cobrado</small>
                 </div>
             </div>
         </div>
 
         <!-- Dinero Por Cobrar -->
         <div class="col-lg-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-warning text-white border-0">
-                    <h5 class="mb-0"><i class="bi bi-hourglass-split"></i> Dinero Por Cobrar</h5>
+            <div class="at-dash-card">
+                <div class="at-dash-card-header" style="color: #e6a800;">
+                    <i class="bi bi-hourglass-split"></i> Dinero Por Cobrar
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p class="text-muted small">Pendiente</p>
-                            <h3 class="fw-bold text-warning">{{ "%.2f"|format(dinero_por_cobrar) }}€</h3>
+                <div class="at-dash-card-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <div class="at-dash-kpi-label">Pendiente</div>
+                            <div class="at-dash-kpi-value" style="color: #e6a800; font-size: 1.5rem;">{{ "%.2f"|format(dinero_por_cobrar) }}€</div>
                         </div>
-                        <div class="col-md-6">
-                            <p class="text-muted small">Reparaciones</p>
-                            <h3 class="fw-bold" style="color: #6c757d;">{{ reparaciones_pendiente_pago }}</h3>
+                        <div class="col-6">
+                            <div class="at-dash-kpi-label">Reparaciones</div>
+                            <div class="at-dash-kpi-value" style="color: #6c757d; font-size: 1.5rem;">{{ reparaciones_pendiente_pago }}</div>
                         </div>
                     </div>
-                    <hr>
                     {% if reparaciones_pendiente_pago > 0 %}
-                        <p class="text-danger small mb-0">
-                            ⚠️ <strong>{{ reparaciones_pendiente_pago }} reparación(es) sin pagar</strong>
-                        </p>
+                        <div class="d-flex align-items-center gap-2" style="color: #dc3545;">
+                            <i class="bi bi-exclamation-circle"></i>
+                            <small class="fw-semibold">{{ reparaciones_pendiente_pago }} reparacion(es) sin pagar</small>
+                        </div>
                     {% else %}
-                        <p class="text-success small mb-0">
-                            ✓ <strong>Todas las reparaciones están pagadas</strong>
-                        </p>
+                        <div class="d-flex align-items-center gap-2" style="color: #198754;">
+                            <i class="bi bi-check-circle"></i>
+                            <small class="fw-semibold">Todas las reparaciones estan pagadas</small>
+                        </div>
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- FILA 3: GRÁFICOS Y TABLAS -->
-    <div class="row g-4">
-
-        <!-- Dispositivos Top -->
+    <!-- FILA 4: DISPOSITIVOS TOP + ESTADOS -->
+    <div class="row g-3 mb-4">
         {% if dispositivos_top %}
         <div class="col-lg-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-info text-white border-0">
-                    <h5 class="mb-0"><i class="bi bi-smartphone"></i> Dispositivos Más Reparados</h5>
+            <div class="at-dash-card">
+                <div class="at-dash-card-header">
+                    <i class="bi bi-phone"></i> Dispositivos Mas Reparados
                 </div>
-                <div class="card-body">
+                <div class="at-dash-card-body">
                     {% for dispositivo in dispositivos_top %}
                     <div class="mb-3">
                         <div class="d-flex justify-content-between mb-1">
-                            <span class="small fw-bold">{{ dispositivo.nombre }}</span>
-                            <span class="small text-muted">{{ dispositivo.cantidad }} reps</span>
+                            <span class="small fw-semibold">{{ dispositivo.nombre }}</span>
+                            <span class="small text-muted">{{ dispositivo.cantidad }}</span>
                         </div>
-                        <div class="progress" style="height: 6px;">
-                            {% if dispositivos_top and dispositivos_top[0].cantidad > 0 %}
-                                <div class="progress-bar bg-info" 
-                                     style="width: {{ (dispositivo.cantidad / dispositivos_top[0].cantidad * 100) | round(0) }}%"></div>
-                            {% else %}
-                                <div class="progress-bar bg-info" style="width: 0%"></div>
+                        <div class="progress" style="height: 5px; border-radius: 3px; background: rgba(43,138,196,.08);">
+                            {% if dispositivos_top[0].cantidad > 0 %}
+                            <div class="progress-bar" style="width: {{ (dispositivo.cantidad / dispositivos_top[0].cantidad * 100)|round(0) }}%; background: #2B8AC4; border-radius: 3px;"></div>
                             {% endif %}
                         </div>
                     </div>
@@ -276,18 +239,28 @@
         </div>
         {% endif %}
 
-        <!-- Estados de Reparaciones -->
         {% if estados_distribucion %}
         <div class="col-lg-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-warning text-white border-0">
-                    <h5 class="mb-0"><i class="bi bi-diagram-3"></i> Distribución de Estados</h5>
+            <div class="at-dash-card">
+                <div class="at-dash-card-header">
+                    <i class="bi bi-diagram-3"></i> Distribucion de Estados
                 </div>
-                <div class="card-body">
+                <div class="at-dash-card-body">
                     {% for estado in estados_distribucion %}
-                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
-                        <span class="small fw-bold">{{ estado.nombre }}</span>
-                        <span class="badge bg-warning text-dark">{{ estado.cantidad }}</span>
+                    <div class="d-flex justify-content-between align-items-center py-2 {% if not loop.last %}border-bottom{% endif %}" style="border-color: rgba(0,0,0,.05) !important;">
+                        <div class="d-flex align-items-center gap-2">
+                            {% if estado.nombre == 'Pendiente' %}
+                                <span class="at-dash-dot" style="background: #ffc107;"></span>
+                            {% elif estado.nombre == 'En proceso' %}
+                                <span class="at-dash-dot" style="background: #2B8AC4;"></span>
+                            {% elif estado.nombre == 'Terminado' %}
+                                <span class="at-dash-dot" style="background: #198754;"></span>
+                            {% elif estado.nombre == 'Entregado' %}
+                                <span class="at-dash-dot" style="background: #6c757d;"></span>
+                            {% endif %}
+                            <span class="small fw-semibold">{{ estado.nombre }}</span>
+                        </div>
+                        <span class="badge" style="background: #EBF5FB; color: #2B8AC4; font-weight: 600;">{{ estado.cantidad }}</span>
                     </div>
                     {% endfor %}
                 </div>
@@ -296,20 +269,20 @@
         {% endif %}
     </div>
 
-    <!-- FILA 4: PENDIENTES DE PAGO -->
+    <!-- FILA 5: PENDIENTES DE PAGO -->
     {% if reparaciones_sin_pagar %}
-    <div class="row mt-5">
+    <div class="row g-3 mb-4">
         <div class="col-12">
-            <div class="card border-0 shadow-sm border-warning">
-                <div class="card-header bg-warning text-white border-0">
-                    <h5 class="mb-0"><i class="bi bi-exclamation-circle"></i> Reparaciones Pendientes de Pago</h5>
+            <div class="at-dash-card" style="border-left: 3px solid #e6a800;">
+                <div class="at-dash-card-header" style="color: #e6a800;">
+                    <i class="bi bi-exclamation-circle"></i> Reparaciones Pendientes de Pago
                 </div>
-                <div class="card-body">
+                <div class="at-dash-card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>ID</th>
+                            <thead>
+                                <tr style="background: rgba(0,0,0,.02);">
+                                    <th class="ps-4">ID</th>
                                     <th>Cliente</th>
                                     <th>Dispositivo</th>
                                     <th>Alertas</th>
@@ -319,24 +292,22 @@
                             </thead>
                             <tbody>
                                 {% for rep in reparaciones_sin_pagar %}
-                                <tr class="table-warning">
-                                    <td><strong>#{{ rep.id }}</strong></td>
+                                <tr>
+                                    <td class="ps-4"><strong>#{{ rep.id }}</strong></td>
                                     <td>{{ rep.cliente or 'Sin asignar' }}</td>
                                     <td>{{ rep.dispositivo }}</td>
                                     <td>
                                         {% if rep.alertas_info.tiene_alertas %}
                                             <div class="d-flex gap-1 flex-wrap">
                                                 {% for alerta in rep.alertas_info.alertas %}
-                                                <span class="badge bg-{{ alerta.color }} small" title="{{ alerta.mensaje }}">
-                                                    {{ alerta.icono }}
-                                                </span>
+                                                <span class="badge bg-{{ alerta.color }} small" title="{{ alerta.mensaje }}">{{ alerta.icono }}</span>
                                                 {% endfor %}
                                             </div>
                                         {% else %}
-                                            <span class="badge bg-light text-muted small">—</span>
+                                            <span class="text-muted">—</span>
                                         {% endif %}
                                     </td>
-                                    <td><strong class="text-danger">{{ "%.2f"|format(rep.precio) }}€</strong></td>
+                                    <td><strong style="color: #dc3545;">{{ "%.2f"|format(rep.precio) }}€</strong></td>
                                     <td><small class="text-muted">{{ rep.fecha_entrada }}</small></td>
                                 </tr>
                                 {% endfor %}
@@ -349,21 +320,20 @@
     </div>
     {% endif %}
 
-    <!-- FILA 5: ÚLTIMAS REPARACIONES -->
-    <div class="row mt-5">
+    <!-- FILA 6: ÚLTIMAS REPARACIONES -->
+    <div class="row g-3 mb-4">
         <div class="col-12">
-        <div class="col-12">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-primary text-white border-0">
-                    <h5 class="mb-0"><i class="bi bi-list-check"></i> Últimas Reparaciones</h5>
+            <div class="at-dash-card">
+                <div class="at-dash-card-header">
+                    <i class="bi bi-list-check"></i> Ultimas Reparaciones
                 </div>
-                <div class="card-body">
+                <div class="at-dash-card-body p-0">
                     {% if ultimas_reparaciones %}
                     <div class="table-responsive">
                         <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>ID</th>
+                            <thead>
+                                <tr style="background: rgba(0,0,0,.02);">
+                                    <th class="ps-4">ID</th>
                                     <th>Cliente</th>
                                     <th>Dispositivo</th>
                                     <th>Estado</th>
@@ -375,23 +345,23 @@
                             <tbody>
                                 {% for rep in ultimas_reparaciones %}
                                 <tr>
-                                    <td><strong>#{{ rep.id }}</strong></td>
+                                    <td class="ps-4"><strong>#{{ rep.id }}</strong></td>
                                     <td>{{ rep.cliente or 'Sin asignar' }}</td>
                                     <td>{{ rep.dispositivo }}</td>
                                     <td>
                                         {% if rep.estado == 'Terminado' or rep.estado == 'Entregado' %}
-                                            <span class="badge bg-success">{{ rep.estado }}</span>
+                                            <span class="badge" style="background: rgba(25,135,84,.12); color: #198754;">{{ rep.estado }}</span>
                                         {% elif rep.estado == 'Pendiente' %}
-                                            <span class="badge bg-warning text-dark">{{ rep.estado }}</span>
+                                            <span class="badge" style="background: rgba(255,193,7,.15); color: #997a00;">{{ rep.estado }}</span>
                                         {% else %}
-                                            <span class="badge bg-info">{{ rep.estado }}</span>
+                                            <span class="badge" style="background: rgba(43,138,196,.12); color: #2B8AC4;">{{ rep.estado }}</span>
                                         {% endif %}
                                     </td>
                                     <td>
                                         {% if rep.estado_pago == 'Pagado' %}
-                                            <span class="badge bg-success">✓ Pagado</span>
+                                            <span class="badge" style="background: rgba(25,135,84,.12); color: #198754;"><i class="bi bi-check me-1"></i>Pagado</span>
                                         {% else %}
-                                            <span class="badge bg-danger">⏳ Pendiente</span>
+                                            <span class="badge" style="background: rgba(220,53,69,.1); color: #dc3545;"><i class="bi bi-clock me-1"></i>Pendiente</span>
                                         {% endif %}
                                     </td>
                                     <td><small class="text-muted">{{ rep.fecha_entrada }}</small></td>
@@ -402,100 +372,97 @@
                         </table>
                     </div>
                     {% else %}
-                    <p class="text-center text-muted py-4">No hay reparaciones registradas</p>
+                    <p class="text-center text-muted py-4 mb-0">No hay reparaciones registradas</p>
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- SECCIÓN: MÉTRICAS AVANZADAS -->
-    <div class="row g-4 mb-5">
-        
-        <!-- Ingresos por mes (últimos 6 meses) -->
+    <!-- FILA 7: MÉTRICAS AVANZADAS -->
+    <div class="row g-3 mb-4">
+        <!-- Ingresos por mes -->
         <div class="col-lg-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white border-bottom border-light">
-                    <h5 class="mb-0"><i class="bi bi-bar-chart-fill text-success"></i> Ingresos por Mes</h5>
-                    <small class="text-muted">Últimos 6 meses</small>
+            <div class="at-dash-card">
+                <div class="at-dash-card-header">
+                    <i class="bi bi-bar-chart-fill"></i> Ingresos por Mes
+                    <small class="text-muted fw-normal ms-2">(ultimos 6 meses)</small>
                 </div>
-                <div class="card-body">
+                <div class="at-dash-card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover table-sm mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Mes</th>
-                                    <th class="text-end">Ingresos</th>
+                            <thead>
+                                <tr style="background: rgba(0,0,0,.02);">
+                                    <th class="ps-4">Mes</th>
+                                    <th class="text-end pe-4">Ingresos</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for mes in ingresos_por_mes %}
                                 <tr>
-                                    <td><strong>{{ mes.mes }}</strong></td>
-                                    <td class="text-end">
-                                        <span class="badge bg-success">€{{ "%.2f"|format(mes.valor) }}</span>
+                                    <td class="ps-4 fw-semibold">{{ mes.mes }}</td>
+                                    <td class="text-end pe-4">
+                                        <span class="badge" style="background: rgba(25,135,84,.12); color: #198754;">{{ "%.2f"|format(mes.valor) }}€</span>
                                     </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
-                    <div class="mt-3 pt-3 border-top">
-                        <p class="text-muted small mb-0">
-                            <i class="bi bi-info-circle"></i>
-                            Total 6 meses: <strong>€{{ "%.2f"|format(ingresos_por_mes|map(attribute='valor')|sum) }}</strong>
-                        </p>
+                    <div class="px-4 py-3" style="border-top: 1px solid rgba(0,0,0,.05);">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Total 6 meses: <strong style="color: #2B8AC4;">{{ "%.2f"|format(ingresos_por_mes|map(attribute='valor')|sum) }}€</strong>
+                        </small>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Tiempo medio de reparación + Reparaciones por técnico -->
+        <!-- Tiempo medio + Técnicos -->
         <div class="col-lg-6">
-            <div class="row g-4">
+            <div class="row g-3">
                 <!-- Tiempo medio -->
                 <div class="col-12">
-                    <div class="card border-0 shadow-sm" style="border-left: 4px solid #0dcaf0;">
-                        <div class="card-body">
-                            <p class="text-muted small mb-1">
-                                <i class="bi bi-hourglass3 text-info"></i>
-                                Tiempo Promedio de Reparación
-                            </p>
-                            <h2 class="h1 fw-bold text-info mb-2" style="margin: 0;">
-                                {{ tiempo_medio_dias }} <small class="text-muted" style="font-size: 0.6em;">días</small>
-                            </h2>
-                            <small class="text-muted">
-                                Basado en {{ reparaciones_completadas_mes }} reparaciones completadas
-                            </small>
+                    <div class="at-dash-kpi" style="justify-content: flex-start; gap: 1.25rem;">
+                        <div class="at-dash-kpi-icon" style="background: rgba(43,138,196,.1); width: 56px; height: 56px; font-size: 1.5rem;">
+                            <i class="bi bi-hourglass-bottom" style="color: #2B8AC4;"></i>
+                        </div>
+                        <div>
+                            <div class="at-dash-kpi-label">Tiempo Promedio de Reparacion</div>
+                            <div class="at-dash-kpi-value" style="color: #2B8AC4; font-size: 2rem;">
+                                {{ tiempo_medio_dias }} <span class="text-muted" style="font-size: .5em; font-weight: 400;">dias</span>
+                            </div>
+                            <small class="text-muted">Basado en {{ reparaciones_completadas_mes }} reparaciones</small>
                         </div>
                     </div>
                 </div>
 
                 <!-- Reparaciones por técnico -->
                 <div class="col-12">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white border-bottom border-light">
-                            <h5 class="mb-0"><i class="bi bi-person-badge text-primary"></i> Reparaciones por Técnico</h5>
+                    <div class="at-dash-card">
+                        <div class="at-dash-card-header">
+                            <i class="bi bi-person-badge"></i> Reparaciones por Tecnico
                         </div>
-                        <div class="card-body">
+                        <div class="at-dash-card-body p-0">
                             {% if reparaciones_por_tecnico %}
                             <div class="table-responsive">
                                 <table class="table table-hover table-sm mb-0">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Técnico</th>
-                                            <th class="text-end">Intervenciones</th>
+                                    <thead>
+                                        <tr style="background: rgba(0,0,0,.02);">
+                                            <th class="ps-4">Tecnico</th>
+                                            <th class="text-end pe-4">Intervenciones</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {% for tecnico in reparaciones_por_tecnico[:5] %}
                                         <tr>
-                                            <td>
-                                                <i class="bi bi-person-circle"></i>
+                                            <td class="ps-4">
+                                                <i class="bi bi-person-circle me-1" style="color: #2B8AC4;"></i>
                                                 <strong>{{ tecnico.nombre }}</strong>
                                             </td>
-                                            <td class="text-end">
-                                                <span class="badge bg-primary">{{ tecnico.cantidad }}</span>
+                                            <td class="text-end pe-4">
+                                                <span class="badge" style="background: #EBF5FB; color: #2B8AC4;">{{ tecnico.cantidad }}</span>
                                             </td>
                                         </tr>
                                         {% endfor %}
@@ -503,7 +470,7 @@
                                 </table>
                             </div>
                             {% else %}
-                            <p class="text-muted mb-0"><i class="bi bi-info-circle"></i> Sin datos de técnicos aún</p>
+                            <p class="text-muted p-4 mb-0"><i class="bi bi-info-circle me-1"></i>Sin datos de tecnicos aun</p>
                             {% endif %}
                         </div>
                     </div>
@@ -512,32 +479,29 @@
         </div>
     </div>
 
-    <!-- SECCIÓN: AUDITORÍA RECIENTE -->
+    <!-- FILA 8: AUDITORÍA -->
     {% if eventos_auditoria %}
-    <div class="row mt-5">
+    <div class="row g-3 mb-4">
         <div class="col-12">
-            <div class="card border-0 shadow-sm border-start border-info">
-                <div class="card-header bg-info text-white border-0">
-                    <h5 class="mb-0"><i class="bi bi-shield-lock"></i> Auditoría Reciente</h5>
+            <div class="at-dash-card">
+                <div class="at-dash-card-header">
+                    <i class="bi bi-shield-lock"></i> Auditoria Reciente
                 </div>
-                <div class="card-body">
-                    <p class="text-muted small mb-3">
-                        Últimos eventos del sistema: logins, cambios de usuarios, operaciones críticas.
-                    </p>
+                <div class="at-dash-card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover table-sm mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th><i class="bi bi-clock-history"></i> Timestamp</th>
-                                    <th><i class="bi bi-tag"></i> Evento</th>
-                                    <th><i class="bi bi-person"></i> Usuario</th>
-                                    <th><i class="bi bi-info-circle"></i> Detalles</th>
+                            <thead>
+                                <tr style="background: rgba(0,0,0,.02);">
+                                    <th class="ps-4">Timestamp</th>
+                                    <th>Evento</th>
+                                    <th>Usuario</th>
+                                    <th>Detalles</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for evento in eventos_auditoria %}
                                 <tr>
-                                    <td>
+                                    <td class="ps-4">
                                         <small class="text-muted">
                                             {% if evento.timestamp %}
                                                 {{ evento.timestamp|strftime('%d/%m/%Y %H:%M:%S') }}
@@ -546,39 +510,34 @@
                                     </td>
                                     <td>
                                         {% if evento.event_type == 'login' %}
-                                            <span class="badge bg-success"><i class="bi bi-box-arrow-in-right"></i> Login</span>
+                                            <span class="badge" style="background: rgba(25,135,84,.12); color: #198754;"><i class="bi bi-box-arrow-in-right me-1"></i>Login</span>
                                         {% elif evento.event_type == 'login_failed' %}
-                                            <span class="badge bg-danger"><i class="bi bi-exclamation-circle"></i> Login Fallido</span>
+                                            <span class="badge" style="background: rgba(220,53,69,.1); color: #dc3545;"><i class="bi bi-exclamation-circle me-1"></i>Login Fallido</span>
                                         {% elif evento.event_type == 'usuario_created' %}
-                                            <span class="badge bg-primary"><i class="bi bi-person-plus"></i> Usuario Creado</span>
+                                            <span class="badge" style="background: rgba(43,138,196,.12); color: #2B8AC4;"><i class="bi bi-person-plus me-1"></i>Usuario Creado</span>
                                         {% elif evento.event_type == 'usuario_updated' %}
-                                            <span class="badge bg-info"><i class="bi bi-pencil"></i> Usuario Actualizado</span>
+                                            <span class="badge" style="background: rgba(43,138,196,.12); color: #2B8AC4;"><i class="bi bi-pencil me-1"></i>Usuario Actualizado</span>
                                         {% elif evento.event_type == 'usuario_deleted' %}
-                                            <span class="badge bg-danger"><i class="bi bi-trash"></i> Usuario Eliminado</span>
+                                            <span class="badge" style="background: rgba(220,53,69,.1); color: #dc3545;"><i class="bi bi-trash me-1"></i>Usuario Eliminado</span>
                                         {% elif evento.event_type == 'reparacion_created' %}
-                                            <span class="badge bg-primary"><i class="bi bi-tools"></i> Reparación Creada</span>
+                                            <span class="badge" style="background: rgba(43,138,196,.12); color: #2B8AC4;"><i class="bi bi-tools me-1"></i>Reparacion Creada</span>
                                         {% elif evento.event_type == 'reparacion_updated' %}
-                                            <span class="badge bg-info"><i class="bi bi-pencil"></i> Reparación Actualizada</span>
+                                            <span class="badge" style="background: rgba(43,138,196,.12); color: #2B8AC4;"><i class="bi bi-pencil me-1"></i>Reparacion Actualizada</span>
                                         {% elif evento.event_type == 'reparacion_deleted' %}
-                                            <span class="badge bg-danger"><i class="bi bi-trash"></i> Reparación Eliminada</span>
+                                            <span class="badge" style="background: rgba(220,53,69,.1); color: #dc3545;"><i class="bi bi-trash me-1"></i>Reparacion Eliminada</span>
                                         {% elif evento.event_type == 'pago_registrado' %}
-                                            <span class="badge bg-success"><i class="bi bi-credit-card"></i> Pago Registrado</span>
+                                            <span class="badge" style="background: rgba(25,135,84,.12); color: #198754;"><i class="bi bi-credit-card me-1"></i>Pago Registrado</span>
                                         {% else %}
-                                            <span class="badge bg-secondary">{{ evento.event_type }}</span>
+                                            <span class="badge" style="background: rgba(108,117,125,.1); color: #6c757d;">{{ evento.event_type }}</span>
                                         {% endif %}
                                     </td>
-                                    <td>
-                                        <strong>{{ evento.usuario or 'Sistema' }}</strong>
-                                    </td>
+                                    <td><strong>{{ evento.usuario or 'Sistema' }}</strong></td>
                                     <td>
                                         <small class="text-muted">
                                             {% if evento.ip_address %}
-                                                <i class="bi bi-globe"></i> {{ evento.ip_address }}
-                                            {% else %}
-                                                {% if evento.evento_datos %}
-                                                    {% set datos = evento.evento_datos %}
-                                                    ({{ datos|truncate(60) }})
-                                                {% endif %}
+                                                <i class="bi bi-globe me-1"></i>{{ evento.ip_address }}
+                                            {% elif evento.evento_datos %}
+                                                {{ evento.evento_datos|truncate(60) }}
                                             {% endif %}
                                         </small>
                                     </td>
@@ -593,57 +552,52 @@
     </div>
     {% endif %}
 
-    <!-- SECCIÓN: REPARACIONES ATRASADAS -->
+    <!-- FILA 9: REPARACIONES ATRASADAS (TABLA) -->
     {% if reparaciones_atrasadas %}
-    <div class="row mt-5">
+    <div class="row g-3 mb-4">
         <div class="col-12">
-            <div class="card border-0 shadow-sm border-start border-danger">
-                <div class="card-header bg-danger text-white border-0">
-                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> Reparaciones Atrasadas</h5>
+            <div class="at-dash-card" style="border-left: 3px solid #dc3545;">
+                <div class="at-dash-card-header" style="color: #dc3545;">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Reparaciones Atrasadas
                 </div>
-                <div class="card-body">
-                    <p class="text-muted small mb-3">
-                        Reparaciones en estado activo sin actualización hace más de 7 días. Requieren atención.
-                    </p>
+                <div class="at-dash-card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>ID</th>
+                            <thead>
+                                <tr style="background: rgba(0,0,0,.02);">
+                                    <th class="ps-4">ID</th>
                                     <th>Cliente</th>
                                     <th>Dispositivo</th>
                                     <th>Estado</th>
                                     <th>Alertas</th>
-                                    <th>Última Actualización</th>
+                                    <th>Ultima Actualizacion</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for rep in reparaciones_atrasadas %}
-                                <tr class="table-danger">
-                                    <td><strong>#{{ rep.id }}</strong></td>
+                                <tr>
+                                    <td class="ps-4"><strong>#{{ rep.id }}</strong></td>
                                     <td>{{ rep.cliente or 'Sin asignar' }}</td>
                                     <td>{{ rep.dispositivo }}</td>
                                     <td>
-                                        <span class="badge bg-warning text-dark">{{ rep.estado }}</span>
+                                        <span class="badge" style="background: rgba(255,193,7,.15); color: #997a00;">{{ rep.estado }}</span>
                                     </td>
                                     <td>
                                         {% if rep.alertas_info.tiene_alertas %}
                                             <div class="d-flex gap-1 flex-wrap">
                                                 {% for alerta in rep.alertas_info.alertas %}
-                                                <span class="badge bg-{{ alerta.color }} small" title="{{ alerta.mensaje }}">
-                                                    {{ alerta.icono }}
-                                                </span>
+                                                <span class="badge bg-{{ alerta.color }} small" title="{{ alerta.mensaje }}">{{ alerta.icono }}</span>
                                                 {% endfor %}
                                             </div>
                                         {% else %}
-                                            <span class="badge bg-light text-muted small">—</span>
+                                            <span class="text-muted">—</span>
                                         {% endif %}
                                     </td>
                                     <td>
                                         {% if rep.ultima_actualizacion %}
                                             <small class="text-muted">{{ rep.ultima_actualizacion|strftime('%d/%m/%Y %H:%M') }}</small>
                                         {% else %}
-                                            <small class="text-muted badge bg-secondary">Nunca</small>
+                                            <span class="badge" style="background: rgba(108,117,125,.1); color: #6c757d;">Nunca</span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -658,35 +612,5 @@
     {% endif %}
 
 </div>
-
-<style>
-    /* Mejoras visuales para el dashboard */
-    .card {
-        border-radius: 8px;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0,0,0,0.1) !important;
-    }
-
-    .card-header {
-        border-radius: 8px 8px 0 0;
-    }
-
-    .progress {
-        border-radius: 10px;
-    }
-
-    .table tbody tr:hover {
-        background-color: #f8f9fa;
-    }
-
-    .badge {
-        padding: 0.35em 0.65em;
-        font-size: 0.85em;
-    }
-</style>
 
 {% endblock %}

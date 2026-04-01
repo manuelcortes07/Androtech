@@ -1,96 +1,82 @@
 {% extends "base.html" %}
+{% block title %}Nueva Reparacion - AndroTech{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center py-4">
-    <div class="col-xl-7 col-lg-8 col-md-10">
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-xl-7 col-lg-8 col-md-10">
+            <span class="at-pill"><i class="bi bi-tools me-1"></i>Reparaciones</span>
+            <h1 class="at-section-title mt-2 mb-1">Nueva Reparacion</h1>
+            <p class="at-section-sub">Completa los datos y crea la orden de reparacion</p>
 
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white d-flex align-items-center justify-content-between" style="border-top: 4px solid #2B8AC4;">
-                <div>
-                    <h4 class="mb-0 text-dark"><i class="bi bi-tools me-2" style="color: #2B8AC4;"></i>Nueva Reparacion</h4>
-                    <small class="text-muted">Registro de la reparacion — completa los datos y crea la orden</small>
+            <div class="at-admin-card mt-4">
+                <div class="at-admin-card-header d-flex align-items-center justify-content-between">
+                    <span><i class="bi bi-tools me-2"></i>Datos de la Reparacion</span>
+                    <span class="badge" style="background: #EBF5FB; color: #2B8AC4;">Administracion</span>
                 </div>
-                <div class="text-end">
-                    <small class="badge" style="background: #EBF5FB; color: #2B8AC4;">Administracion</small>
-                </div>
-            </div>
+                <div class="p-4">
+                    <form action="/reparaciones/nueva" method="POST" class="at-admin-form needs-validation" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
-            <div class="card-body">
-
-                <form action="/reparaciones/nueva" method="POST" class="needs-validation" novalidate>
-                    {# Si usas CSRF (Flask-WTF) descomenta la siguiente línea #}
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-
-                    <div class="mb-3">
-                        <label for="cliente_id" class="form-label fw-semibold">Cliente <span class="text-danger">*</span></label>
-                        <select id="cliente_id" name="cliente_id" class="form-select form-select-lg" required>
-                            <option value="" disabled selected>Selecciona un cliente...</option>
-                            {% for cliente in clientes %}
-                                <option value="{{ cliente.id }}">{{ cliente.nombre }}</option>
-                            {% else %}
-                                <option disabled>No hay clientes registrados</option>
-                            {% endfor %}
-                        </select>
-                        <div class="invalid-feedback">Selecciona el cliente relacionado con la reparación.</div>
-                    </div>
-
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label for="dispositivo" class="form-label fw-semibold">Dispositivo <span class="text-danger">*</span></label>
-                            <input id="dispositivo" name="dispositivo" type="text" class="form-control" required placeholder="Ej: iPhone 12 - Pantalla rota">
-                            <div class="invalid-feedback">Introduce el dispositivo a reparar.</div>
+                        <div class="mb-3">
+                            <label for="cliente_id" class="form-label fw-semibold">Cliente <span class="text-danger">*</span></label>
+                            <select id="cliente_id" name="cliente_id" class="form-select form-select-lg" required>
+                                <option value="" disabled selected>Selecciona un cliente...</option>
+                                {% for cliente in clientes %}
+                                    <option value="{{ cliente.id }}">{{ cliente.nombre }}</option>
+                                {% else %}
+                                    <option disabled>No hay clientes registrados</option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">Selecciona el cliente relacionado con la reparacion.</div>
                         </div>
 
-                        <div class="col-md-6">
-                            <label for="precio" class="form-label fw-semibold">Precio estimado (€)</label>
-                            <div class="input-group">
-                                <span class="input-group-text">€</span>
-                                <input id="precio" name="precio" type="number" step="0.01" class="form-control" placeholder="Ej: 49.99">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="dispositivo" class="form-label fw-semibold">Dispositivo <span class="text-danger">*</span></label>
+                                <input id="dispositivo" name="dispositivo" type="text" class="form-control" required placeholder="Ej: iPhone 12 - Pantalla rota">
+                                <div class="invalid-feedback">Introduce el dispositivo a reparar.</div>
                             </div>
-                            <div class="form-text">Precio aproximado (puede actualizarse al confirmar la reparación).</div>
-                        </div>
-                    </div>
-
-                    <div class="mt-3">
-                        <label for="descripcion" class="form-label">Descripción del problema</label>
-                        <textarea id="descripcion" name="descripcion" rows="4" class="form-control" placeholder="Detalles adicionales que ayuden al diagnóstico"></textarea>
-                    </div>
-
-                    <div class="mt-3">
-                        <label for="estado" class="form-label fw-semibold">Estado</label>
-                        <select id="estado" name="estado" class="form-select">
-                            <option value="Pendiente">Pendiente</option>
-                            <option value="En proceso">En proceso</option>
-                            <option value="Terminado">Terminado</option>
-                            <option value="Entregado">Entregado</option>
-                        </select>
-                    </div>
-
-                    <div class="row mt-4">
-                        <div class="col-12 col-md-6 mb-2 mb-md-0">
-                            <a href="/reparaciones" class="btn w-100 at-btn-outline" style="color: #2B8AC4; border-color: #2B8AC4;">Cancelar</a>
+                            <div class="col-md-6">
+                                <label for="precio" class="form-label fw-semibold">Precio estimado</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">EUR</span>
+                                    <input id="precio" name="precio" type="number" step="0.01" class="form-control" placeholder="Ej: 49.99">
+                                </div>
+                                <div class="form-text">Precio aproximado (puede actualizarse al confirmar la reparacion).</div>
+                            </div>
                         </div>
 
-                        <div class="col-6 col-md-3 d-none d-md-block">
-                            <button type="reset" class="btn btn-outline-secondary w-100">Limpiar</button>
+                        <div class="mt-3">
+                            <label for="descripcion" class="form-label">Descripcion del problema</label>
+                            <textarea id="descripcion" name="descripcion" rows="4" class="form-control" placeholder="Detalles adicionales que ayuden al diagnostico"></textarea>
                         </div>
 
-                        <div class="col-6 col-md-3">
-                            <button type="submit" class="btn w-100 at-btn-primary text-white" style="background-color: #2B8AC4;">Crear Reparacion</button>
+                        <div class="mt-3">
+                            <label for="estado" class="form-label fw-semibold">Estado</label>
+                            <select id="estado" name="estado" class="form-select">
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="En proceso">En proceso</option>
+                                <option value="Terminado">Terminado</option>
+                                <option value="Entregado">Entregado</option>
+                            </select>
                         </div>
-                    </div>
 
-                </form>
-
+                        <div class="d-flex flex-wrap gap-2 mt-4">
+                            <a href="/reparaciones" class="at-btn-outline flex-fill text-center">
+                                <i class="bi bi-x-lg me-1"></i>Cancelar
+                            </a>
+                            <button type="reset" class="at-btn-outline flex-fill d-none d-md-inline-block">
+                                <i class="bi bi-eraser me-1"></i>Limpiar
+                            </button>
+                            <button type="submit" class="at-btn-primary flex-fill">
+                                <i class="bi bi-check-lg me-1"></i>Crear Reparacion
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-
-            <div class="card-footer bg-light small text-muted d-flex justify-content-between align-items-center">
-                <div><span class="text-danger">*</span> campos obligatorios</div>
-                <div>Diseñado para Bootstrap 5 — responsive</div>
-            </div>
-
         </div>
-
     </div>
 </div>
 {% endblock %}
