@@ -34,7 +34,7 @@ class EmailService:
 
             # Crear mensaje
             msg = Message(
-                subject='Payment Confirmed - Repair',
+                subject=f'Confirmación de Pago - Reparación #{reparacion_id} - AndroTech',
                 recipients=[to_email],
                 charset='utf-8'
             )
@@ -76,7 +76,7 @@ class EmailService:
 
             # Crear mensaje
             msg = Message(
-                subject=f'Repair Status Update #{reparacion_id} - {estado_nuevo}',
+                subject=f'Actualización de Estado - Reparación #{reparacion_id} - AndroTech',
                 recipients=[to_email],
                 charset='utf-8'
             )
@@ -106,7 +106,7 @@ class EmailService:
 
             # Crear mensaje
             msg = Message(
-                subject=f'Factura - Reparacion #{reparacion_id}',
+                subject=f'Factura - Reparación #{reparacion_id} - AndroTech',
                 recipients=[to_email],
                 charset='utf-8'
             )
@@ -118,4 +118,54 @@ class EmailService:
 
         except Exception as e:
             logger.error(f'Error enviando email de factura: {str(e)}')
+            raise
+
+    def send_nueva_reparacion(self, to_email, cliente_nombre, reparacion_id, dispositivo, descripcion, fecha_entrada):
+        """Enviar notificación de nueva reparación registrada"""
+        try:
+            html_body = render_template(
+                'emails/nueva_reparacion.html',
+                cliente_nombre=cliente_nombre,
+                reparacion_id=reparacion_id,
+                dispositivo=dispositivo,
+                descripcion=descripcion,
+                fecha_entrada=fecha_entrada,
+                year=datetime.now().year
+            )
+
+            msg = Message(
+                subject=f'Nueva Reparación Registrada #{reparacion_id} - AndroTech',
+                recipients=[to_email],
+                charset='utf-8'
+            )
+            msg.html = html_body
+            msg.content_type = 'text/html; charset=utf-8'
+            self.mail.send(msg)
+            logger.info(f'Email de nueva reparacion enviado a {to_email} para reparacion {reparacion_id}')
+
+        except Exception as e:
+            logger.error(f'Error enviando email de nueva reparacion: {type(e).__name__}: {str(e)}')
+            raise
+
+    def send_bienvenida_cliente(self, to_email, cliente_nombre):
+        """Enviar email de bienvenida a nuevo cliente"""
+        try:
+            html_body = render_template(
+                'emails/bienvenida_cliente.html',
+                cliente_nombre=cliente_nombre,
+                year=datetime.now().year
+            )
+
+            msg = Message(
+                subject='Bienvenido a AndroTech - Servicio Técnico Especializado',
+                recipients=[to_email],
+                charset='utf-8'
+            )
+            msg.html = html_body
+            msg.content_type = 'text/html; charset=utf-8'
+            self.mail.send(msg)
+            logger.info(f'Email de bienvenida enviado a {to_email} para cliente {cliente_nombre}')
+
+        except Exception as e:
+            logger.error(f'Error enviando email de bienvenida: {type(e).__name__}: {str(e)}')
             raise

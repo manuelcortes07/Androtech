@@ -2278,3 +2278,296 @@ html[data-theme="dark"] .at-service-card,
 html[data-theme="dark"] .at-testimonial {
   transition: background-color .3s ease, color .3s ease, border-color .3s ease;
 }
+
+/* ──────────────────────────────────────────────
+   PHOTO UPLOAD: dropzone, preview, gallery, lightbox
+   ────────────────────────────────────────────── */
+
+/* Dropzone */
+.at-photo-dropzone {
+  border: 2px dashed rgba(43,138,196,.3);
+  border-radius: 12px;
+  background: rgba(43,138,196,.03);
+  transition: all .2s ease;
+}
+.at-photo-dropzone-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  cursor: pointer;
+  gap: .25rem;
+}
+.at-photo-dropzone:hover,
+.at-photo-dropzone-active {
+  border-color: #2B8AC4;
+  background: rgba(43,138,196,.08);
+}
+
+/* Preview grid (before upload) */
+.at-photo-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: .5rem;
+}
+.at-photo-preview-item {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  aspect-ratio: 1;
+  background: #f0f0f0;
+}
+.at-photo-preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.at-photo-preview-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(220,53,69,.85);
+  color: #fff;
+  font-size: .65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .15s;
+}
+.at-photo-preview-remove:hover { background: #dc3545; }
+.at-photo-preview-name {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 2px 6px;
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  font-size: .65rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Gallery (existing photos) */
+.at-photo-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: .75rem;
+}
+.at-photo-gallery-item {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 1;
+  background: #f0f0f0;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  transition: transform .2s, box-shadow .2s;
+}
+.at-photo-gallery-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,.15);
+}
+.at-photo-gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform .3s;
+}
+.at-photo-gallery-item:hover img { transform: scale(1.05); }
+.at-photo-gallery-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 6px 8px;
+  background: linear-gradient(transparent, rgba(0,0,0,.6));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  opacity: 0;
+  transition: opacity .2s;
+}
+.at-photo-gallery-item:hover .at-photo-gallery-overlay { opacity: 1; }
+
+/* Lightbox */
+.at-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0,0,0,.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: atLightboxIn .2s ease;
+}
+@keyframes atLightboxIn { from { opacity: 0; } to { opacity: 1; } }
+.at-lightbox-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+.at-lightbox-content img {
+  max-width: 90vw;
+  max-height: 85vh;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5);
+}
+.at-lightbox-close {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #fff;
+  color: #0F1923;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+}
+
+/* ── Dark mode: photo components ── */
+[data-theme="dark"] .at-photo-dropzone {
+  border-color: rgba(43,138,196,.25);
+  background: rgba(43,138,196,.05);
+}
+[data-theme="dark"] .at-photo-dropzone:hover,
+[data-theme="dark"] .at-photo-dropzone-active {
+  border-color: #4da6d8;
+  background: rgba(43,138,196,.12);
+}
+[data-theme="dark"] .at-photo-dropzone-content p { color: #e0e0e0 !important; }
+[data-theme="dark"] .at-photo-preview-item,
+[data-theme="dark"] .at-photo-gallery-item { background: #243040; }
+[data-theme="dark"] .at-lightbox-close { background: #1a2332; color: #e0e0e0; }
+
+/* ──────────────────────────────────────────────
+   SIGNATURE: canvas container and preview
+   ────────────────────────────────────────────── */
+.at-signature-container {
+  border: 2px solid rgba(43,138,196,.25);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+.at-signature-container canvas {
+  width: 100%;
+  display: block;
+  cursor: crosshair;
+}
+.at-signature-preview {
+  max-width: 100%;
+  max-height: 120px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.08);
+}
+[data-theme="dark"] .at-signature-container {
+  border-color: rgba(43,138,196,.2);
+  background: #1a2332;
+}
+[data-theme="dark"] .at-signature-preview {
+  background: #1a2332;
+  border-color: rgba(255,255,255,.1);
+}
+
+/* ──────────────────────────────────────────────
+   NOTES: internal notes list
+   ────────────────────────────────────────────── */
+.at-notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+.at-note-item {
+  padding: .75rem 1rem;
+  border-radius: 10px;
+  background: rgba(43,138,196,.03);
+  border: 1px solid rgba(0,0,0,.04);
+  transition: background .15s;
+}
+.at-note-item:hover { background: rgba(43,138,196,.06); }
+.at-note-important {
+  border-left: 3px solid #e6a800;
+  background: rgba(230,168,0,.04);
+}
+.at-note-important:hover { background: rgba(230,168,0,.08); }
+
+/* Dark mode notes */
+[data-theme="dark"] .at-note-item {
+  background: rgba(43,138,196,.06);
+  border-color: rgba(255,255,255,.05);
+}
+[data-theme="dark"] .at-note-item:hover { background: rgba(43,138,196,.1); }
+[data-theme="dark"] .at-note-important {
+  background: rgba(230,168,0,.08);
+  border-left-color: #e6a800;
+}
+[data-theme="dark"] .at-note-important:hover { background: rgba(230,168,0,.12); }
+
+/* ──────────────────────────────────────────────
+   AUTOCOMPLETE: dropdown for parts search
+   ────────────────────────────────────────────── */
+.at-autocomplete-dropdown {
+  position: absolute;
+  z-index: 1050;
+  width: calc(100% - 1rem);
+  max-height: 200px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.1);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.1);
+  display: none;
+  margin-top: 2px;
+}
+.at-autocomplete-item {
+  padding: .5rem .75rem;
+  cursor: pointer;
+  font-size: .88rem;
+  transition: background .1s;
+}
+.at-autocomplete-item:hover { background: rgba(43,138,196,.08); }
+[data-theme="dark"] .at-autocomplete-dropdown {
+  background: #1a2332;
+  border-color: rgba(255,255,255,.08);
+}
+[data-theme="dark"] .at-autocomplete-item:hover { background: rgba(43,138,196,.15); }
+
+/* ──────────────────────────────────────────────
+   CALENDAR: FullCalendar dark mode overrides
+   ────────────────────────────────────────────── */
+.at-calendar-dark .fc {
+  --fc-border-color: rgba(255,255,255,.08);
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: rgba(43,138,196,.06);
+  --fc-list-event-hover-bg-color: rgba(43,138,196,.12);
+  --fc-today-bg-color: rgba(43,138,196,.08);
+}
+.at-calendar-dark .fc .fc-col-header-cell,
+.at-calendar-dark .fc .fc-daygrid-day-number,
+.at-calendar-dark .fc .fc-list-day-text,
+.at-calendar-dark .fc .fc-list-day-side-text,
+.at-calendar-dark .fc .fc-toolbar-title { color: #e0e0e0; }
+.at-calendar-dark .fc .fc-button-primary {
+  background: rgba(43,138,196,.2);
+  border-color: rgba(43,138,196,.3);
+  color: #e0e0e0;
+}
+.at-calendar-dark .fc .fc-button-primary:hover { background: rgba(43,138,196,.35); }
+.at-calendar-dark .fc .fc-button-primary.fc-button-active {
+  background: #2B8AC4;
+  border-color: #2B8AC4;
+}

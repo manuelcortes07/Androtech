@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AndroTech - {% block title %}{% endblock %}</title>
 
+    <!-- PWA -->
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#2B8AC4">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/static/imagenes/logo.jpg">
+
     <!-- Bootstrap -->
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
@@ -78,12 +85,18 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'calendario' %}active fw-semibold{% endif %}"
+                           href="/calendario">
+                            <i class="bi bi-calendar3 me-1"></i>Calendario
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'servicios' %}active fw-semibold{% endif %}"
                            href="/servicios">
                             <i class="bi bi-wrench me-1"></i>Servicios
                         </a>
                     </li>
-                    
+
                     <!-- Administración (solo Admin) -->
                     {% if session.rol == 'admin' %}
                     <li class="nav-item dropdown">
@@ -95,6 +108,11 @@
                             <li>
                                 <a class="dropdown-item" href="{{ url_for('admin_usuarios') }}">
                                     <i class="bi bi-people-fill me-2"></i>Gestión de Usuarios
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('inventario') }}">
+                                    <i class="bi bi-box-seam me-2"></i>Inventario de Piezas
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider"></li>
@@ -353,6 +371,16 @@
             });
         }
     });
+</script>
+
+{% block scripts %}{% endblock %}
+
+<!-- Service Worker -->
+<script>
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/static/sw.js', { scope: '/' })
+        .catch(function() {});
+}
 </script>
 
 </body>

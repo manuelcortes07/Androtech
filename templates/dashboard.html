@@ -212,7 +212,7 @@
         </div>
     </div>
 
-    <!-- FILA 4: DISPOSITIVOS TOP + ESTADOS -->
+    <!-- FILA 4: GRÁFICOS — DISPOSITIVOS + ESTADOS -->
     <div class="row g-3 mb-4">
         {% if dispositivos_top %}
         <div class="col-lg-6">
@@ -221,19 +221,7 @@
                     <i class="bi bi-phone"></i> Dispositivos Mas Reparados
                 </div>
                 <div class="at-dash-card-body">
-                    {% for dispositivo in dispositivos_top %}
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="small fw-semibold">{{ dispositivo.nombre }}</span>
-                            <span class="small text-muted">{{ dispositivo.cantidad }}</span>
-                        </div>
-                        <div class="progress" style="height: 5px; border-radius: 3px; background: rgba(43,138,196,.08);">
-                            {% if dispositivos_top[0].cantidad > 0 %}
-                            <div class="progress-bar" style="width: {{ (dispositivo.cantidad / dispositivos_top[0].cantidad * 100)|round(0) }}%; background: #2B8AC4; border-radius: 3px;"></div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endfor %}
+                    <canvas id="chartDispositivos" height="220"></canvas>
                 </div>
             </div>
         </div>
@@ -245,24 +233,8 @@
                 <div class="at-dash-card-header">
                     <i class="bi bi-diagram-3"></i> Distribucion de Estados
                 </div>
-                <div class="at-dash-card-body">
-                    {% for estado in estados_distribucion %}
-                    <div class="d-flex justify-content-between align-items-center py-2 {% if not loop.last %}border-bottom{% endif %}" style="border-color: rgba(0,0,0,.05) !important;">
-                        <div class="d-flex align-items-center gap-2">
-                            {% if estado.nombre == 'Pendiente' %}
-                                <span class="at-dash-dot" style="background: #ffc107;"></span>
-                            {% elif estado.nombre == 'En proceso' %}
-                                <span class="at-dash-dot" style="background: #2B8AC4;"></span>
-                            {% elif estado.nombre == 'Terminado' %}
-                                <span class="at-dash-dot" style="background: #198754;"></span>
-                            {% elif estado.nombre == 'Entregado' %}
-                                <span class="at-dash-dot" style="background: #6c757d;"></span>
-                            {% endif %}
-                            <span class="small fw-semibold">{{ estado.nombre }}</span>
-                        </div>
-                        <span class="badge" style="background: #EBF5FB; color: #2B8AC4; font-weight: 600;">{{ estado.cantidad }}</span>
-                    </div>
-                    {% endfor %}
+                <div class="at-dash-card-body d-flex align-items-center justify-content-center">
+                    <canvas id="chartEstados" height="220"></canvas>
                 </div>
             </div>
         </div>
@@ -381,35 +353,16 @@
 
     <!-- FILA 7: MÉTRICAS AVANZADAS -->
     <div class="row g-3 mb-4">
-        <!-- Ingresos por mes -->
+        <!-- Ingresos por mes (gráfico) -->
         <div class="col-lg-6">
             <div class="at-dash-card">
                 <div class="at-dash-card-header">
                     <i class="bi bi-bar-chart-fill"></i> Ingresos por Mes
                     <small class="text-muted fw-normal ms-2">(ultimos 6 meses)</small>
                 </div>
-                <div class="at-dash-card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover table-sm mb-0">
-                            <thead>
-                                <tr style="background: rgba(0,0,0,.02);">
-                                    <th class="ps-4">Mes</th>
-                                    <th class="text-end pe-4">Ingresos</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for mes in ingresos_por_mes %}
-                                <tr>
-                                    <td class="ps-4 fw-semibold">{{ mes.mes }}</td>
-                                    <td class="text-end pe-4">
-                                        <span class="badge" style="background: rgba(25,135,84,.12); color: #198754;">{{ "%.2f"|format(mes.valor) }}€</span>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="px-4 py-3" style="border-top: 1px solid rgba(0,0,0,.05);">
+                <div class="at-dash-card-body">
+                    <canvas id="chartIngresos" height="200"></canvas>
+                    <div class="mt-3 pt-3" style="border-top: 1px solid rgba(0,0,0,.05);">
                         <small class="text-muted">
                             <i class="bi bi-info-circle me-1"></i>
                             Total 6 meses: <strong style="color: #2B8AC4;">{{ "%.2f"|format(ingresos_por_mes|map(attribute='valor')|sum) }}€</strong>
@@ -438,39 +391,17 @@
                     </div>
                 </div>
 
-                <!-- Reparaciones por técnico -->
+                <!-- Reparaciones por técnico (gráfico) -->
                 <div class="col-12">
                     <div class="at-dash-card">
                         <div class="at-dash-card-header">
                             <i class="bi bi-person-badge"></i> Reparaciones por Tecnico
                         </div>
-                        <div class="at-dash-card-body p-0">
+                        <div class="at-dash-card-body">
                             {% if reparaciones_por_tecnico %}
-                            <div class="table-responsive">
-                                <table class="table table-hover table-sm mb-0">
-                                    <thead>
-                                        <tr style="background: rgba(0,0,0,.02);">
-                                            <th class="ps-4">Tecnico</th>
-                                            <th class="text-end pe-4">Intervenciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for tecnico in reparaciones_por_tecnico[:5] %}
-                                        <tr>
-                                            <td class="ps-4">
-                                                <i class="bi bi-person-circle me-1" style="color: #2B8AC4;"></i>
-                                                <strong>{{ tecnico.nombre }}</strong>
-                                            </td>
-                                            <td class="text-end pe-4">
-                                                <span class="badge" style="background: #EBF5FB; color: #2B8AC4;">{{ tecnico.cantidad }}</span>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
+                            <canvas id="chartTecnicos" height="160"></canvas>
                             {% else %}
-                            <p class="text-muted p-4 mb-0"><i class="bi bi-info-circle me-1"></i>Sin datos de tecnicos aun</p>
+                            <p class="text-muted mb-0"><i class="bi bi-info-circle me-1"></i>Sin datos de tecnicos aun</p>
                             {% endif %}
                         </div>
                     </div>
@@ -613,4 +544,250 @@
 
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    // Detectar tema actual
+    const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
+    const textColor = () => isDark() ? '#9ba5b0' : '#6c757d';
+    const gridColor = () => isDark() ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
+
+    // Defaults globales
+    Chart.defaults.font.family = "'Inter', 'Segoe UI', system-ui, sans-serif";
+    Chart.defaults.font.size = 12;
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.legend.labels.pointStyleWidth = 8;
+
+    // ═══════════════════════════════════════════
+    // 1. GRÁFICO DONUT — Distribución de Estados
+    // ═══════════════════════════════════════════
+    {% if estados_distribucion %}
+    const estadosCtx = document.getElementById('chartEstados');
+    if (estadosCtx) {
+        new Chart(estadosCtx, {
+            type: 'doughnut',
+            data: {
+                labels: [{% for e in estados_distribucion %}'{{ e.nombre }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                datasets: [{
+                    data: [{% for e in estados_distribucion %}{{ e.cantidad }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    backgroundColor: [
+                        {% for e in estados_distribucion %}
+                        {% if e.nombre == 'Pendiente' %}'#ffc107'
+                        {% elif e.nombre == 'En proceso' %}'#2B8AC4'
+                        {% elif e.nombre == 'Terminado' %}'#198754'
+                        {% elif e.nombre == 'Entregado' %}'#6c757d'
+                        {% else %}'#adb5bd'{% endif %}{% if not loop.last %},{% endif %}
+                        {% endfor %}
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 16,
+                            color: textColor()
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: isDark() ? '#1a2332' : '#fff',
+                        titleColor: isDark() ? '#e4e8ec' : '#212529',
+                        bodyColor: isDark() ? '#9ba5b0' : '#6c757d',
+                        borderColor: isDark() ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.1)',
+                        borderWidth: 1,
+                        cornerRadius: 10,
+                        padding: 12,
+                        callbacks: {
+                            label: function(ctx) {
+                                const total = ctx.dataset.data.reduce((a,b) => a+b, 0);
+                                const pct = total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : 0;
+                                return ' ' + ctx.label + ': ' + ctx.raw + ' (' + pct + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+
+    // ═══════════════════════════════════════════
+    // 2. GRÁFICO BARRAS HORIZONTAL — Dispositivos
+    // ═══════════════════════════════════════════
+    {% if dispositivos_top %}
+    const dispCtx = document.getElementById('chartDispositivos');
+    if (dispCtx) {
+        new Chart(dispCtx, {
+            type: 'bar',
+            data: {
+                labels: [{% for d in dispositivos_top %}'{{ d.nombre|truncate(20, true, "...") }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                datasets: [{
+                    label: 'Reparaciones',
+                    data: [{% for d in dispositivos_top %}{{ d.cantidad }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    backgroundColor: 'rgba(43,138,196,.7)',
+                    hoverBackgroundColor: '#2B8AC4',
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    barThickness: 22
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: isDark() ? '#1a2332' : '#fff',
+                        titleColor: isDark() ? '#e4e8ec' : '#212529',
+                        bodyColor: isDark() ? '#9ba5b0' : '#6c757d',
+                        borderColor: isDark() ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.1)',
+                        borderWidth: 1,
+                        cornerRadius: 10,
+                        padding: 12
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: { color: gridColor(), drawBorder: false },
+                        ticks: { color: textColor(), stepSize: 1 }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { color: textColor(), font: { weight: 600 } }
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+
+    // ═══════════════════════════════════════════
+    // 3. GRÁFICO BARRAS — Ingresos por Mes
+    // ═══════════════════════════════════════════
+    const ingCtx = document.getElementById('chartIngresos');
+    if (ingCtx) {
+        const ingData = [{% for m in ingresos_por_mes %}{{ m.valor }}{% if not loop.last %},{% endif %}{% endfor %}];
+        const ingLabels = [{% for m in ingresos_por_mes %}'{{ m.mes }}'{% if not loop.last %},{% endif %}{% endfor %}];
+
+        new Chart(ingCtx, {
+            type: 'bar',
+            data: {
+                labels: ingLabels,
+                datasets: [{
+                    label: 'Ingresos (€)',
+                    data: ingData,
+                    backgroundColor: ingData.map((v, i) => {
+                        const max = Math.max(...ingData);
+                        const opacity = max > 0 ? 0.4 + (v / max) * 0.6 : 0.5;
+                        return 'rgba(43,138,196,' + opacity + ')';
+                    }),
+                    hoverBackgroundColor: '#2B8AC4',
+                    borderRadius: 8,
+                    borderSkipped: false,
+                    barThickness: 32
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: isDark() ? '#1a2332' : '#fff',
+                        titleColor: isDark() ? '#e4e8ec' : '#212529',
+                        bodyColor: isDark() ? '#9ba5b0' : '#6c757d',
+                        borderColor: isDark() ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.1)',
+                        borderWidth: 1,
+                        cornerRadius: 10,
+                        padding: 12,
+                        callbacks: {
+                            label: function(ctx) {
+                                return ' ' + ctx.parsed.y.toFixed(2) + ' €';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: textColor(), font: { weight: 600 } }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: gridColor(), drawBorder: false },
+                        ticks: {
+                            color: textColor(),
+                            callback: function(v) { return v + ' €'; }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ═══════════════════════════════════════════
+    // 4. GRÁFICO BARRAS HORIZONTAL — Técnicos
+    // ═══════════════════════════════════════════
+    {% if reparaciones_por_tecnico %}
+    const tecCtx = document.getElementById('chartTecnicos');
+    if (tecCtx) {
+        const tecColors = ['#2B8AC4', '#4da6d8', '#1a6fbd', '#6c757d', '#adb5bd'];
+        new Chart(tecCtx, {
+            type: 'bar',
+            data: {
+                labels: [{% for t in reparaciones_por_tecnico[:5] %}'{{ t.nombre }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                datasets: [{
+                    label: 'Intervenciones',
+                    data: [{% for t in reparaciones_por_tecnico[:5] %}{{ t.cantidad }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    backgroundColor: tecColors.slice(0, {{ reparaciones_por_tecnico[:5]|length }}),
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    barThickness: 20
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: isDark() ? '#1a2332' : '#fff',
+                        titleColor: isDark() ? '#e4e8ec' : '#212529',
+                        bodyColor: isDark() ? '#9ba5b0' : '#6c757d',
+                        borderColor: isDark() ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.1)',
+                        borderWidth: 1,
+                        cornerRadius: 10,
+                        padding: 12
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: { color: gridColor(), drawBorder: false },
+                        ticks: { color: textColor(), stepSize: 1 }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { color: textColor(), font: { weight: 600 } }
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+
+})();
+</script>
 {% endblock %}

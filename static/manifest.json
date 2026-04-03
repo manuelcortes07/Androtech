@@ -1,0 +1,24 @@
+{
+  "name": "AndroTech - Gestión de Reparaciones",
+  "short_name": "AndroTech",
+  "description": "Sistema de gestión de reparaciones de dispositivos móviles",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2B8AC4",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/static/imagenes/logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/imagenes/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
