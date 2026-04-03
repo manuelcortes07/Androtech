@@ -188,6 +188,9 @@
 
                         <!-- BOTONES -->
                         <div class="d-flex justify-content-end gap-2 mt-4 pt-3" style="border-top:1px solid rgba(0,0,0,.06);">
+                            <a href="/reparaciones/{{ reparacion.id }}/ticket" class="at-btn-outline btn" title="Ticket de recogida con QR">
+                                <i class="bi bi-qr-code me-1"></i>Ticket QR
+                            </a>
                             <a href="/reparaciones" class="at-btn-outline btn">
                                 <i class="bi bi-x-lg me-1"></i>Cancelar
                             </a>
@@ -196,6 +199,259 @@
                             </button>
                         </div>
                     </form>
+
+                    <!-- GALERÍA DE FOTOS -->
+                    <div class="mt-4 pt-4" style="border-top:1px solid rgba(0,0,0,.06);">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-camera" style="color:#2B8AC4;font-size:1.1rem;"></i>
+                                <h6 class="fw-bold mb-0" style="color:#0F1923;">Fotos del dispositivo</h6>
+                                <span class="badge" style="background:rgba(43,138,196,.12);color:#2B8AC4;">{{ fotos|length }}</span>
+                            </div>
+                        </div>
+
+                        {% if fotos %}
+                        <div class="at-photo-gallery">
+                            {% for foto in fotos %}
+                            <div class="at-photo-gallery-item">
+                                <img src="{{ url_for('static', filename='uploads/reparaciones/' + foto.filename) }}"
+                                     alt="Foto reparacion"
+                                     onclick="abrirLightbox('{{ url_for('static', filename='uploads/reparaciones/' + foto.filename) }}')">
+                                <div class="at-photo-gallery-overlay">
+                                    <small class="text-white">{{ foto.fecha_subida|strftime('%d/%m/%Y') }}</small>
+                                    <form action="/reparaciones/fotos/{{ foto.id }}/eliminar" method="POST" style="display:inline;"
+                                          onsubmit="return confirm('Eliminar esta foto?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <button type="submit" class="btn btn-sm" style="color:#fff;background:rgba(220,53,69,.8);border:none;border-radius:6px;padding:2px 8px;">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-3" style="background:rgba(43,138,196,.03);border-radius:10px;">
+                            <i class="bi bi-image text-muted" style="font-size:1.5rem;"></i>
+                            <p class="text-muted mb-0 mt-1" style="font-size:.85rem;">No hay fotos adjuntas a esta reparacion</p>
+                        </div>
+                        {% endif %}
+
+                        <!-- Subir nuevas fotos -->
+                        <form action="/reparaciones/{{ reparacion.id }}/fotos" method="POST" enctype="multipart/form-data" class="mt-3">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <div class="at-photo-dropzone" id="photoDropzone">
+                                <input type="file" name="fotos" id="fotosInput" multiple accept="image/*" class="d-none">
+                                <div class="at-photo-dropzone-content" onclick="document.getElementById('fotosInput').click()">
+                                    <i class="bi bi-cloud-arrow-up" style="font-size:1.5rem;color:#2B8AC4;"></i>
+                                    <p class="mb-0 fw-semibold" style="font-size:.9rem;color:#0F1923;">Arrastra fotos o haz clic para seleccionar</p>
+                                    <small class="text-muted">PNG, JPG, WebP o GIF &middot; Max 5MB por foto</small>
+                                </div>
+                            </div>
+                            <div id="photoPreview" class="at-photo-preview-grid mt-2"></div>
+                            <button type="submit" id="btnSubirFotos" class="at-btn-primary btn btn-sm mt-2 d-none">
+                                <i class="bi bi-upload me-1"></i>Subir fotos
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PIEZAS UTILIZADAS -->
+            <div class="at-admin-card mt-4">
+                <div class="at-admin-card-header d-flex align-items-center justify-content-between"
+                     style="border-bottom:1px solid rgba(0,0,0,.06);">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-box-seam" style="color:#2B8AC4;"></i>
+                        Piezas Utilizadas
+                        <span class="badge" style="background:rgba(43,138,196,.12);color:#2B8AC4;">{{ piezas_usadas|length }}</span>
+                    </div>
+                    {% if piezas_usadas %}
+                    <span class="fw-semibold" style="color:#2B8AC4;font-size:.85rem;">
+                        Total: {{ "%.2f"|format(piezas_usadas|sum(attribute='precio_venta')|float * 1) }} &euro;
+                    </span>
+                    {% endif %}
+                </div>
+                <div style="padding:1.25rem 1.5rem;">
+                    <!-- Agregar pieza -->
+                    <form action="/reparaciones/{{ reparacion.id }}/piezas" method="POST" class="mb-3">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <div class="row g-2 align-items-end">
+                            <div class="col">
+                                <label class="form-label" style="font-size:.8rem;">Buscar pieza</label>
+                                <input type="text" id="buscaPieza" class="form-control" placeholder="Escribe para buscar..." autocomplete="off"
+                                       style="border-radius:10px;font-size:.9rem;">
+                                <input type="hidden" name="pieza_id" id="piezaIdInput">
+                                <div id="piezaSugerencias" class="at-autocomplete-dropdown"></div>
+                            </div>
+                            <div class="col-auto" style="width:80px;">
+                                <label class="form-label" style="font-size:.8rem;">Cant.</label>
+                                <input type="number" name="cantidad" value="1" min="1" class="form-control text-center"
+                                       style="border-radius:10px;font-size:.9rem;">
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="at-btn-primary btn btn-sm" id="btnAddPieza" disabled>
+                                    <i class="bi bi-plus-lg me-1"></i>Añadir
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Lista de piezas usadas -->
+                    {% if piezas_usadas %}
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0" style="font-size:.85rem;">
+                            <thead>
+                                <tr style="border-bottom:2px solid rgba(43,138,196,.15);">
+                                    <th>Pieza</th>
+                                    <th class="text-center">Cant.</th>
+                                    <th>Precio</th>
+                                    <th>Fecha</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in piezas_usadas %}
+                                <tr>
+                                    <td class="fw-semibold">{{ p.pieza_nombre }}</td>
+                                    <td class="text-center">{{ p.cantidad }}</td>
+                                    <td>{{ "%.2f"|format(p.precio_venta or 0) }} &euro;</td>
+                                    <td class="text-muted">{{ p.fecha_uso|strftime('%d/%m/%Y') }}</td>
+                                    <td class="text-end">
+                                        <form action="/reparaciones/piezas/{{ p.id }}/eliminar" method="POST" style="display:inline;"
+                                              onsubmit="return confirm('Quitar esta pieza? Se devolvera al inventario.');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                            <button type="submit" class="btn btn-sm" style="color:#dc3545;padding:0 4px;" title="Quitar pieza">
+                                                <i class="bi bi-x-lg" style="font-size:.7rem;"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-2" style="background:rgba(43,138,196,.03);border-radius:10px;">
+                        <i class="bi bi-box text-muted" style="font-size:1.2rem;"></i>
+                        <p class="text-muted mb-0 mt-1" style="font-size:.85rem;">No se han utilizado piezas en esta reparacion</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- NOTAS INTERNAS -->
+            <div class="at-admin-card mt-4">
+                <div class="at-admin-card-header d-flex align-items-center justify-content-between"
+                     style="border-bottom:1px solid rgba(0,0,0,.06);">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-journal-text" style="color:#2B8AC4;"></i>
+                        Notas Internas
+                        <span class="badge" style="background:rgba(43,138,196,.12);color:#2B8AC4;">{{ notas|length }}</span>
+                    </div>
+                    <span class="badge" style="background:rgba(108,117,125,.1);color:#6c757d;font-size:.7rem;">
+                        <i class="bi bi-eye-slash me-1"></i>Solo visible para el equipo
+                    </span>
+                </div>
+                <div style="padding:1.25rem 1.5rem;">
+                    <!-- Formulario nueva nota -->
+                    <form action="/reparaciones/{{ reparacion.id }}/notas" method="POST" class="mb-3">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <div class="d-flex gap-2 align-items-start">
+                            <div class="flex-grow-1">
+                                <textarea name="contenido" rows="2" class="form-control" placeholder="Escribe una nota interna..." required
+                                          style="border-radius:10px;font-size:.9rem;"></textarea>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="es_importante" id="notaImportante" value="1">
+                                <label class="form-check-label" for="notaImportante" style="font-size:.85rem;color:#e6a800;">
+                                    <i class="bi bi-star-fill me-1"></i>Marcar como importante
+                                </label>
+                            </div>
+                            <button type="submit" class="at-btn-primary btn btn-sm">
+                                <i class="bi bi-plus-lg me-1"></i>Agregar nota
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Lista de notas -->
+                    {% if notas %}
+                    <div class="at-notes-list">
+                        {% for nota in notas %}
+                        <div class="at-note-item {% if nota.es_importante %}at-note-important{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <div style="width:28px;height:28px;border-radius:50%;background:rgba(43,138,196,.12);display:flex;align-items:center;justify-content:center;">
+                                        <i class="bi bi-person-fill" style="color:#2B8AC4;font-size:.75rem;"></i>
+                                    </div>
+                                    <span class="fw-semibold" style="font-size:.85rem;">{{ nota.usuario }}</span>
+                                    <span class="text-muted" style="font-size:.75rem;">{{ nota.fecha_creacion|strftime('%d/%m/%Y %H:%M') }}</span>
+                                    {% if nota.es_importante %}
+                                    <span class="badge" style="background:rgba(230,168,0,.1);color:#e6a800;font-size:.65rem;">
+                                        <i class="bi bi-star-fill me-1"></i>Importante
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                {% if nota.usuario == session.get('usuario') or session.get('rol') == 'admin' %}
+                                <form action="/reparaciones/notas/{{ nota.id }}/eliminar" method="POST" style="display:inline;"
+                                      onsubmit="return confirm('Eliminar esta nota?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-sm" style="color:#dc3545;padding:0 4px;" title="Eliminar nota">
+                                        <i class="bi bi-trash" style="font-size:.75rem;"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            <div style="padding-left:36px;font-size:.9rem;white-space:pre-wrap;">{{ nota.contenido }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-2" style="background:rgba(43,138,196,.03);border-radius:10px;">
+                        <i class="bi bi-journal text-muted" style="font-size:1.2rem;"></i>
+                        <p class="text-muted mb-0 mt-1" style="font-size:.85rem;">No hay notas internas para esta reparacion</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- FIRMA DIGITAL -->
+            <div class="at-admin-card mt-4">
+                <div class="at-admin-card-header d-flex align-items-center justify-content-between"
+                     style="border-bottom:1px solid rgba(0,0,0,.06);">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-pen" style="color:#2B8AC4;"></i>
+                        Firma Digital del Cliente
+                    </div>
+                    {% if reparacion.firma %}
+                    <span class="badge" style="background:rgba(25,135,84,.12);color:#198754;"><i class="bi bi-check-circle-fill me-1"></i>Firmado</span>
+                    {% else %}
+                    <span class="badge" style="background:rgba(255,193,7,.15);color:#997a00;"><i class="bi bi-exclamation-circle me-1"></i>Pendiente</span>
+                    {% endif %}
+                </div>
+                <div style="padding:1.25rem 1.5rem;">
+                    {% if reparacion.firma %}
+                    <div class="d-flex align-items-start gap-3">
+                        <img src="{{ url_for('static', filename='uploads/firmas/' + reparacion.firma) }}"
+                             alt="Firma del cliente" class="at-signature-preview">
+                        <div>
+                            <p class="text-muted mb-2" style="font-size:.85rem;">Firma registrada para esta reparacion.</p>
+                            <a href="/reparaciones/{{ reparacion.id }}/firma" class="at-btn-outline btn btn-sm">
+                                <i class="bi bi-pen me-1"></i>Actualizar firma
+                            </a>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-2">
+                        <i class="bi bi-pen text-muted" style="font-size:1.5rem;"></i>
+                        <p class="text-muted mb-2 mt-1" style="font-size:.85rem;">No hay firma registrada para esta reparacion.</p>
+                        <a href="/reparaciones/{{ reparacion.id }}/firma" class="at-btn-primary btn btn-sm">
+                            <i class="bi bi-pen me-1"></i>Solicitar firma del cliente
+                        </a>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -316,6 +572,131 @@ function verificarCambioEstado(selectElement) {
 
 function confirmarCambioEstado() {
     bootstrap.Modal.getInstance(document.getElementById('confirmEstadoModal')).hide();
+}
+
+// ── Parts autocomplete ──
+(function() {
+    const input = document.getElementById('buscaPieza');
+    const hidden = document.getElementById('piezaIdInput');
+    const dropdown = document.getElementById('piezaSugerencias');
+    const btn = document.getElementById('btnAddPieza');
+    let timeout = null;
+
+    input.addEventListener('input', function() {
+        const q = this.value.trim();
+        hidden.value = '';
+        btn.disabled = true;
+        if (q.length < 1) { dropdown.innerHTML = ''; dropdown.style.display = 'none'; return; }
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            fetch('/api/inventario/buscar?q=' + encodeURIComponent(q))
+                .then(r => r.json())
+                .then(items => {
+                    if (!items.length) {
+                        dropdown.innerHTML = '<div class="at-autocomplete-item text-muted">Sin resultados</div>';
+                        dropdown.style.display = 'block';
+                        return;
+                    }
+                    dropdown.innerHTML = items.map(p =>
+                        `<div class="at-autocomplete-item" data-id="${p.id}">
+                            <span class="fw-semibold">${p.nombre}</span>
+                            <span class="text-muted ms-2" style="font-size:.8rem;">Stock: ${p.cantidad} · ${(p.precio_venta||0).toFixed(2)}€</span>
+                        </div>`
+                    ).join('');
+                    dropdown.style.display = 'block';
+                    dropdown.querySelectorAll('.at-autocomplete-item[data-id]').forEach(el => {
+                        el.addEventListener('click', function() {
+                            hidden.value = this.dataset.id;
+                            input.value = this.querySelector('.fw-semibold').textContent;
+                            btn.disabled = false;
+                            dropdown.style.display = 'none';
+                        });
+                    });
+                });
+        }, 250);
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#buscaPieza') && !e.target.closest('#piezaSugerencias')) {
+            dropdown.style.display = 'none';
+        }
+    });
+})();
+
+// ── Photo upload with drag & drop ──
+(function() {
+    const input = document.getElementById('fotosInput');
+    const dropzone = document.getElementById('photoDropzone');
+    const preview = document.getElementById('photoPreview');
+    const btnSubir = document.getElementById('btnSubirFotos');
+    let files = new DataTransfer();
+
+    function updatePreview() {
+        preview.innerHTML = '';
+        btnSubir.classList.toggle('d-none', files.files.length === 0);
+        Array.from(files.files).forEach((file, idx) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const div = document.createElement('div');
+                div.className = 'at-photo-preview-item';
+                div.innerHTML = `
+                    <img src="${e.target.result}" alt="Preview">
+                    <button type="button" class="at-photo-preview-remove" data-idx="${idx}" title="Eliminar">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                    <div class="at-photo-preview-name">${file.name}</div>
+                `;
+                div.querySelector('.at-photo-preview-remove').addEventListener('click', function() {
+                    const newDt = new DataTransfer();
+                    Array.from(files.files).forEach((f, i) => { if (i !== idx) newDt.items.add(f); });
+                    files = newDt;
+                    input.files = files.files;
+                    updatePreview();
+                });
+                preview.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    input.addEventListener('change', function() {
+        Array.from(this.files).forEach(f => files.items.add(f));
+        input.files = files.files;
+        updatePreview();
+    });
+
+    dropzone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        dropzone.classList.add('at-photo-dropzone-active');
+    });
+    dropzone.addEventListener('dragleave', function() {
+        dropzone.classList.remove('at-photo-dropzone-active');
+    });
+    dropzone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        dropzone.classList.remove('at-photo-dropzone-active');
+        Array.from(e.dataTransfer.files).forEach(f => {
+            if (f.type.startsWith('image/')) files.items.add(f);
+        });
+        input.files = files.files;
+        updatePreview();
+    });
+})();
+
+// ── Lightbox ──
+function abrirLightbox(src) {
+    const overlay = document.createElement('div');
+    overlay.className = 'at-lightbox';
+    overlay.innerHTML = `
+        <div class="at-lightbox-content">
+            <img src="${src}" alt="Foto ampliada">
+            <button class="at-lightbox-close" onclick="this.closest('.at-lightbox').remove()">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    `;
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
 }
 </script>
 

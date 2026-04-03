@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Calendario de Reparaciones - AndroTech{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-xl-11 col-lg-12">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+                <div>
+                    <span class="at-pill"><i class="bi bi-calendar3 me-1"></i>Planificacion</span>
+                    <h1 class="at-section-title mt-2 mb-1">Calendario de Reparaciones</h1>
+                    <p class="at-section-sub">Vista general de todas las reparaciones por fecha</p>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <span class="badge d-flex align-items-center gap-1" style="background:rgba(255,193,7,.15);color:#997a00;padding:.4rem .75rem;">
+                        <span style="width:8px;height:8px;border-radius:50%;background:#ffc107;display:inline-block;"></span> Pendiente
+                    </span>
+                    <span class="badge d-flex align-items-center gap-1" style="background:rgba(43,138,196,.12);color:#2B8AC4;padding:.4rem .75rem;">
+                        <span style="width:8px;height:8px;border-radius:50%;background:#2B8AC4;display:inline-block;"></span> En proceso
+                    </span>
+                    <span class="badge d-flex align-items-center gap-1" style="background:rgba(25,135,84,.12);color:#198754;padding:.4rem .75rem;">
+                        <span style="width:8px;height:8px;border-radius:50%;background:#198754;display:inline-block;"></span> Terminado
+                    </span>
+                    <span class="badge d-flex align-items-center gap-1" style="background:rgba(108,117,125,.1);color:#6c757d;padding:.4rem .75rem;">
+                        <span style="width:8px;height:8px;border-radius:50%;background:#6c757d;display:inline-block;"></span> Entregado
+                    </span>
+                </div>
+            </div>
+
+            <div class="at-admin-card">
+                <div class="p-3 p-md-4">
+                    <div id="calendario"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const calEl = document.getElementById('calendario');
+
+    const calendar = new FullCalendar.Calendar(calEl, {
+        initialView: 'dayGridMonth',
+        locale: 'es',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,listWeek'
+        },
+        buttonText: {
+            today: 'Hoy',
+            month: 'Mes',
+            week: 'Semana',
+            list: 'Lista'
+        },
+        events: '/api/calendario/eventos',
+        eventClick: function(info) {
+            info.jsEvent.preventDefault();
+            if (info.event.url) {
+                window.location.href = info.event.url;
+            }
+        },
+        eventDidMount: function(info) {
+            // Tooltip with client name and status
+            const props = info.event.extendedProps;
+            info.el.title = `${info.event.title}\nCliente: ${props.cliente}\nEstado: ${props.estado}`;
+        },
+        height: 'auto',
+        dayMaxEvents: 3,
+        moreLinkText: 'mas',
+        noEventsText: 'No hay reparaciones',
+        firstDay: 1
+    });
+
+    calendar.render();
+
+    // Apply dark mode styles
+    if (isDark) {
+        calEl.classList.add('at-calendar-dark');
+    }
+
+    // Listen for theme changes
+    const observer = new MutationObserver(function() {
+        const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+        calEl.classList.toggle('at-calendar-dark', dark);
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+});
+</script>
+{% endblock %}

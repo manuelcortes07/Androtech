@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}Firma Digital - Reparacion #{{ reparacion.id }} - AndroTech{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-xl-7 col-lg-8 col-md-10">
+            <span class="at-pill"><i class="bi bi-pen me-1"></i>Firma Digital</span>
+            <h1 class="at-section-title mt-2 mb-1">Firma del Cliente</h1>
+            <p class="at-section-sub">Reparacion #{{ reparacion.id }} &mdash; {{ reparacion.cliente_nombre }}</p>
+
+            <!-- Resumen de la reparacion -->
+            <div class="at-admin-card mb-4 mt-4">
+                <div class="at-admin-card-header d-flex align-items-center gap-2">
+                    <i class="bi bi-info-circle" style="color:#2B8AC4;"></i>
+                    Resumen de la Reparacion
+                </div>
+                <div class="p-4">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <div class="text-muted" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;">Dispositivo</div>
+                            <div class="fw-semibold">{{ reparacion.dispositivo }}</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="text-muted" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;">Estado</div>
+                            <div>
+                                <span class="badge" style="background:rgba(43,138,196,.12);color:#2B8AC4;">{{ reparacion.estado }}</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="text-muted" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;">Precio</div>
+                            <div class="fw-semibold">{{ reparacion.precio|default('—', true) }} &euro;</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="text-muted" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;">Fecha entrada</div>
+                            <div>{{ reparacion.fecha_entrada|strftime('%d/%m/%Y') }}</div>
+                        </div>
+                    </div>
+                    {% if reparacion.descripcion %}
+                    <div class="mt-3 pt-3" style="border-top:1px solid rgba(0,0,0,.06);">
+                        <div class="text-muted" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;">Descripcion</div>
+                        <div>{{ reparacion.descripcion }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Canvas de firma -->
+            <div class="at-admin-card">
+                <div class="at-admin-card-header d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-pen" style="color:#2B8AC4;"></i>
+                        Firma del Cliente
+                    </div>
+                    <span class="badge" style="background:rgba(43,138,196,.12);color:#2B8AC4;font-size:.75rem;">
+                        <i class="bi bi-shield-check me-1"></i>Documento legal
+                    </span>
+                </div>
+                <div class="p-4">
+                    <p class="text-muted mb-3" style="font-size:.9rem;">
+                        El cliente firma para confirmar la recepcion/entrega del dispositivo.
+                        Dibuja la firma en el recuadro inferior.
+                    </p>
+
+                    <!-- Firma existente -->
+                    {% if reparacion.firma %}
+                    <div class="mb-4 p-3" style="background:rgba(25,135,84,.05);border:1px solid rgba(25,135,84,.15);border-radius:12px;">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="bi bi-check-circle-fill" style="color:#198754;"></i>
+                            <span class="fw-semibold" style="color:#198754;font-size:.9rem;">Firma registrada</span>
+                        </div>
+                        <img src="{{ url_for('static', filename='uploads/firmas/' + reparacion.firma) }}"
+                             alt="Firma del cliente" class="at-signature-preview">
+                    </div>
+                    {% endif %}
+
+                    <div class="at-signature-container">
+                        <canvas id="signatureCanvas"></canvas>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                        <button type="button" class="at-btn-outline btn flex-fill" id="btnLimpiar">
+                            <i class="bi bi-eraser me-1"></i>Limpiar
+                        </button>
+                        <button type="button" class="at-btn-primary btn flex-fill" id="btnGuardar">
+                            <i class="bi bi-check-lg me-1"></i>Guardar Firma
+                        </button>
+                    </div>
+
+                    <div id="firmaMsg" class="mt-3 d-none"></div>
+
+                    <div class="mt-3 pt-3" style="border-top:1px solid rgba(0,0,0,.06);">
+                        <a href="/reparaciones/editar/{{ reparacion.id }}" class="at-btn-outline btn btn-sm">
+                            <i class="bi bi-arrow-left me-1"></i>Volver a la reparacion
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-3" style="font-size:.78rem;color:#9ba5b0;">
+                <i class="bi bi-lock-fill me-1"></i>La firma se almacena de forma segura y asociada a la reparacion #{{ reparacion.id }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.2.0/dist/signature_pad.umd.min.js"></script>
+<script>
+(function() {
+    const canvas = document.getElementById('signatureCanvas');
+    const container = canvas.parentElement;
+
+    function resizeCanvas() {
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        canvas.width = container.offsetWidth * ratio;
+        canvas.height = 200 * ratio;
+        canvas.style.height = '200px';
+        canvas.getContext('2d').scale(ratio, ratio);
+        signaturePad.clear();
+    }
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const signaturePad = new SignaturePad(canvas, {
+        backgroundColor: isDark ? '#1a2332' : '#fff',
+        penColor: isDark ? '#e0e0e0' : '#0F1923',
+        minWidth: 1,
+        maxWidth: 2.5
+    });
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    document.getElementById('btnLimpiar').addEventListener('click', function() {
+        signaturePad.clear();
+    });
+
+    document.getElementById('btnGuardar').addEventListener('click', function() {
+        const msg = document.getElementById('firmaMsg');
+        if (signaturePad.isEmpty()) {
+            msg.className = 'mt-3 alert alert-warning';
+            msg.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Por favor, dibuja la firma antes de guardar.';
+            return;
+        }
+
+        const btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando...';
+
+        const dataURL = signaturePad.toDataURL('image/png');
+
+        fetch('/reparaciones/{{ reparacion.id }}/firma', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ firma: dataURL })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                msg.className = 'mt-3 alert alert-success';
+                msg.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Firma guardada correctamente. Redirigiendo...';
+                setTimeout(() => {
+                    window.location.href = '/reparaciones/editar/{{ reparacion.id }}';
+                }, 1500);
+            } else {
+                msg.className = 'mt-3 alert alert-danger';
+                msg.innerHTML = '<i class="bi bi-x-circle me-1"></i>' + (data.error || 'Error al guardar la firma.');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Guardar Firma';
+            }
+        })
+        .catch(() => {
+            msg.className = 'mt-3 alert alert-danger';
+            msg.innerHTML = '<i class="bi bi-x-circle me-1"></i>Error de conexion. Intenta de nuevo.';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Guardar Firma';
+        });
+    });
+})();
+</script>
+{% endblock %}

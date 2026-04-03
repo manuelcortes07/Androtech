@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confirmación de Pago - AndroTech</title>
+    <title>Bienvenido a AndroTech</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -35,39 +35,23 @@
         .status-icon {
             font-size: 48px;
             margin-bottom: 20px;
-            color: #198754;
         }
-        .payment-info {
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-            border-left: 4px solid #198754;
-        }
-        .payment-amount {
-            text-align: center;
-            font-size: 32px;
-            font-weight: bold;
-            color: #198754;
-            margin: 15px 0;
-        }
-        .repair-details {
+        .features {
             background-color: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
             margin: 20px 0;
         }
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
+        .features ul {
+            list-style: none;
+            padding: 0;
         }
-        .detail-label {
-            font-weight: bold;
-            color: #666;
+        .features ul li {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
         }
-        .detail-value {
-            color: #333;
+        .features ul li:last-child {
+            border-bottom: none;
         }
         .contact-info {
             background-color: #e9ecef;
@@ -88,38 +72,22 @@
 <body>
     <div class="container">
         <div class="header">
-            <div class="status-icon">💳</div>
+            <div class="status-icon">👋</div>
             <div class="logo">AndroTech</div>
-            <h1>Confirmación de Pago</h1>
-            <p>Tu pago ha sido registrado correctamente</p>
+            <h1>¡Bienvenido a AndroTech!</h1>
+            <p>Tu servicio técnico de confianza</p>
         </div>
 
         <p>Hola <strong>{{ cliente_nombre }}</strong>,</p>
-        <p>Te confirmamos que hemos recibido tu pago para la siguiente reparación:</p>
+        <p>Te damos la bienvenida a AndroTech. Estamos encantados de tenerte como cliente. A partir de ahora podrás disfrutar de todos nuestros servicios de reparación y soporte técnico.</p>
 
-        <div class="payment-info">
-            <h3>Importe Pagado</h3>
-            <div class="payment-amount">{{ "%.2f"|format(precio) }} €</div>
-        </div>
-
-        <div class="repair-details">
-            <h3>Detalles de la Reparación</h3>
-            <div class="detail-row">
-                <span class="detail-label">Cliente:</span>
-                <span class="detail-value">{{ cliente_nombre }}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Reparación ID:</span>
-                <span class="detail-value">#{{ reparacion_id }}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Descripción:</span>
-                <span class="detail-value">{{ descripcion }}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Fecha de Pago:</span>
-                <span class="detail-value">{{ fecha_pago }}</span>
-            </div>
+        <div class="features">
+            <h3>¿Qué puedes esperar?</h3>
+            <ul>
+                <li>📍 <strong>Seguimiento en tiempo real</strong> - Consulta el estado de tus reparaciones en cualquier momento.</li>
+                <li>🔔 <strong>Notificaciones automáticas</strong> - Recibirás un email cada vez que el estado de tu reparación cambie.</li>
+                <li>📋 <strong>Historial completo</strong> - Accede al historial de todas tus reparaciones y pagos.</li>
+            </ul>
         </div>
 
         <div class="contact-info">
@@ -129,7 +97,6 @@
                 📧 <strong>Email:</strong> contacto@androtech.es<br>
                 🏪 <strong>Dirección:</strong> Huelva, España
             </p>
-            <p><strong>Referencia de reparación:</strong> #{{ reparacion_id }}</p>
         </div>
 
         <div class="footer">
