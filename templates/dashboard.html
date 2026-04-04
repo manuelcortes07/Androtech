@@ -13,15 +13,19 @@
             <h1 class="at-section-title mt-2 mb-1">Bienvenido, {{ session.usuario }}</h1>
             <p class="at-section-sub" style="margin:0;max-width:none;">Resumen en tiempo real de tu negocio — {{ now }}</p>
         </div>
-        {% if user_role == 'admin' %}
+        {% if tiene_permiso('reparaciones_exportar') or tiene_permiso('clientes_exportar') %}
         <div class="col-auto">
             <div class="d-flex gap-2">
+                {% if tiene_permiso('reparaciones_exportar') %}
                 <a href="/exportar/reparaciones.csv" class="at-btn-outline btn btn-sm">
                     <i class="bi bi-download me-1"></i>Reparaciones CSV
                 </a>
+                {% endif %}
+                {% if tiene_permiso('clientes_exportar') %}
                 <a href="/exportar/clientes.csv" class="at-btn-outline btn btn-sm">
                     <i class="bi bi-download me-1"></i>Clientes CSV
                 </a>
+                {% endif %}
             </div>
         </div>
         {% endif %}

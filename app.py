@@ -21,7 +21,11 @@ from flask_mail import Mail
 # local modules (split responsibilities)
 from utils.pdf_generator import generar_presupuesto_pdf
 from db import get_db
-from auth import login_required, role_required
+from auth import (
+    login_required, role_required, permiso_requerido, tiene_permiso,
+    init_permisos_db, obtener_permisos_usuario,
+    PERMISOS_DISPONIBLES, PERMISOS_ADMIN, PERMISOS_TECNICO,
+)
 from alerts import calcular_alertas_reparacion
 from historial import registrar_cambio_estado, validar_transicion
 from audit import registrar_auditoria, obtener_auditoria_reciente, crear_tabla_auditoria
@@ -183,6 +187,10 @@ _conn_init.execute("""
     )
 """)
 _conn_init.commit()
+
+# Inicializar sistema de roles y permisos
+init_permisos_db(_conn_init)
+
 _conn_init.close()
 
 # Configuración de subida de fotos
@@ -368,6 +376,10 @@ def ensure_csrf_token():
 def inject_csrf_token():
     return dict(csrf_token=session.get('csrf_token'))
 
+@app.context_processor
+def inject_permisos():
+    return dict(tiene_permiso=tiene_permiso)
+
 
 def validate_csrf():
     token = request.form.get('csrf_token', '')
@@ -410,6 +422,7 @@ def login():
         if user and check_password_hash(user["contraseña"], contraseña):
             session["usuario"] = user["usuario"]
             session["rol"] = user["rol"]
+            session["permisos"] = obtener_permisos_usuario(user["rol"])
             flash(f"Bienvenido, {user['usuario']}!", "success")
             
             # Registrar auditoría
@@ -820,7 +833,8 @@ def editar_cliente(id):
 
 # HISTORIAL CLIENTE - SOLO ADMIN
 @app.route("/cliente/historial")
-@role_required('admin')
+@login_required
+@permiso_requerido('clientes_historial')
 def historial_cliente():
     conn = get_db()
 
@@ -1022,7 +1036,8 @@ def exportar_historial_cliente_pdf(id):
 
 # BORRAR CLIENTE
 @app.route("/clientes/borrar/<int:id>")
-@role_required('admin')
+@login_required
+@permiso_requerido('clientes_borrar')
 def borrar_cliente(id):
     conn = get_db()
     conn.execute("DELETE FROM clientes WHERE id=?", (id,))
@@ -1082,7 +1097,7 @@ from io import StringIO, BytesIO
 
 @app.route("/exportar/reparaciones.csv")
 @login_required
-@role_required('admin')
+@permiso_requerido('reparaciones_exportar')
 def exportar_reparaciones_csv():
     conn = get_db()
     rows = conn.execute('''
@@ -1143,7 +1158,7 @@ def exportar_reparaciones_csv():
 
 @app.route("/exportar/clientes.csv")
 @login_required
-@role_required('admin')
+@permiso_requerido('clientes_exportar')
 def exportar_clientes_csv():
     conn = get_db()
     rows = conn.execute('''
@@ -1596,7 +1611,8 @@ def editar_reparacion(id):
 
 # BORRAR REPARACIÓN
 @app.route("/reparaciones/borrar/<int:id>")
-@role_required('admin')
+@login_required
+@permiso_requerido('reparaciones_borrar')
 def borrar_reparacion(id):
     conn = get_db()
     
@@ -1814,7 +1830,8 @@ def eliminar_nota_reparacion(nota_id):
 # ── INVENTARIO DE PIEZAS ──────────────────────────────────────────
 
 @app.route("/inventario")
-@role_required('admin')
+@login_required
+@permiso_requerido('inventario_ver')
 def inventario():
     conn = get_db()
     buscar = request.args.get('q', '').strip()
@@ -1844,7 +1861,8 @@ def inventario():
 
 
 @app.route("/inventario/nueva", methods=["GET", "POST"])
-@role_required('admin')
+@login_required
+@permiso_requerido('inventario_crear')
 @csrf_protect
 def nueva_pieza():
     if request.method == "POST":
@@ -1873,7 +1891,8 @@ def nueva_pieza():
 
 
 @app.route("/inventario/editar/<int:id>", methods=["GET", "POST"])
-@role_required('admin')
+@login_required
+@permiso_requerido('inventario_editar')
 @csrf_protect
 def editar_pieza(id):
     conn = get_db()
@@ -1910,7 +1929,8 @@ def editar_pieza(id):
 
 
 @app.route("/inventario/eliminar/<int:id>")
-@role_required('admin')
+@login_required
+@permiso_requerido('inventario_borrar')
 def eliminar_pieza(id):
     conn = get_db()
     en_uso = conn.execute("SELECT COUNT(*) as c FROM piezas_reparacion WHERE pieza_id=?", (id,)).fetchone()['c']
@@ -2281,7 +2301,7 @@ def generar_pdf_presupuesto(id):
 # LISTAR USUARIOS
 @app.route("/admin/usuarios")
 @login_required
-@role_required('admin')
+@permiso_requerido('usuarios_ver')
 def admin_usuarios():
     conn = get_db()
     usuarios = conn.execute("""
@@ -2308,7 +2328,7 @@ def admin_usuarios():
 # CREAR USUARIO
 @app.route("/admin/usuarios/nuevo", methods=["GET", "POST"])
 @login_required
-@role_required('admin')
+@permiso_requerido('usuarios_crear')
 @csrf_protect
 def nuevo_usuario():
     if request.method == "POST":
@@ -2330,12 +2350,15 @@ def nuevo_usuario():
             flash(f"❌ {pwd_msg}", "danger")
             return render_template("nuevo_usuario.html")
         
-        if rol not in ['admin', 'tecnico']:
-            flash("❌ Rol inválido.", "danger")
-            return render_template("nuevo_usuario.html")
-        
+        conn = get_db()
+        roles_validos = [r['nombre'] for r in conn.execute("SELECT nombre FROM roles").fetchall()]
+        if rol not in roles_validos:
+            conn.close()
+            flash("Rol invalido.", "danger")
+            roles_db = conn.execute("SELECT nombre, descripcion, color FROM roles ORDER BY nombre").fetchall()
+            return render_template("nuevo_usuario.html", roles=roles_db)
+
         try:
-            conn = get_db()
             hashed_pwd = generate_password_hash(contraseña)
             conn.execute("""
                 INSERT INTO usuarios (usuario, contraseña, rol)
@@ -2368,15 +2391,19 @@ def nuevo_usuario():
             conn.close() if conn else None
             error_msg = "El usuario ya existe" if "UNIQUE" in str(e) else str(e)
             flash(f"❌ Error: {error_msg}", "danger")
-            return render_template("nuevo_usuario.html")
-    
-    return render_template("nuevo_usuario.html")
+            roles_db = get_db().execute("SELECT nombre, descripcion, color FROM roles ORDER BY nombre").fetchall()
+            return render_template("nuevo_usuario.html", roles=roles_db)
+
+    conn = get_db()
+    roles_db = conn.execute("SELECT nombre, descripcion, color FROM roles ORDER BY nombre").fetchall()
+    conn.close()
+    return render_template("nuevo_usuario.html", roles=roles_db)
 
 
 # EDITAR USUARIO
 @app.route("/admin/usuarios/editar/<int:id>", methods=["GET", "POST"])
 @login_required
-@role_required('admin')
+@permiso_requerido('usuarios_editar')
 @csrf_protect
 def editar_usuario(id):
     conn = get_db()
@@ -2391,10 +2418,12 @@ def editar_usuario(id):
         rol = request.form.get("rol", "tecnico").strip()
         nueva_contraseña = request.form.get("nueva_contraseña", "").strip()
         
-        if rol not in ['admin', 'tecnico']:
-            flash("❌ Rol inválido.", "danger")
+        roles_validos = [r['nombre'] for r in conn.execute("SELECT nombre FROM roles").fetchall()]
+        if rol not in roles_validos:
+            flash("Rol invalido.", "danger")
+            roles_db = conn.execute("SELECT nombre, descripcion, color FROM roles ORDER BY nombre").fetchall()
             conn.close()
-            return render_template("editar_usuario.html", usuario=usuario)
+            return render_template("editar_usuario.html", usuario=usuario, roles=roles_db)
         
         try:
             if nueva_contraseña:
@@ -2446,16 +2475,18 @@ def editar_usuario(id):
         except Exception as e:
             conn.close()
             flash(f"❌ Error al actualizar: {str(e)}", "danger")
-            return render_template("editar_usuario.html", usuario=usuario)
-    
+            roles_db = conn.execute("SELECT nombre, descripcion, color FROM roles ORDER BY nombre").fetchall()
+            return render_template("editar_usuario.html", usuario=usuario, roles=roles_db)
+
+    roles_db = conn.execute("SELECT nombre, descripcion, color FROM roles ORDER BY nombre").fetchall()
     conn.close()
-    return render_template("editar_usuario.html", usuario=usuario)
+    return render_template("editar_usuario.html", usuario=usuario, roles=roles_db)
 
 
 # BORRAR USUARIO
 @app.route("/admin/usuarios/borrar/<int:id>")
 @login_required
-@role_required('admin')
+@permiso_requerido('usuarios_borrar')
 def borrar_usuario(id):
     # Validar que no sea el mismo usuario logueado
     if session.get('usuario'):
@@ -2497,6 +2528,208 @@ def borrar_usuario(id):
             conn.close()
     
     return redirect(url_for("admin_usuarios"))
+
+# =========================================
+# 🔸 GESTIÓN DE ROLES Y PERMISOS
+# =========================================
+
+@app.route("/admin/roles")
+@login_required
+@permiso_requerido('roles_gestionar')
+def admin_roles():
+    conn = get_db()
+    roles = conn.execute("SELECT * FROM roles ORDER BY es_sistema DESC, nombre").fetchall()
+    roles_list = []
+    for r in roles:
+        permisos = conn.execute(
+            "SELECT permiso FROM permisos_rol WHERE rol_nombre = ?", (r['nombre'],)
+        ).fetchall()
+        permisos_list = [p['permiso'] for p in permisos]
+        # Contar usuarios con este rol
+        count = conn.execute(
+            "SELECT COUNT(*) FROM usuarios WHERE rol = ?", (r['nombre'],)
+        ).fetchone()[0]
+        roles_list.append({
+            'id': r['id'],
+            'nombre': r['nombre'],
+            'descripcion': r['descripcion'],
+            'es_sistema': r['es_sistema'],
+            'color': r['color'],
+            'permisos': permisos_list,
+            'num_permisos': len(permisos_list),
+            'num_usuarios': count,
+        })
+    conn.close()
+
+    # Agrupar permisos por categoria
+    categorias = {}
+    for p in PERMISOS_DISPONIBLES:
+        cat = p['categoria']
+        if cat not in categorias:
+            categorias[cat] = []
+        categorias[cat].append(p)
+
+    return render_template("admin_roles.html",
+                           roles=roles_list,
+                           categorias=categorias,
+                           permisos_disponibles=PERMISOS_DISPONIBLES)
+
+
+@app.route("/admin/roles/nuevo", methods=["GET", "POST"])
+@login_required
+@permiso_requerido('roles_gestionar')
+def nuevo_rol():
+    if request.method == "POST":
+        nombre = request.form.get("nombre", "").strip().lower()
+        descripcion = request.form.get("descripcion", "").strip()
+        color = request.form.get("color", "#6c757d").strip()
+        permisos = request.form.getlist("permisos")
+
+        if not nombre or len(nombre) < 3:
+            flash("El nombre del rol debe tener al menos 3 caracteres.", "danger")
+            return redirect(url_for('nuevo_rol'))
+
+        if nombre in ('admin',):
+            flash("No puedes crear un rol con ese nombre reservado.", "danger")
+            return redirect(url_for('nuevo_rol'))
+
+        conn = get_db()
+        try:
+            conn.execute(
+                "INSERT INTO roles (nombre, descripcion, es_sistema, color) VALUES (?, ?, 0, ?)",
+                (nombre, descripcion, color)
+            )
+            for p in permisos:
+                conn.execute(
+                    "INSERT OR IGNORE INTO permisos_rol (rol_nombre, permiso) VALUES (?, ?)",
+                    (nombre, p)
+                )
+            conn.commit()
+
+            registrar_auditoria(conn, 'rol_created', session.get('usuario'), {
+                'rol': nombre, 'permisos': permisos
+            }, ip_address=request.remote_addr)
+
+            conn.close()
+            flash(f"Rol '{nombre}' creado correctamente con {len(permisos)} permisos.", "success")
+            return redirect(url_for('admin_roles'))
+        except Exception as e:
+            conn.close()
+            error_msg = "El rol ya existe" if "UNIQUE" in str(e) else str(e)
+            flash(f"Error: {error_msg}", "danger")
+            return redirect(url_for('nuevo_rol'))
+
+    categorias = {}
+    for p in PERMISOS_DISPONIBLES:
+        cat = p['categoria']
+        if cat not in categorias:
+            categorias[cat] = []
+        categorias[cat].append(p)
+
+    return render_template("nuevo_rol.html", categorias=categorias)
+
+
+@app.route("/admin/roles/editar/<int:id>", methods=["GET", "POST"])
+@login_required
+@permiso_requerido('roles_gestionar')
+def editar_rol(id):
+    conn = get_db()
+    rol = conn.execute("SELECT * FROM roles WHERE id = ?", (id,)).fetchone()
+    if not rol:
+        conn.close()
+        flash("Rol no encontrado.", "danger")
+        return redirect(url_for('admin_roles'))
+
+    if request.method == "POST":
+        descripcion = request.form.get("descripcion", "").strip()
+        color = request.form.get("color", "#6c757d").strip()
+        permisos = request.form.getlist("permisos")
+
+        # Admin siempre tiene todos los permisos
+        if rol['nombre'] == 'admin':
+            permisos = [p['clave'] for p in PERMISOS_DISPONIBLES]
+
+        try:
+            conn.execute(
+                "UPDATE roles SET descripcion = ?, color = ? WHERE id = ?",
+                (descripcion, color, id)
+            )
+            # Reemplazar permisos
+            conn.execute("DELETE FROM permisos_rol WHERE rol_nombre = ?", (rol['nombre'],))
+            for p in permisos:
+                conn.execute(
+                    "INSERT INTO permisos_rol (rol_nombre, permiso) VALUES (?, ?)",
+                    (rol['nombre'], p)
+                )
+            conn.commit()
+
+            registrar_auditoria(conn, 'rol_updated', session.get('usuario'), {
+                'rol': rol['nombre'], 'permisos': permisos
+            }, ip_address=request.remote_addr)
+
+            conn.close()
+            flash(f"Rol '{rol['nombre']}' actualizado correctamente.", "success")
+            return redirect(url_for('admin_roles'))
+        except Exception as e:
+            conn.close()
+            flash(f"Error al actualizar: {str(e)}", "danger")
+            return redirect(url_for('editar_rol', id=id))
+
+    # GET — cargar permisos actuales
+    permisos_actuales = conn.execute(
+        "SELECT permiso FROM permisos_rol WHERE rol_nombre = ?", (rol['nombre'],)
+    ).fetchall()
+    permisos_list = [p['permiso'] for p in permisos_actuales]
+    conn.close()
+
+    categorias = {}
+    for p in PERMISOS_DISPONIBLES:
+        cat = p['categoria']
+        if cat not in categorias:
+            categorias[cat] = []
+        categorias[cat].append(p)
+
+    return render_template("editar_rol.html", rol=rol, permisos_actuales=permisos_list,
+                           categorias=categorias)
+
+
+@app.route("/admin/roles/borrar/<int:id>")
+@login_required
+@permiso_requerido('roles_gestionar')
+def borrar_rol(id):
+    conn = get_db()
+    rol = conn.execute("SELECT * FROM roles WHERE id = ?", (id,)).fetchone()
+    if not rol:
+        conn.close()
+        flash("Rol no encontrado.", "danger")
+        return redirect(url_for('admin_roles'))
+
+    if rol['es_sistema']:
+        conn.close()
+        flash("No puedes eliminar roles del sistema (admin, tecnico).", "danger")
+        return redirect(url_for('admin_roles'))
+
+    # Verificar que no haya usuarios con este rol
+    users_count = conn.execute(
+        "SELECT COUNT(*) FROM usuarios WHERE rol = ?", (rol['nombre'],)
+    ).fetchone()[0]
+    if users_count > 0:
+        conn.close()
+        flash(f"No puedes eliminar el rol '{rol['nombre']}' porque tiene {users_count} usuario(s) asignado(s). Reasignalos primero.", "danger")
+        return redirect(url_for('admin_roles'))
+
+    conn.execute("DELETE FROM permisos_rol WHERE rol_nombre = ?", (rol['nombre'],))
+    conn.execute("DELETE FROM roles WHERE id = ?", (id,))
+    conn.commit()
+
+    registrar_auditoria(conn, 'rol_deleted', session.get('usuario'), {
+        'rol': rol['nombre']
+    }, ip_address=request.remote_addr)
+
+    conn.close()
+    flash(f"Rol '{rol['nombre']}' eliminado correctamente.", "success")
+    return redirect(url_for('admin_roles'))
+
 
 # =========================================
 # 🔸 SECCIÓN CONTACTO

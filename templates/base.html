@@ -110,30 +110,35 @@
                         </a>
                     </li>
 
-                    <!-- Administración (solo Admin) -->
-                    {% if session.rol == 'admin' %}
+                    <!-- Administración (visible si tiene algun permiso de admin) -->
+                    {% if tiene_permiso('usuarios_ver') or tiene_permiso('roles_gestionar') or tiene_permiso('inventario_ver') %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center gap-1 text-danger fw-semibold"
                            href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-shield-exclamation"></i><span>Admin</span>
                         </a>
                         <ul class="dropdown-menu shadow-sm" aria-labelledby="adminDropdown">
+                            {% if tiene_permiso('usuarios_ver') %}
                             <li>
                                 <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('admin_usuarios') }}">
                                     <i class="bi bi-people-fill"></i>Gestion de Usuarios
                                 </a>
                             </li>
+                            {% endif %}
+                            {% if tiene_permiso('roles_gestionar') %}
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('admin_roles') }}">
+                                    <i class="bi bi-shield-lock"></i>Roles y Permisos
+                                </a>
+                            </li>
+                            {% endif %}
+                            {% if tiene_permiso('inventario_ver') %}
                             <li>
                                 <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('inventario') }}">
                                     <i class="bi bi-box-seam"></i>Inventario de Piezas
                                 </a>
                             </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2 text-muted small" href="#">
-                                    <i class="bi bi-eye"></i>Auditoria de Logs
-                                </a>
-                            </li>
+                            {% endif %}
                         </ul>
                     </li>
                     {% endif %}
