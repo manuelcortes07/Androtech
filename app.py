@@ -30,6 +30,7 @@ from utils.security import (
     inject_csrf_token,
     csrf_protect,
     validar_precio,
+    validar_contraseña,
 )
 from utils.email_service import EmailService
 
@@ -2248,8 +2249,13 @@ def nuevo_usuario():
             flash("❌ Usuario debe tener al menos 3 caracteres.", "danger")
             return render_template("nuevo_usuario.html")
         
-        if not contraseña or len(contraseña) < 6:
-            flash("❌ Contraseña debe tener al menos 6 caracteres.", "danger")
+        if not contraseña:
+            flash("❌ La contraseña es obligatoria.", "danger")
+            return render_template("nuevo_usuario.html")
+
+        pwd_ok, pwd_msg = validar_contraseña(contraseña)
+        if not pwd_ok:
+            flash(f"❌ {pwd_msg}", "danger")
             return render_template("nuevo_usuario.html")
         
         if rol not in ['admin', 'tecnico']:
@@ -2320,8 +2326,9 @@ def editar_usuario(id):
         
         try:
             if nueva_contraseña:
-                if len(nueva_contraseña) < 6:
-                    flash("❌ Nueva contraseña debe tener al menos 6 caracteres.", "danger")
+                pwd_ok, pwd_msg = validar_contraseña(nueva_contraseña)
+                if not pwd_ok:
+                    flash(f"❌ {pwd_msg}", "danger")
                     conn.close()
                     return render_template("editar_usuario.html", usuario=usuario)
                 

@@ -31,12 +31,21 @@
 
                         <div class="mb-3">
                             <label for="contraseña" class="form-label fw-semibold">
-                                <i class="bi bi-lock-fill me-1"></i>Contrasena <span class="text-danger">*</span>
+                                <i class="bi bi-lock-fill me-1"></i>Contraseña <span class="text-danger">*</span>
                             </label>
                             <input type="password" class="form-control form-control-lg" id="contraseña" name="contraseña"
-                                   placeholder="Minimo 6 caracteres" required minlength="6">
-                            <div class="form-text">
-                                <i class="bi bi-shield-check me-1"></i>Minimo 6 caracteres. Usa mayusculas, minusculas y numeros para mayor seguridad.
+                                   placeholder="Minimo 8 caracteres" required minlength="8">
+                            <div class="mt-2" id="pwd-strength">
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar" id="pwd-bar" style="width: 0%;"></div>
+                                </div>
+                                <small id="pwd-text" class="text-muted mt-1 d-block"></small>
+                            </div>
+                            <div class="mt-2 small">
+                                <span id="chk-len" class="text-muted"><i class="bi bi-x-circle"></i> Minimo 8 caracteres</span><br>
+                                <span id="chk-upper" class="text-muted"><i class="bi bi-x-circle"></i> Una mayuscula</span><br>
+                                <span id="chk-lower" class="text-muted"><i class="bi bi-x-circle"></i> Una minuscula</span><br>
+                                <span id="chk-num" class="text-muted"><i class="bi bi-x-circle"></i> Un numero</span>
                             </div>
                         </div>
 
@@ -80,4 +89,38 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('contraseña').addEventListener('input', function() {
+    const pwd = this.value;
+    const bar = document.getElementById('pwd-bar');
+    const txt = document.getElementById('pwd-text');
+    const checks = {
+        len: pwd.length >= 8,
+        upper: /[A-Z]/.test(pwd),
+        lower: /[a-z]/.test(pwd),
+        num: /[0-9]/.test(pwd)
+    };
+    let score = Object.values(checks).filter(Boolean).length;
+
+    ['len','upper','lower','num'].forEach(k => {
+        const el = document.getElementById('chk-' + k);
+        if (checks[k]) {
+            el.className = 'text-success';
+            el.querySelector('i').className = 'bi bi-check-circle-fill';
+        } else {
+            el.className = 'text-muted';
+            el.querySelector('i').className = 'bi bi-x-circle';
+        }
+    });
+
+    const levels = ['','danger','warning','info','success'];
+    const labels = ['','Debil','Regular','Buena','Fuerte'];
+    bar.style.width = (score * 25) + '%';
+    bar.className = 'progress-bar bg-' + (levels[score] || '');
+    txt.textContent = pwd.length ? labels[score] : '';
+});
+</script>
 {% endblock %}

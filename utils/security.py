@@ -37,6 +37,29 @@ def csrf_protect(f):
     return decorated_function
 
 
+def validar_contraseña(contraseña):
+    """Validate password strength.
+
+    Returns (bool, str) — True and empty string if valid,
+    False and an error message otherwise.
+
+    Rules:
+    - At least 8 characters
+    - At least one uppercase letter
+    - At least one lowercase letter
+    - At least one digit
+    """
+    if len(contraseña) < 8:
+        return False, "La contraseña debe tener al menos 8 caracteres."
+    if not any(c.isupper() for c in contraseña):
+        return False, "La contraseña debe contener al menos una mayúscula."
+    if not any(c.islower() for c in contraseña):
+        return False, "La contraseña debe contener al menos una minúscula."
+    if not any(c.isdigit() for c in contraseña):
+        return False, "La contraseña debe contener al menos un número."
+    return True, ""
+
+
 def validar_precio(precio):
     """Return ``True`` if ``precio`` can be cast to a positive float.
 
