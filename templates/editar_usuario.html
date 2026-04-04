@@ -58,13 +58,16 @@
                                 <i class="bi bi-shield-check me-1"></i>Rol <span class="text-danger">*</span>
                             </label>
                             <select class="form-select form-select-lg" id="rol" name="rol" required>
-                                <option value="tecnico" {% if usuario.rol == 'tecnico' %}selected{% endif %}>
-                                    Tecnico (Acceso a reparaciones y clientes)
+                                {% for r in roles %}
+                                <option value="{{ r.nombre }}" {% if usuario.rol == r.nombre %}selected{% endif %}>
+                                    {{ r.nombre|capitalize }} {% if r.descripcion %}({{ r.descripcion|truncate(50) }}){% endif %}
                                 </option>
-                                <option value="admin" {% if usuario.rol == 'admin' %}selected{% endif %}>
-                                    Administrador (Acceso completo)
-                                </option>
+                                {% endfor %}
                             </select>
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>
+                                <a href="{{ url_for('admin_roles') }}">Gestionar roles y permisos</a>
+                            </div>
                         </div>
 
                         <div class="alert mb-4" style="background: #EBF5FB; color: #1a6fbd; border: 1px solid #4da6d8;">

@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Nuevo Rol - AndroTech{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-xl-8 col-lg-10">
+            <span class="at-pill"><i class="bi bi-shield-plus me-1"></i>Roles</span>
+            <h1 class="at-section-title mt-2 mb-1">Crear Nuevo Rol</h1>
+            <p class="at-section-sub">Define un nuevo rol con permisos personalizados</p>
+
+            <form method="POST" class="needs-validation" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <div class="at-admin-card mt-4">
+                    <div class="at-admin-card-header">
+                        <i class="bi bi-info-circle me-2"></i>Informacion del Rol
+                    </div>
+                    <div class="p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="nombre" class="form-label fw-semibold">
+                                    <i class="bi bi-tag me-1"></i>Nombre del Rol <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control form-control-lg" id="nombre" name="nombre"
+                                       placeholder="ej: recepcionista" required minlength="3"
+                                       pattern="[a-zA-Z0-9_-]{3,}" style="text-transform: lowercase;">
+                                <div class="form-text">
+                                    Solo letras, numeros, guiones. Minimo 3 caracteres.
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="color" class="form-label fw-semibold">
+                                    <i class="bi bi-palette me-1"></i>Color
+                                </label>
+                                <input type="color" class="form-control form-control-lg form-control-color w-100"
+                                       id="color" name="color" value="#2B8AC4">
+                            </div>
+                            <div class="col-12">
+                                <label for="descripcion" class="form-label fw-semibold">
+                                    <i class="bi bi-text-paragraph me-1"></i>Descripcion
+                                </label>
+                                <input type="text" class="form-control" id="descripcion" name="descripcion"
+                                       placeholder="Describe que hace este rol (ej: Solo atiende al cliente en recepcion)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Permisos por categoría -->
+                <div class="at-admin-card mt-4">
+                    <div class="at-admin-card-header d-flex align-items-center justify-content-between">
+                        <span><i class="bi bi-key me-2"></i>Permisos</span>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="marcarTodos(true)">
+                                <i class="bi bi-check-all me-1"></i>Todos
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="marcarTodos(false)">
+                                <i class="bi bi-x-circle me-1"></i>Ninguno
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        {% for cat_name, cat_permisos in categorias.items() %}
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <h6 class="mb-0 fw-bold" style="color:#0F1923;">
+                                    {% if cat_name == 'Clientes' %}<i class="bi bi-people me-1" style="color:#2B8AC4;"></i>
+                                    {% elif cat_name == 'Reparaciones' %}<i class="bi bi-tools me-1" style="color:#2B8AC4;"></i>
+                                    {% elif cat_name == 'Inventario' %}<i class="bi bi-box-seam me-1" style="color:#2B8AC4;"></i>
+                                    {% elif cat_name == 'General' %}<i class="bi bi-grid me-1" style="color:#2B8AC4;"></i>
+                                    {% elif cat_name == 'Administracion' %}<i class="bi bi-shield-exclamation me-1" style="color:#dc3545;"></i>
+                                    {% endif %}
+                                    {{ cat_name }}
+                                </h6>
+                                <button type="button" class="btn btn-sm btn-link p-0 text-muted"
+                                        onclick="toggleCategoria('{{ cat_name }}')">
+                                    <small>Todos/Ninguno</small>
+                                </button>
+                            </div>
+                            <div class="row g-2">
+                                {% for p in cat_permisos %}
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="form-check p-2 rounded" style="background:rgba(0,0,0,.02);">
+                                        <input class="form-check-input permiso-check" type="checkbox"
+                                               name="permisos" value="{{ p.clave }}"
+                                               id="p_{{ p.clave }}" data-cat="{{ cat_name }}">
+                                        <label class="form-check-label small" for="p_{{ p.clave }}">
+                                            {{ p.nombre }}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+
+                        <div class="alert mt-3 mb-0" style="background:#EBF5FB;color:#1a6fbd;border:1px solid #4da6d8;">
+                            <i class="bi bi-info-circle me-1"></i>
+                            <strong>Nota:</strong> Los permisos de "Administracion" dan acceso a areas sensibles del sistema. Asignalos con precaucion.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                    <button type="submit" class="at-btn-primary flex-fill">
+                        <i class="bi bi-check-circle me-1"></i>Crear Rol
+                    </button>
+                    <a href="{{ url_for('admin_roles') }}" class="at-btn-outline flex-fill text-center">
+                        <i class="bi bi-arrow-left me-1"></i>Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function marcarTodos(estado) {
+    document.querySelectorAll('.permiso-check').forEach(cb => cb.checked = estado);
+}
+function toggleCategoria(cat) {
+    const checks = document.querySelectorAll(`.permiso-check[data-cat="${cat}"]`);
+    const allChecked = Array.from(checks).every(cb => cb.checked);
+    checks.forEach(cb => cb.checked = !allChecked);
+}
+</script>
+{% endblock %}

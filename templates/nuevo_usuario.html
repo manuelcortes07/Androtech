@@ -55,9 +55,16 @@
                             </label>
                             <select class="form-select form-select-lg" id="rol" name="rol" required>
                                 <option value="">-- Selecciona un rol --</option>
-                                <option value="tecnico" selected>Tecnico (Acceso a reparaciones y clientes)</option>
-                                <option value="admin">Administrador (Acceso completo)</option>
+                                {% for r in roles %}
+                                <option value="{{ r.nombre }}" {% if r.nombre == 'tecnico' %}selected{% endif %}>
+                                    {{ r.nombre|capitalize }} {% if r.descripcion %}({{ r.descripcion|truncate(50) }}){% endif %}
+                                </option>
+                                {% endfor %}
                             </select>
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>
+                                <a href="{{ url_for('admin_roles') }}">Gestionar roles y permisos</a>
+                            </div>
                         </div>
 
                         <div class="d-flex flex-wrap gap-2 mt-4">
