@@ -1,412 +1,324 @@
-# AndroTech - Gestión de Reparaciones con Pagos Públicos
+# AndroTech - Sistema de Gestion de Reparaciones
 
-Aplicación Flask para gestionar reparaciones de dispositivos móviles con sistema de pagos público integrado mediante Stripe Checkout.
-
-## 🚀 Características Principales
-
-- **Dashboard administrativo** con KPIs de reparaciones y pagos
-- **Consulta pública**: clientes pueden ver estado de reparaciones sin login
-- **Pagos públicos con Stripe**: clientes pagan directamente desde la web con tarjeta
-- **Sistema de email automático**: notificaciones de pagos y actualizaciones de reparaciones
-- **Generación de PDFs**: presupuestos y facturas automáticas
-- **Filtros avanzados**: búsqueda por cliente, estado, fechas y rango de precio
-- **Historial de pagos**: registro de transacciones y métodos de pago
-- **Autenticación segura**: contraseñas hasheadas con werkzeug
-
-## 📋 Requisitos
-
-- Python 3.8+
-- pip (gestor de paquetes Python)
-- Git (opcional, para clonar el repositorio)
-- Stripe CLI (opcional, para probar webhooks localmente)
-
-## 💻 Instalación Rápida (Windows)
-
-### Opción A: Automática con script
-
-```powershell
-# 1. Abre PowerShell en la carpeta del proyecto
-# 2. Ejecuta el script de setup
-.\setup_env.ps1
-```
-
-El script automáticamente:
-- Crea el entorno virtual
-- Instala dependencias
-- Crea la base de datos
-- Configura variables de Stripe
-
-### Opción B: Manual
-
-```powershell
-# 1. Crear entorno virtual
-python -m venv .venv
-
-# 2. Activar entorno virtual
-.\.venv\Scripts\Activate.ps1
-
-# 3. Instalar dependencias
-pip install -r requirements.txt
-
-# 4. Crear base de datos
-python create_db.py
-```
-
-## 🔐 Configuración de Stripe
-
-### Obtener Claves de Prueba
-
-1. Crea una cuenta en [Stripe](https://stripe.com/es)
-2. Ve a tu [Dashboard](https://dashboard.stripe.com/test/apikeys)
-3. Copia las claves de prueba:
-   - **Secret Key** (`sk_test_...`)
-   - **Publishable Key** (`pk_test_...`)
-
-### Configurar Variables de Entorno
-
-#### Opción A: Sesión Actual (Temporal)
-
-```powershell
-$env:STRIPE_SECRET_KEY = "sk_test_..."
-$env:STRIPE_PUBLISHABLE_KEY = "pk_test_..."
-$env:STRIPE_WEBHOOK_SECRET = "whsec_..." # Se obtiene después
-```
-
-> **❗ Atención:** Si ves `Error de autenticación con Stripe` al intentar crear una sesión de pago, es muy probable que
-> 1. `STRIPE_SECRET_KEY` esté vacío o no configurado, o
-> 2. se haya usado por error la **clave pública** (`pk_...`) en lugar de la secreta (`sk_...`).
->
-> Revisa las variables de entorno y asegúrate de usar la clave `sk_test_...` adecuada.
-
-#### Opción B: Persistente (Permanente en Windows)
-
-```powershell
-setx STRIPE_SECRET_KEY "sk_test_..."
-setx STRIPE_PUBLISHABLE_KEY "pk_test_..."
-setx STRIPE_WEBHOOK_SECRET "whsec_..."
-```
-
-Cierra la terminal y abre una nueva para que los cambios surtan efecto.
-
-## 📧 Configuración de Email Automático
-
-### Características
-- **Confirmación de pagos**: Email automático cuando se procesa un pago exitoso
-- **Actualización de estados**: Notificación cuando cambia el estado de una reparación
-- **Facturas**: Envío de facturas por email
-
-### Configuración Rápida
-
-```powershell
-# Ejecutar el asistente de configuración
-.\configure_email.ps1
-```
-
-### Configuración Manual
-
-#### Para Gmail (Recomendado con 2FA)
-```powershell
-# Variables de entorno necesarias
-$env:MAIL_SERVER = "smtp.gmail.com"
-$env:MAIL_PORT = "587"
-$env:MAIL_USE_TLS = "true"
-$env:MAIL_USE_SSL = "false"
-$env:MAIL_USERNAME = "tu-email@gmail.com"
-$env:MAIL_PASSWORD = "tu-contraseña-de-aplicación"
-$env:MAIL_DEFAULT_SENDER = "noreply@androtech.com"
-```
-
-**Configuración de Gmail:**
-1. Ve a [Google Account Settings](https://myaccount.google.com/security)
-2. Activa la **Verificación en 2 pasos**
-3. Ve a **Contraseñas de aplicaciones**
-4. Genera una contraseña para "AndroTech"
-5. Usa esa contraseña de 16 caracteres en `MAIL_PASSWORD`
-
-#### Para Outlook/Hotmail
-```powershell
-$env:MAIL_SERVER = "smtp-mail.outlook.com"
-$env:MAIL_PORT = "587"
-$env:MAIL_USE_TLS = "true"
-$env:MAIL_USE_SSL = "false"
-$env:MAIL_USERNAME = "tu-email@outlook.com"
-$env:MAIL_PASSWORD = "tu-contraseña-normal"
-$env:MAIL_DEFAULT_SENDER = "noreply@androtech.com"
-```
-
-### Alternar entre Proveedores
-
-```powershell
-# Script para cambiar fácilmente entre Gmail y Outlook
-python switch_email_config.py
-```
-
-### Probar Envío Real de Emails
-
-Una vez configuradas las credenciales SMTP válidas:
-
-```powershell
-# Probar envío real de email
-python test_real_email.py
-```
-
-### Verificar Emails Enviados
-
-Después de un pago exitoso, deberías recibir:
-- ✅ Email de confirmación de pago automático
-- ✅ Email con detalles de la transacción
-- ✅ Template HTML profesional
-
-## 🔧 Solución de Problemas Comunes
-
-### Errores en Amarillo en VS Code (Import Errors)
-
-Si VS Code marca errores en amarillo como `from flask_mail import Mail` o `from dotenv import load_dotenv`, significa que no está usando el entorno virtual.
-
-**Solución Rápida:**
-1. Presiona `Ctrl + Shift + P` (o `Cmd + Shift + P` en Mac)
-2. Busca: `Python: Select Interpreter`
-3. Selecciona: `./venv/Scripts/python.exe`
-
-**Verificación:**
-```powershell
-# Ejecuta este script para verificar
-python check_dependencies.py
-```
-
-### Dependencias No Encontradas
-
-Si faltan dependencias:
-```powershell
-# Activar entorno virtual
-.\venv\Scripts\Activate.ps1
-
-# Instalar todas las dependencias
-pip install -r requirements.txt
-```
-
-### Error al Ejecutar la Aplicación
-
-```powershell
-# Verificar que todo funciona
-python -c "from flask import Flask; from flask_mail import Mail; print('OK')"
-```
-
-## ▶️ Ejecutar la Aplicación
-
-```powershell
-# Asegúrate de tener el venv activo
-.\.venv\Scripts\Activate.ps1
-
-# Ejecutar Flask en modo desarrollo
-python app.py
-```
-
-La app estará disponible en: `http://127.0.0.1:5000`
-
-### Credenciales de Prueba
-
-- **Usuario**: `Manuel`
-- **Contraseña**: (verificar en `setup_test_data.py`)
-
-## 🧪 Probar Pagos Públicos Localmente
-
-### Paso 1: Obtener Secret de Webhook
-
-```powershell
-# Instala Stripe CLI desde: https://stripe.com/docs/stripe-cli
-stripe login
-
-# Desde la carpeta del proyecto, ejecuta en otra terminal:
-stripe listen --forward-to localhost:5000/stripe/webhook
-```
-
-Copía el `Webhook Signing Secret` (formato: `whsec_...`) y configúralo:
-
-```powershell
-$env:STRIPE_WEBHOOK_SECRET = "whsec_..."
-```
-
-### Paso 2: Simular un Pago
-
-1. Abre `http://127.0.0.1:5000/consulta`
-2. Introduce un número de reparación (ej: `1`)
-3. Si tiene precio y no está pagada, verás el botón "Pagar con tarjeta"
-4. Introduce el email del cliente
-5. En Stripe Checkout, usa tarjeta de prueba: `4242 4242 4242 4242`
-   - CVC: cualquier número (ej: `123`)
-   - Fecha: mes/año futuros
-
-### Paso 3: Verificar Pago
-
-- El webhook actualizará automáticamente el estado en BD
-- Vuelve a la consulta y verás "Pago Confirmado"
-- En el dashboard verás el pago registrado
-
-## � Probar Sistema de Email
-
-### Modo de Prueba (Sin Envío Real)
-
-Por defecto, el sistema imprime emails en consola para evitar problemas de configuración SMTP:
-
-```powershell
-# Ejecutar pruebas de email
-python test_email_console.py
-```
-
-Verás en consola los emails que se enviarían (confirmaciones de pago, actualizaciones de estado, facturas).
-
-### Activar Envío Real de Emails
-
-1. **Configura credenciales SMTP válidas** en `.env`:
-   ```env
-   MAIL_SERVER=smtp.gmail.com
-   MAIL_PORT=587
-   MAIL_USE_TLS=true
-   MAIL_USERNAME=tu-email@gmail.com
-   MAIL_PASSWORD=tu-contraseña-app
-   ```
-
-2. **Restaura envío real**:
-   ```powershell
-   python restore_email_sending.py
-   ```
-
-3. **Reinicia la aplicación** para aplicar cambios.
-
-### Tipos de Emails Automáticos
-
-- **Confirmación de pago**: Se envía automáticamente al procesar un pago exitoso
-- **Actualización de estado**: Se envía cuando cambia el estado de una reparación
-- **Factura**: Se puede enviar manualmente desde el dashboard
-
-## �📁 Estructura del Proyecto
-
-```
-AndroTech/
-├── app.py                    # Aplicación Flask principal
-├── create_db.py             # Script para crear BD
-├── requirements.txt         # Dependencias Python
-├── README.md               # Este archivo
-├── .env.example            # Template de variables de entorno
-├── setup_env.ps1           # Script automático de setup (Windows)
-├── AUDIT_PAGO_PUBLICO.md   # Análisis de validaciones de pago
-│
-├── database/
-│   └── andro_tech.db       # Base de datos SQLite
-│
-├── static/
-│   ├── css/
-│   │   └── style.css
-│   └── imagenes/           # (falta agregar imágenes)
-│
-├── templates/
-│   ├── base.html           # Plantilla base
-│   ├── consulta.html       # Consulta pública + pago
-│   ├── pago_exito.html     # Página de éxito
-│   ├── editar_reparacion.html  # Gestión de pagos internos
-│   ├── dashboard.html      # Dashboard administrativo
-│   ├── reparaciones.html   # Listado con filtros
-│   └── ... (otras plantillas)
-│
-└── utils/
-    └── pdf_generator.py    # Generador de presupuestos/facturas
-```
-
-## 🔒 Consideraciones de Seguridad
-
-✅ **Implementadas**:
-- No se manejan datos de tarjeta (Stripe lo hace)
-- Verificación por email antes de pagos públicos
-- Webhook valida firma de Stripe
-- Contraseñas hasheadas (werkzeug.security)
-- Variables sensibles en entorno
-
-⚠️ **Producción**:
-- Usar HTTPS obligatoriamente
-- Cambiar SECRET_KEY en Flask a valor aleatorio
-- Usar base de datos robusta (PostgreSQL en lugar de SQLite)
-- Configurar rate-limiting en servidor
-- Usar reverse proxy (nginx) con SSL
-
-## 📝 Archivos Clave
-
-### Backend
-- [app.py](app.py): Routes, autenticación, pagos públicos, webhooks
-- [create_db.py](create_db.py): Schema de BD (clientes, reparaciones, usuarios)
-- [utils/pdf_generator.py](utils/pdf_generator.py): Generación de PDF
-
-### Frontend
-- [templates/consulta.html](templates/consulta.html): Página pública de consulta + pago
-- [templates/editar_reparacion.html](templates/editar_reparacion.html): UI de pagos internos
-- [templates/dashboard.html](templates/dashboard.html): Dashboard con KPIs
-
-## 📊 Flujo de Pago Público
-
-```
-1. Cliente entra a /consulta
-2. Introduce # reparación
-3. Si existe + tiene precio + no pagada → muestra formulario
-4. Cliente verifica email
-5. Envía email al endpoint /publico/pagar/<id>
-6. App valida reparación + email
-7. Crea sesión Stripe Checkout
-8. Stripe redirige a página de pago
-9. Cliente paga con tarjeta
-10. Stripe envía webhook a /stripe/webhook
-11. App valida webhook y marca como pagado
-12. Cliente ve confirmación en /pago_exito
-```
-
-## 🐛 Troubleshooting
-
-### Error: "stripe module not found"
-```powershell
-pip install stripe
-```
-
-### Error: "STRIPE_SECRET_KEY not configured"
-Verifica que configuraste las variables de entorno. Usa:
-```powershell
-$env:STRIPE_SECRET_KEY # debe mostrar tu clave
-```
-
-### Error: "Database locked"
-Cierra la app y vuelve a ejecutar:
-```powershell
-python app.py
-```
-
-### Webhook no funciona localmente
-Verifica que ejecutaste:
-```powershell
-stripe listen --forward-to localhost:5000/stripe/webhook
-```
-
-## 📚 Documentación Adicional
-
-- [Guía de Stripe Checkout](https://stripe.com/docs/payments/checkout)
-- [Documentación de Webhooks Stripe](https://stripe.com/docs/webhooks)
-- [Stripe CLI Setup](https://stripe.com/docs/stripe-cli)
-- [Flask Documentation](https://flask.palletsprojects.com/)
-
-## 🚀 Próximas Mejoras Planeadas
-
-- [ ] Implementar Audit Log (historial de cambios)
-- [ ] Gráficas interactivas (Chart.js) en dashboard
-- [ ] Notificaciones por email
-- [ ] Soporte para múltiples idiomas
-- [ ] Tests automatizados
-- [ ] Despliegue a producción (gunicorn, nginx)
-
-## 📄 Licencia
-
-Este proyecto es de uso interno para AndroTech.
-
-## 👨‍💻 Soporte
-
-Para reportar errores o sugerencias, contacta con el administrador del proyecto.
+Aplicacion web completa para la gestion de un taller de reparacion de dispositivos moviles y tablets. Desarrollada con Flask (Python) como proyecto de 2 SMR.
 
 ---
 
-**Última actualización**: Febrero 2026
+## Funcionalidades principales
+
+### Gestion de reparaciones
+- CRUD completo de reparaciones con estados (Pendiente, En proceso, Terminado, Entregado)
+- Historial de cambios de estado con registro de usuario y fecha
+- Subida de fotos con drag & drop y galeria con lightbox
+- Firma digital del cliente mediante canvas tactil
+- Notas internas por reparacion (con marcado de importancia)
+- Piezas utilizadas con autocompletado desde inventario
+- Generacion de ticket de recogida con codigo QR
+- Exportacion de presupuestos y facturas en PDF
+
+### Gestion de clientes
+- CRUD completo de clientes
+- Historial de reparaciones por cliente
+- Exportacion del historial a PDF
+- Consulta publica de estado de reparacion (sin login)
+
+### Dashboard administrativo
+- KPIs en tiempo real: clientes, reparaciones, ingresos, pendientes
+- Graficos interactivos con Chart.js (estados, dispositivos, ingresos mensuales, tecnicos)
+- Alertas de reparaciones atrasadas (sin actividad > 7 dias)
+- Distribucion de estados y dispositivos mas reparados
+- Auditoria de eventos reciente
+
+### Inventario de piezas
+- CRUD de piezas con categorias (Pantallas, Baterias, Conectores, Placas, Carcasas, Accesorios)
+- Control de stock con alertas de stock bajo
+- Precio de coste y venta por pieza
+- Busqueda por API JSON para autocompletado
+
+### Calendario
+- Vista calendario con FullCalendar (mes, semana, lista)
+- Eventos coloreados segun estado de la reparacion
+- Locale en español
+
+### Sistema de pagos
+- Integracion con Stripe Checkout para pagos publicos con tarjeta
+- Webhook para confirmacion automatica de pagos
+- Registro de metodo y fecha de pago
+- Pagina publica de consulta y pago
+
+### Notificaciones por email
+- Confirmacion de pago automatica
+- Notificacion de cambio de estado
+- Bienvenida a nuevos clientes
+- Aviso de nueva reparacion registrada
+- Templates HTML profesionales en español
+
+### Seguridad
+- Autenticacion con contraseñas hasheadas (Werkzeug)
+- Validacion de contraseñas: minimo 8 caracteres, mayuscula, minuscula y numero
+- Roles de usuario: administrador y tecnico
+- Proteccion CSRF en todos los formularios
+- Cabeceras de seguridad (X-Frame-Options, X-Content-Type-Options, Referrer-Policy)
+- Audit log con registro de IP y timestamp
+- Validacion de precios y ficheros subidos
+
+### PWA (Progressive Web App)
+- Instalable en movil y escritorio
+- Service Worker con estrategia network-first
+- Manifest con tema corporativo
+
+### Otras funcionalidades
+- Busqueda global de clientes y reparaciones
+- Exportacion a CSV (reparaciones, clientes)
+- Modo oscuro completo
+- Logging estructurado en JSON con rotacion de ficheros
+- Diseño responsive (movil, tablet, escritorio)
+
+---
+
+## Tecnologias utilizadas
+
+| Capa | Tecnologia |
+|------|-----------|
+| Backend | Python 3.8+, Flask 3.1 |
+| Base de datos | SQLite3 |
+| Frontend | Bootstrap 5.3, Bootstrap Icons 1.11 |
+| Graficos | Chart.js 4.4 |
+| Calendario | FullCalendar 6.1 |
+| Firma digital | Signature Pad 4.2 |
+| PDF | ReportLab 4.4 |
+| Pagos | Stripe 14.4 |
+| Email | Flask-Mail (SMTP) |
+| PWA | Service Worker, Web App Manifest |
+
+---
+
+## Requisitos previos
+
+- Python 3.8 o superior
+- pip (gestor de paquetes Python)
+- Git (opcional, para clonar el repositorio)
+
+---
+
+## Instalacion
+
+### 1. Clonar el repositorio
+
+```bash
+git clone <url-del-repositorio>
+cd AndroTech
+```
+
+### 2. Crear y activar entorno virtual
+
+**Windows (PowerShell):**
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+**Linux/Mac:**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 3. Instalar dependencias
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Crear la base de datos
+
+```bash
+python create_db.py
+```
+
+### 5. Ejecutar la aplicacion
+
+```bash
+python app.py
+```
+
+La aplicacion estara disponible en: **http://127.0.0.1:5000**
+
+---
+
+## Configuracion
+
+### Variables de entorno
+
+Crea un fichero `.env` en la raiz del proyecto (o configura variables de entorno del sistema):
+
+```env
+# Flask
+SECRET_KEY=tu-clave-secreta-aqui
+
+# Stripe (opcional - para pagos con tarjeta)
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# Email (opcional - para notificaciones)
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USE_TLS=true
+MAIL_USERNAME=tu-email@gmail.com
+MAIL_PASSWORD=tu-contraseña-de-aplicacion
+MAIL_DEFAULT_SENDER=noreply@androtech.com
+```
+
+### Configuracion de Gmail
+
+Si usas Gmail para enviar emails:
+
+1. Activa la **Verificacion en 2 pasos** en tu cuenta de Google
+2. Ve a **Contraseñas de aplicaciones** en la configuracion de seguridad
+3. Genera una contraseña para "AndroTech"
+4. Usa esa contraseña de 16 caracteres en `MAIL_PASSWORD`
+
+### Configuracion de Stripe (pagos)
+
+1. Crea una cuenta en [Stripe](https://stripe.com/es)
+2. Copia las claves de prueba desde el [Dashboard](https://dashboard.stripe.com/test/apikeys)
+3. Para webhooks locales, instala [Stripe CLI](https://stripe.com/docs/stripe-cli):
+   ```bash
+   stripe listen --forward-to localhost:5000/stripe/webhook
+   ```
+
+---
+
+## Credenciales por defecto
+
+| Usuario | Contraseña | Rol |
+|---------|-----------|-----|
+| admin | test1234 | Administrador |
+
+> Cambia la contraseña del administrador tras el primer inicio de sesion.
+
+---
+
+## Estructura del proyecto
+
+```
+AndroTech/
+├── app.py                     # Aplicacion Flask principal (rutas, logica)
+├── db.py                      # Conexion a base de datos SQLite
+├── auth.py                    # Decoradores de autenticacion y roles
+├── audit.py                   # Sistema de auditoria
+├── alerts.py                  # Calculo de alertas de reparaciones
+├── historial.py               # Registro de historial de estados
+├── create_db.py               # Script para crear la base de datos
+├── requirements.txt           # Dependencias Python
+├── .env                       # Variables de entorno (no incluido en git)
+│
+├── database/
+│   └── andro_tech.db          # Base de datos SQLite
+│
+├── static/
+│   ├── css/
+│   │   └── style.css          # Estilos personalizados (2500+ lineas)
+│   ├── imagenes/
+│   │   └── logo.jpg           # Logo de AndroTech
+│   ├── uploads/
+│   │   ├── reparaciones/      # Fotos subidas de reparaciones
+│   │   └── firmas/            # Firmas digitales guardadas
+│   ├── favicon.svg            # Icono de la aplicacion
+│   ├── sw.js                  # Service Worker (PWA)
+│   └── manifest.json          # Manifiesto PWA
+│
+├── templates/                 # Plantillas Jinja2 (35 ficheros)
+│   ├── base.html              # Plantilla base con navbar y footer
+│   ├── login.html             # Inicio de sesion
+│   ├── dashboard.html         # Panel de control con graficos
+│   ├── clientes.html          # Listado de clientes
+│   ├── reparaciones.html      # Listado de reparaciones
+│   ├── editar_reparacion.html # Edicion con fotos, notas, piezas, firma
+│   ├── inventario.html        # Gestion de inventario
+│   ├── calendario.html        # Vista calendario
+│   ├── firmar_reparacion.html # Captura de firma digital
+│   ├── emails/                # Plantillas de email HTML
+│   │   ├── nueva_reparacion.html
+│   │   ├── repair_status_update.html
+│   │   ├── payment_confirmation.html
+│   │   └── bienvenida_cliente.html
+│   └── ...
+│
+├── utils/
+│   ├── security.py            # CSRF, validacion de contraseñas y precios
+│   ├── email_service.py       # Servicio de envio de emails
+│   └── pdf_generator.py       # Generador de PDFs
+│
+└── logs/                      # Logs de la aplicacion (JSON rotativo)
+```
+
+---
+
+## Rutas principales
+
+| Ruta | Metodo | Descripcion | Acceso |
+|------|--------|-------------|--------|
+| `/` | GET | Pagina de inicio | Publico |
+| `/login` | GET/POST | Inicio de sesion | Publico |
+| `/dashboard` | GET | Panel de control | Login |
+| `/clientes` | GET | Listado de clientes | Login |
+| `/clientes/nuevo` | GET/POST | Crear cliente | Login |
+| `/reparaciones` | GET | Listado de reparaciones | Login |
+| `/reparaciones/nueva` | GET/POST | Crear reparacion | Login |
+| `/reparaciones/editar/<id>` | GET/POST | Editar reparacion | Login |
+| `/inventario` | GET | Inventario de piezas | Admin |
+| `/calendario` | GET | Vista calendario | Login |
+| `/consulta` | GET/POST | Consulta publica | Publico |
+| `/mis-reparaciones` | GET/POST | Reparaciones del cliente | Publico |
+| `/admin/usuarios` | GET | Gestion de usuarios | Admin |
+| `/buscar` | GET | Busqueda global | Login |
+
+---
+
+## Flujo de uso tipico
+
+1. **Recepcion**: El tecnico registra al cliente y crea una nueva reparacion con fotos del dispositivo
+2. **Diagnostico**: Se actualizan notas internas y se añaden piezas del inventario
+3. **Reparacion**: Se cambia el estado a "En proceso" (se notifica al cliente por email)
+4. **Finalizacion**: Se marca como "Terminado", se genera presupuesto/factura PDF
+5. **Entrega**: El cliente firma digitalmente, se genera ticket de recogida con QR
+6. **Pago**: El cliente paga online (Stripe) o en tienda, se registra el pago
+
+---
+
+## Solucion de problemas
+
+### "Module not found" al ejecutar
+
+Asegurate de tener el entorno virtual activado:
+```powershell
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+### VS Code no reconoce los imports
+
+Selecciona el interprete del entorno virtual:
+1. `Ctrl + Shift + P` > `Python: Select Interpreter`
+2. Selecciona `.venv/Scripts/python.exe`
+
+### "Database locked"
+
+Cierra la aplicacion y vuelve a ejecutar `python app.py`. SQLite solo permite una conexion de escritura simultanea.
+
+### Emails no se envian
+
+Verifica las credenciales SMTP en `.env`. Para Gmail necesitas una "contraseña de aplicacion", no tu contraseña normal.
+
+---
+
+## Licencia
+
+Proyecto academico de uso interno para AndroTech - Taller de reparacion de dispositivos moviles. Desarrollado como proyecto de 2 SMR.
+
+---
+
+**Desarrollado por**: Manuel - 2 SMR
+**Ultima actualizacion**: Abril 2026
