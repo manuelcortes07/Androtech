@@ -1009,7 +1009,7 @@ def exportar_historial_cliente_pdf(id):
     elements.append(Spacer(1, 25))
     elements.append(Paragraph(
         f'<para alignment="center"><font size="8" color="#9ba5b0">'
-        f'Generado el {datetime.now().strftime("%d/%m/%Y %H:%M")} — AndroTech, Huelva'
+        f'Generado el {datetime.now().strftime("%d/%m/%Y %H:%M")} — AndroTech, Huelva | +34 633 234 395'
         f'</font></para>', styles['Normal']
     ))
 
@@ -1086,31 +1086,59 @@ from io import StringIO, BytesIO
 def exportar_reparaciones_csv():
     conn = get_db()
     rows = conn.execute('''
-        SELECT r.id, c.nombre as cliente, c.email, c.telefono,
+        SELECT r.id, c.nombre as cliente, c.email, c.telefono, c.direccion,
                r.dispositivo, r.descripcion, r.estado, r.estado_pago,
-               r.precio, r.fecha_entrada, r.fecha_pago, r.metodo_pago
+               r.precio, r.fecha_entrada, r.fecha_salida, r.fecha_pago, r.metodo_pago,
+               r.tipo_documento,
+               (SELECT COUNT(*) FROM fotos_reparacion WHERE reparacion_id = r.id) as num_fotos,
+               (SELECT COUNT(*) FROM notas_reparacion WHERE reparacion_id = r.id) as num_notas,
+               CASE WHEN r.firma IS NOT NULL AND r.firma != '' THEN 'Si' ELSE 'No' END as firmado
         FROM reparaciones r
-        JOIN clientes c ON r.cliente_id = c.id
+        LEFT JOIN clientes c ON r.cliente_id = c.id
         ORDER BY r.id DESC
     ''').fetchall()
+
+    # Estadisticas resumen
+    total = len(rows)
+    total_facturado = sum(r['precio'] or 0 for r in rows)
+    total_pagado = sum(r['precio'] or 0 for r in rows if r['estado_pago'] == 'Pagado')
+    total_pendiente = total_facturado - total_pagado
     conn.close()
 
     si = StringIO()
-    writer = csv.writer(si)
-    writer.writerow(['ID', 'Cliente', 'Email', 'Telefono', 'Dispositivo',
-                     'Descripcion', 'Estado', 'Estado Pago', 'Precio',
-                     'Fecha Entrada', 'Fecha Pago', 'Metodo Pago'])
+    writer = csv.writer(si, delimiter=';')
+
+    # Cabecera del informe
+    writer.writerow(['INFORME DE REPARACIONES - ANDROTECH'])
+    writer.writerow([f'Fecha de exportacion: {datetime.now().strftime("%d/%m/%Y %H:%M")}'])
+    writer.writerow([f'Total registros: {total}'])
+    writer.writerow([f'Total facturado: {total_facturado:.2f} EUR'])
+    writer.writerow([f'Total cobrado: {total_pagado:.2f} EUR'])
+    writer.writerow([f'Pendiente de cobro: {total_pendiente:.2f} EUR'])
+    writer.writerow([])
+
+    # Cabeceras de columnas
+    writer.writerow(['N. Reparacion', 'Cliente', 'Email', 'Telefono', 'Direccion',
+                     'Dispositivo', 'Descripcion', 'Estado', 'Estado Pago',
+                     'Precio (EUR)', 'Tipo Documento', 'Fecha Entrada', 'Fecha Salida',
+                     'Fecha Pago', 'Metodo Pago', 'Fotos', 'Notas', 'Firmado'])
+
     for r in rows:
-        writer.writerow([r['id'], r['cliente'], r['email'], r['telefono'],
-                         r['dispositivo'], r['descripcion'], r['estado'],
-                         r['estado_pago'], r['precio'], r['fecha_entrada'],
-                         r['fecha_pago'], r['metodo_pago']])
+        precio_fmt = f'{r["precio"]:.2f}'.replace('.', ',') if r['precio'] else '0,00'
+        writer.writerow([
+            r['id'], r['cliente'] or 'Sin asignar', r['email'] or '', r['telefono'] or '',
+            r['direccion'] or '', r['dispositivo'], r['descripcion'] or '',
+            r['estado'], r['estado_pago'], precio_fmt, r['tipo_documento'] or '',
+            r['fecha_entrada'] or '', r['fecha_salida'] or '',
+            r['fecha_pago'] or '', r['metodo_pago'] or '',
+            r['num_fotos'], r['num_notas'], r['firmado']
+        ])
 
     output = BytesIO()
     output.write(si.getvalue().encode('utf-8-sig'))
     output.seek(0)
     return send_file(output, mimetype='text/csv', as_attachment=True,
-                     download_name=f'reparaciones_{datetime.now().strftime("%Y%m%d")}.csv')
+                     download_name=f'AndroTech_Reparaciones_{datetime.now().strftime("%Y%m%d")}.csv')
 
 
 @app.route("/exportar/clientes.csv")
@@ -1119,28 +1147,59 @@ def exportar_reparaciones_csv():
 def exportar_clientes_csv():
     conn = get_db()
     rows = conn.execute('''
-        SELECT c.id, c.nombre, c.email, c.telefono,
+        SELECT c.id, c.nombre, c.email, c.telefono, c.direccion,
                COUNT(r.id) as total_reparaciones,
-               COALESCE(SUM(CASE WHEN r.estado_pago = 'Pagado' THEN r.precio ELSE 0 END), 0) as total_pagado
+               SUM(CASE WHEN r.estado IN ('Pendiente', 'En proceso') THEN 1 ELSE 0 END) as reparaciones_activas,
+               SUM(CASE WHEN r.estado IN ('Terminado', 'Entregado') THEN 1 ELSE 0 END) as reparaciones_completadas,
+               COALESCE(SUM(r.precio), 0) as total_facturado,
+               COALESCE(SUM(CASE WHEN r.estado_pago = 'Pagado' THEN r.precio ELSE 0 END), 0) as total_pagado,
+               COALESCE(SUM(CASE WHEN r.estado_pago = 'Pendiente' THEN r.precio ELSE 0 END), 0) as total_pendiente,
+               MAX(r.fecha_entrada) as ultima_visita
         FROM clientes c
         LEFT JOIN reparaciones r ON r.cliente_id = c.id
         GROUP BY c.id
         ORDER BY c.nombre
     ''').fetchall()
+
+    total_clientes = len(rows)
+    total_facturado = sum(r['total_facturado'] or 0 for r in rows)
+    total_cobrado = sum(r['total_pagado'] or 0 for r in rows)
     conn.close()
 
     si = StringIO()
-    writer = csv.writer(si)
-    writer.writerow(['ID', 'Nombre', 'Email', 'Telefono', 'Total Reparaciones', 'Total Pagado'])
+    writer = csv.writer(si, delimiter=';')
+
+    # Cabecera del informe
+    writer.writerow(['INFORME DE CLIENTES - ANDROTECH'])
+    writer.writerow([f'Fecha de exportacion: {datetime.now().strftime("%d/%m/%Y %H:%M")}'])
+    writer.writerow([f'Total clientes: {total_clientes}'])
+    writer.writerow([f'Total facturado: {total_facturado:.2f} EUR'])
+    writer.writerow([f'Total cobrado: {total_cobrado:.2f} EUR'])
+    writer.writerow([])
+
+    # Cabeceras de columnas
+    writer.writerow(['N. Cliente', 'Nombre', 'Email', 'Telefono', 'Direccion',
+                     'Total Reparaciones', 'Activas', 'Completadas',
+                     'Total Facturado (EUR)', 'Total Pagado (EUR)', 'Pendiente (EUR)',
+                     'Ultima Visita'])
+
     for r in rows:
-        writer.writerow([r['id'], r['nombre'], r['email'], r['telefono'],
-                         r['total_reparaciones'], r['total_pagado']])
+        facturado_fmt = f'{r["total_facturado"]:.2f}'.replace('.', ',')
+        pagado_fmt = f'{r["total_pagado"]:.2f}'.replace('.', ',')
+        pendiente_fmt = f'{r["total_pendiente"]:.2f}'.replace('.', ',')
+        writer.writerow([
+            r['id'], r['nombre'], r['email'] or '', r['telefono'] or '',
+            r['direccion'] or '', r['total_reparaciones'],
+            r['reparaciones_activas'] or 0, r['reparaciones_completadas'] or 0,
+            facturado_fmt, pagado_fmt, pendiente_fmt,
+            r['ultima_visita'] or 'Sin visitas'
+        ])
 
     output = BytesIO()
     output.write(si.getvalue().encode('utf-8-sig'))
     output.seek(0)
     return send_file(output, mimetype='text/csv', as_attachment=True,
-                     download_name=f'clientes_{datetime.now().strftime("%Y%m%d")}.csv')
+                     download_name=f'AndroTech_Clientes_{datetime.now().strftime("%Y%m%d")}.csv')
 
 
 # =========================================
@@ -2078,7 +2137,7 @@ def ticket_recogida(id):
         '<font size="8" color="#6c757d">'
         'Presente este ticket al recoger su dispositivo. '
         'El código QR será escaneado para verificar la entrega.<br/>'
-        f'Generado: {datetime.now().strftime("%d/%m/%Y %H:%M")} — AndroTech, Huelva — +34 959 123 456'
+        f'Generado: {datetime.now().strftime("%d/%m/%Y %H:%M")} — AndroTech, Huelva — +34 633 234 395'
         '</font>', styles['TKCenter']
     ))
 
@@ -2166,18 +2225,27 @@ def generar_pdf_presupuesto(id):
     
     # Obtener reparación y cliente
     reparacion = conn.execute("""
-        SELECT r.*, c.nombre AS cliente_nombre, c.telefono AS cliente_telefono
+        SELECT r.*, c.nombre AS cliente_nombre, c.telefono AS cliente_telefono,
+               c.email AS cliente_email, c.direccion AS cliente_direccion
         FROM reparaciones r
         LEFT JOIN clientes c ON c.id = r.cliente_id
         WHERE r.id = ?
     """, (id,)).fetchone()
-    
-    conn.close()
-    
+
     if not reparacion:
+        conn.close()
         flash('Reparación no encontrada.', 'danger')
         return redirect(url_for('reparaciones'))
-    
+
+    # Obtener piezas utilizadas
+    piezas = conn.execute("""
+        SELECT pr.cantidad, ip.nombre, ip.precio_venta
+        FROM piezas_reparacion pr
+        JOIN inventario_piezas ip ON ip.id = pr.pieza_id
+        WHERE pr.reparacion_id = ?
+    """, (id,)).fetchall()
+    conn.close()
+
     # Convertir Row de sqlite3 a dict
     reparacion_data = {
         'id': reparacion['id'],
@@ -2188,8 +2256,12 @@ def generar_pdf_presupuesto(id):
         'descripcion': reparacion['descripcion'],
         'cliente_nombre': reparacion['cliente_nombre'],
         'cliente_telefono': reparacion['cliente_telefono'],
+        'cliente_email': reparacion['cliente_email'],
+        'cliente_direccion': reparacion['cliente_direccion'],
+        'piezas': [{'nombre': p['nombre'], 'cantidad': p['cantidad'],
+                    'precio_venta': p['precio_venta']} for p in piezas],
     }
-    
+
     # Generar PDF con tipo de documento
     pdf_buffer = generar_presupuesto_pdf(reparacion_data, tipo_documento=tipo_documento)
     
