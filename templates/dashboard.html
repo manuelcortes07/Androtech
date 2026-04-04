@@ -221,7 +221,9 @@
                     <i class="bi bi-phone"></i> Dispositivos Mas Reparados
                 </div>
                 <div class="at-dash-card-body">
-                    <canvas id="chartDispositivos" height="220"></canvas>
+                    <div style="position: relative; height: 220px;">
+                        <canvas id="chartDispositivos"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -234,7 +236,9 @@
                     <i class="bi bi-diagram-3"></i> Distribucion de Estados
                 </div>
                 <div class="at-dash-card-body d-flex align-items-center justify-content-center">
-                    <canvas id="chartEstados" height="220"></canvas>
+                    <div style="position: relative; height: 220px; width: 100%;">
+                        <canvas id="chartEstados"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -361,7 +365,9 @@
                     <small class="text-muted fw-normal ms-2">(ultimos 6 meses)</small>
                 </div>
                 <div class="at-dash-card-body">
-                    <canvas id="chartIngresos" height="200"></canvas>
+                    <div style="position: relative; height: 200px;">
+                        <canvas id="chartIngresos"></canvas>
+                    </div>
                     <div class="mt-3 pt-3" style="border-top: 1px solid rgba(0,0,0,.05);">
                         <small class="text-muted">
                             <i class="bi bi-info-circle me-1"></i>
@@ -399,7 +405,9 @@
                         </div>
                         <div class="at-dash-card-body">
                             {% if reparaciones_por_tecnico %}
-                            <canvas id="chartTecnicos" height="160"></canvas>
+                            <div style="position: relative; height: 160px;">
+                                <canvas id="chartTecnicos"></canvas>
+                            </div>
                             {% else %}
                             <p class="text-muted mb-0"><i class="bi bi-info-circle me-1"></i>Sin datos de tecnicos aun</p>
                             {% endif %}
