@@ -1,7 +1,7 @@
 """
 PDF Generator - AndroTech
 Generador profesional de presupuestos y facturas PDF con diseno corporativo.
-Adaptado para taller de reparacion de dispositivos moviles en Huelva, Espana.
+Adaptado para taller de reparacion de dispositivos moviles en Huelva, España.
 """
 
 import os
@@ -32,7 +32,7 @@ AT_BORDER = colors.HexColor('#dee2e6')
 COMPANY = {
     'name': 'AndroTech',
     'tagline': 'Taller de Reparacion de Dispositivos Moviles',
-    'address': 'Huelva, Espana',
+    'address': 'Huelva, España',
     'phone': '+34 633 234 395',
     'email': 'manuelcortescontreras11@gmail.com',
     'web': 'AndroTech',

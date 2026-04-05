@@ -5,16 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AndroTech - {% block title %}{% endblock %}</title>
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="icon" type="image/jpeg" href="/static/imagenes/logo.jpg">
+    <!-- Favicon multi-resolucion -->
+    <link rel="icon" type="image/x-icon" href="/static/favicons/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="64x64" href="/static/favicons/favicon-64x64.png">
+    <link rel="icon" type="image/png" sizes="128x128" href="/static/favicons/favicon-128x128.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/favicons/favicon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/static/favicons/favicon-512x512.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicons/apple-touch-icon.png">
 
     <!-- PWA -->
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#2B8AC4">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="/static/imagenes/logo.jpg">
 
     <!-- Bootstrap -->
     <link
@@ -139,6 +143,14 @@
                                 </a>
                             </li>
                             {% endif %}
+                            {% if tiene_permiso('reparaciones_ver') %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('admin_solicitudes') }}">
+                                    <i class="bi bi-clipboard-check"></i>Solicitudes Web
+                                </a>
+                            </li>
+                            {% endif %}
                         </ul>
                     </li>
                     {% endif %}
@@ -194,6 +206,12 @@
                         <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'sobre' %}active fw-semibold{% endif %}"
                            href="/sobre">
                             <i class="bi bi-info-circle"></i><span>Sobre Nosotros</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'solicitar_reparacion' %}active fw-semibold{% endif %}"
+                           href="/solicitar-reparacion">
+                            <i class="bi bi-clipboard-plus"></i><span>Solicitar Reparacion</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -299,6 +317,7 @@
                     {% else %}
                         <a href="/" class="at-footer-link">Inicio</a>
                         <a href="/servicios" class="at-footer-link">Servicios</a>
+                        <a href="/solicitar-reparacion" class="at-footer-link">Solicitar reparacion</a>
                         <a href="/consulta" class="at-footer-link">Consultar reparacion</a>
                         <a href="/mis-reparaciones" class="at-footer-link">Mis reparaciones</a>
                     {% endif %}
@@ -309,7 +328,7 @@
             <div class="col-md-4 footer-col">
                 <h6 class="at-footer-heading">Contacto</h6>
                 <div class="at-footer-contact">
-                    <div><i class="bi bi-geo-alt me-1"></i>Huelva, Espana</div>
+                    <div><i class="bi bi-geo-alt me-1"></i>Huelva, España</div>
                     <div><i class="bi bi-envelope me-1"></i><a href="mailto:manuelcortescontreras11@gmail.com" class="at-footer-link">manuelcortescontreras11@gmail.com</a></div>
                     <div><i class="bi bi-telephone me-1"></i><a href="tel:+34633234395" class="at-footer-link">+34 633 234 395</a></div>
                     <div><a href="https://wa.me/34633234395" target="_blank" rel="noopener" class="at-footer-link"><i class="bi bi-whatsapp me-1" style="color:#25D366 !important;"></i>WhatsApp</a></div>
