@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block title %}Solicitar Reparacion{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<section class="at-hero">
+    <div class="container text-center">
+        <span class="at-pill"><i class="bi bi-tools me-1"></i>Solicitar Reparacion</span>
+        <h1 class="at-hero-title">Solicita tu Reparacion Online</h1>
+        <p class="at-hero-sub mx-auto">Rellena el formulario y nos pondremos en contacto contigo lo antes posible para confirmar tu cita.</p>
+    </div>
+</section>
+
+<section class="at-section">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-xl-8 col-lg-10">
+
+                <!-- Formulario de solicitud -->
+                <div class="at-admin-card">
+                    <div class="at-admin-card-header">
+                        <i class="bi bi-clipboard-plus me-2"></i>Formulario de Solicitud
+                    </div>
+                    <div class="p-4">
+                        <form method="POST" class="needs-validation" novalidate>
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                            <!-- Datos personales -->
+                            <h6 class="fw-bold mb-3" style="color:#0F1923;">
+                                <i class="bi bi-person me-1" style="color:#2B8AC4;"></i>Tus datos de contacto
+                            </h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label for="nombre" class="form-label fw-semibold">
+                                        Nombre completo <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="nombre" name="nombre"
+                                           placeholder="Ej: Juan Garcia" required minlength="2">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="telefono" class="form-label fw-semibold">
+                                        Telefono <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="tel" class="form-control" id="telefono" name="telefono"
+                                           placeholder="Ej: 633 234 395" required minlength="9">
+                                </div>
+                                <div class="col-12">
+                                    <label for="email" class="form-label fw-semibold">
+                                        Email <small class="text-muted">(opcional, para recibir confirmacion)</small>
+                                    </label>
+                                    <input type="email" class="form-control" id="email" name="email"
+                                           placeholder="Ej: tucorreo@gmail.com">
+                                </div>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <!-- Datos del dispositivo -->
+                            <h6 class="fw-bold mb-3" style="color:#0F1923;">
+                                <i class="bi bi-phone me-1" style="color:#2B8AC4;"></i>Datos del dispositivo
+                            </h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-4">
+                                    <label for="dispositivo" class="form-label fw-semibold">
+                                        Tipo <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select" id="dispositivo" name="dispositivo" required>
+                                        <option value="" disabled selected>Selecciona...</option>
+                                        <option value="Movil">Movil / Smartphone</option>
+                                        <option value="Tablet">Tablet</option>
+                                        <option value="Portatil">Portatil</option>
+                                        <option value="Ordenador">Ordenador de sobremesa</option>
+                                        <option value="Otro">Otro dispositivo</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="marca" class="form-label fw-semibold">Marca</label>
+                                    <input type="text" class="form-control" id="marca" name="marca"
+                                           placeholder="Ej: Samsung, Apple, Xiaomi">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="modelo" class="form-label fw-semibold">Modelo</label>
+                                    <input type="text" class="form-control" id="modelo" name="modelo"
+                                           placeholder="Ej: Galaxy S24, iPhone 15">
+                                </div>
+                            </div>
+
+                            <!-- Descripcion del problema -->
+                            <div class="mb-4">
+                                <label for="descripcion" class="form-label fw-semibold">
+                                    Descripcion del problema <span class="text-danger">*</span>
+                                </label>
+                                <textarea class="form-control" id="descripcion" name="descripcion" rows="4"
+                                          placeholder="Describe con detalle que le pasa a tu dispositivo. Por ejemplo: la pantalla esta rota, no enciende, la bateria dura poco..."
+                                          required minlength="10"></textarea>
+                                <div class="form-text">Cuanto mas detallado, mejor podremos ayudarte.</div>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <!-- Preferencias -->
+                            <h6 class="fw-bold mb-3" style="color:#0F1923;">
+                                <i class="bi bi-calendar-check me-1" style="color:#2B8AC4;"></i>Preferencias (opcional)
+                            </h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-4">
+                                    <label for="urgencia" class="form-label fw-semibold">Urgencia</label>
+                                    <select class="form-select" id="urgencia" name="urgencia">
+                                        <option value="normal" selected>Normal</option>
+                                        <option value="urgente">Urgente (lo antes posible)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="fecha_preferida" class="form-label fw-semibold">Fecha preferida</label>
+                                    <input type="date" class="form-control" id="fecha_preferida" name="fecha_preferida">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="horario_preferido" class="form-label fw-semibold">Horario preferido</label>
+                                    <select class="form-select" id="horario_preferido" name="horario_preferido">
+                                        <option value="" selected>Sin preferencia</option>
+                                        <option value="manana">Por la manana (9:30 - 14:00)</option>
+                                        <option value="tarde">Por la tarde (17:00 - 20:00)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="at-btn-primary w-100 py-3">
+                                <i class="bi bi-send me-2"></i>Enviar Solicitud
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Alternativa WhatsApp -->
+                <div class="at-admin-card mt-4">
+                    <div class="at-admin-card-header" style="background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;">
+                        <i class="bi bi-whatsapp me-2"></i>Contacto directo por WhatsApp
+                    </div>
+                    <div class="p-4 text-center">
+                        <p class="mb-3" style="color:#495057;">
+                            Si prefieres contactarnos directamente, puedes escribirnos por WhatsApp.
+                            Te responderemos lo antes posible.
+                        </p>
+                        <a href="https://wa.me/34633234395?text=Hola%2C%20me%20gustaria%20solicitar%20una%20reparacion%20para%20mi%20dispositivo."
+                           target="_blank" rel="noopener"
+                           class="btn btn-lg px-5 py-3"
+                           style="background:#25D366;color:#fff;border:none;font-weight:600;border-radius:12px;font-size:1.1rem;">
+                            <i class="bi bi-whatsapp me-2"></i>Escribir por WhatsApp
+                        </a>
+                        <p class="mt-3 mb-0 small text-muted">
+                            <i class="bi bi-telephone me-1"></i>+34 633 234 395
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Info adicional -->
+                <div class="row g-3 mt-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="text-center p-3 rounded at-info-box" style="background:#EBF5FB;">
+                            <i class="bi bi-clock" style="font-size:1.5rem;color:#2B8AC4;"></i>
+                            <h6 class="mt-2 mb-1 fw-bold">Respuesta rapida</h6>
+                            <small>Te contactamos en menos de 24 horas</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-3 rounded at-info-box" style="background:#EBF5FB;">
+                            <i class="bi bi-search" style="font-size:1.5rem;color:#2B8AC4;"></i>
+                            <h6 class="mt-2 mb-1 fw-bold">Diagnostico gratis</h6>
+                            <small>Sin compromiso ni costes ocultos</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-3 rounded at-info-box" style="background:#EBF5FB;">
+                            <i class="bi bi-shield-check" style="font-size:1.5rem;color:#2B8AC4;"></i>
+                            <h6 class="mt-2 mb-1 fw-bold">Garantia 3 meses</h6>
+                            <small>En piezas y mano de obra</small>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

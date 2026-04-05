@@ -188,6 +188,28 @@ _conn_init.execute("""
 """)
 _conn_init.commit()
 
+# Tabla de solicitudes de reparacion (formulario publico)
+_conn_init.execute("""
+    CREATE TABLE IF NOT EXISTS solicitudes_reparacion (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        telefono TEXT NOT NULL,
+        email TEXT,
+        dispositivo TEXT NOT NULL,
+        marca TEXT,
+        modelo TEXT,
+        descripcion TEXT NOT NULL,
+        urgencia TEXT DEFAULT 'normal',
+        fecha_preferida TEXT,
+        horario_preferido TEXT,
+        estado TEXT DEFAULT 'pendiente',
+        notas_admin TEXT,
+        fecha_solicitud TEXT NOT NULL,
+        fecha_gestion TEXT
+    )
+""")
+_conn_init.commit()
+
 # Inicializar sistema de roles y permisos
 init_permisos_db(_conn_init)
 
@@ -2862,6 +2884,199 @@ def mis_reparaciones():
         email_buscado=email_buscado,
         error=error
     )
+
+
+# =========================================
+# SOLICITAR REPARACION (PUBLICO)
+# =========================================
+
+@app.route("/solicitar-reparacion", methods=["GET", "POST"])
+@csrf_protect
+def solicitar_reparacion():
+    """Formulario publico para que clientes soliciten una reparacion."""
+    if request.method == "POST":
+        nombre = request.form.get("nombre", "").strip()
+        telefono = request.form.get("telefono", "").strip()
+        email = request.form.get("email", "").strip()
+        dispositivo = request.form.get("dispositivo", "").strip()
+        marca = request.form.get("marca", "").strip()
+        modelo = request.form.get("modelo", "").strip()
+        descripcion = request.form.get("descripcion", "").strip()
+        urgencia = request.form.get("urgencia", "normal")
+        fecha_preferida = request.form.get("fecha_preferida", "").strip()
+        horario_preferido = request.form.get("horario_preferido", "").strip()
+
+        # Validaciones
+        if not nombre or len(nombre) < 2:
+            flash("El nombre es obligatorio (minimo 2 caracteres).", "danger")
+            return redirect(url_for("solicitar_reparacion"))
+        if not telefono or len(telefono) < 9:
+            flash("El telefono es obligatorio (minimo 9 digitos).", "danger")
+            return redirect(url_for("solicitar_reparacion"))
+        if not dispositivo:
+            flash("Selecciona el tipo de dispositivo.", "danger")
+            return redirect(url_for("solicitar_reparacion"))
+        if not descripcion or len(descripcion) < 10:
+            flash("Describe el problema con al menos 10 caracteres.", "danger")
+            return redirect(url_for("solicitar_reparacion"))
+        if urgencia not in ('normal', 'urgente'):
+            urgencia = 'normal'
+
+        conn = get_db()
+        conn.execute("""
+            INSERT INTO solicitudes_reparacion
+            (nombre, telefono, email, dispositivo, marca, modelo, descripcion,
+             urgencia, fecha_preferida, horario_preferido, estado, fecha_solicitud)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente', ?)
+        """, (nombre, telefono, email, dispositivo, marca, modelo, descripcion,
+              urgencia, fecha_preferida, horario_preferido,
+              datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+        conn.commit()
+        conn.close()
+
+        flash("Tu solicitud de reparacion ha sido enviada correctamente. Te contactaremos pronto.", "success")
+        return redirect(url_for("solicitar_reparacion"))
+
+    return render_template("solicitar_reparacion.html")
+
+
+# =========================================
+# ADMIN: GESTIONAR SOLICITUDES
+# =========================================
+
+@app.route("/admin/solicitudes")
+@login_required
+@permiso_requerido('reparaciones_ver')
+def admin_solicitudes():
+    """Panel admin para ver y gestionar solicitudes de reparacion."""
+    estado_filtro = request.args.get("estado", "todas")
+    conn = get_db()
+
+    if estado_filtro and estado_filtro != "todas":
+        solicitudes = conn.execute(
+            "SELECT * FROM solicitudes_reparacion WHERE estado = ? ORDER BY fecha_solicitud DESC",
+            (estado_filtro,)
+        ).fetchall()
+    else:
+        solicitudes = conn.execute(
+            "SELECT * FROM solicitudes_reparacion ORDER BY fecha_solicitud DESC"
+        ).fetchall()
+
+    # Contadores
+    total = conn.execute("SELECT COUNT(*) FROM solicitudes_reparacion").fetchone()[0]
+    pendientes = conn.execute("SELECT COUNT(*) FROM solicitudes_reparacion WHERE estado = 'pendiente'").fetchone()[0]
+    aceptadas = conn.execute("SELECT COUNT(*) FROM solicitudes_reparacion WHERE estado = 'aceptada'").fetchone()[0]
+    rechazadas = conn.execute("SELECT COUNT(*) FROM solicitudes_reparacion WHERE estado = 'rechazada'").fetchone()[0]
+    conn.close()
+
+    return render_template("admin_solicitudes.html",
+        solicitudes=solicitudes,
+        estado_filtro=estado_filtro,
+        total=total,
+        pendientes=pendientes,
+        aceptadas=aceptadas,
+        rechazadas=rechazadas
+    )
+
+
+@app.route("/admin/solicitudes/<int:id>/aceptar", methods=["POST"])
+@login_required
+@csrf_protect
+@permiso_requerido('reparaciones_crear')
+def aceptar_solicitud(id):
+    """Aceptar una solicitud y crear cliente + reparacion automaticamente."""
+    conn = get_db()
+    solicitud = conn.execute("SELECT * FROM solicitudes_reparacion WHERE id = ?", (id,)).fetchone()
+
+    if not solicitud:
+        flash("Solicitud no encontrada.", "danger")
+        conn.close()
+        return redirect(url_for("admin_solicitudes"))
+
+    # Buscar si ya existe un cliente con ese telefono o email
+    cliente = None
+    if solicitud['email']:
+        cliente = conn.execute(
+            "SELECT id FROM clientes WHERE LOWER(email) = ?",
+            (solicitud['email'].lower(),)
+        ).fetchone()
+    if not cliente and solicitud['telefono']:
+        cliente = conn.execute(
+            "SELECT id FROM clientes WHERE telefono = ?",
+            (solicitud['telefono'],)
+        ).fetchone()
+
+    if cliente:
+        cliente_id = cliente['id']
+    else:
+        # Crear nuevo cliente
+        conn.execute(
+            "INSERT INTO clientes (nombre, telefono, email) VALUES (?, ?, ?)",
+            (solicitud['nombre'], solicitud['telefono'], solicitud['email'])
+        )
+        cliente_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+    # Crear reparacion
+    dispositivo_str = solicitud['dispositivo']
+    if solicitud['marca']:
+        dispositivo_str += f" {solicitud['marca']}"
+    if solicitud['modelo']:
+        dispositivo_str += f" {solicitud['modelo']}"
+
+    conn.execute("""
+        INSERT INTO reparaciones (cliente_id, dispositivo, descripcion, estado, fecha_entrada)
+        VALUES (?, ?, ?, 'Pendiente', ?)
+    """, (cliente_id, dispositivo_str, solicitud['descripcion'],
+          datetime.now().strftime("%Y-%m-%d")))
+
+    reparacion_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+    # Marcar solicitud como aceptada
+    notas = request.form.get("notas_admin", "").strip()
+    conn.execute("""
+        UPDATE solicitudes_reparacion
+        SET estado = 'aceptada', notas_admin = ?, fecha_gestion = ?
+        WHERE id = ?
+    """, (notas, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), id))
+    conn.commit()
+    conn.close()
+
+    flash(f"Solicitud aceptada. Se creo la reparacion #{reparacion_id} para {solicitud['nombre']}.", "success")
+    return redirect(url_for("admin_solicitudes"))
+
+
+@app.route("/admin/solicitudes/<int:id>/rechazar", methods=["POST"])
+@login_required
+@csrf_protect
+@permiso_requerido('reparaciones_ver')
+def rechazar_solicitud(id):
+    """Rechazar una solicitud."""
+    conn = get_db()
+    notas = request.form.get("notas_admin", "").strip()
+    conn.execute("""
+        UPDATE solicitudes_reparacion
+        SET estado = 'rechazada', notas_admin = ?, fecha_gestion = ?
+        WHERE id = ?
+    """, (notas, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), id))
+    conn.commit()
+    conn.close()
+
+    flash("Solicitud rechazada.", "warning")
+    return redirect(url_for("admin_solicitudes"))
+
+
+@app.route("/admin/solicitudes/<int:id>/borrar", methods=["POST"])
+@login_required
+@csrf_protect
+@permiso_requerido('reparaciones_borrar')
+def borrar_solicitud(id):
+    """Eliminar una solicitud."""
+    conn = get_db()
+    conn.execute("DELETE FROM solicitudes_reparacion WHERE id = ?", (id,))
+    conn.commit()
+    conn.close()
+    flash("Solicitud eliminada.", "info")
+    return redirect(url_for("admin_solicitudes"))
 
 
 @app.route('/publico/pagar/<int:id>', methods=['POST'])

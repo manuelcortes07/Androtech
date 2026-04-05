@@ -52,6 +52,7 @@ PERMISOS_DISPONIBLES = [
     {'clave': 'usuarios_editar',    'nombre': 'Editar usuarios',      'categoria': 'Administracion'},
     {'clave': 'usuarios_borrar',    'nombre': 'Borrar usuarios',      'categoria': 'Administracion'},
     {'clave': 'roles_gestionar',    'nombre': 'Gestionar roles y permisos', 'categoria': 'Administracion'},
+    {'clave': 'solicitudes_ver',    'nombre': 'Ver solicitudes de reparacion', 'categoria': 'Administracion'},
 ]
 
 # Permisos por defecto para cada rol base

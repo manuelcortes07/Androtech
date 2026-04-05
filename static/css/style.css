@@ -2267,6 +2267,34 @@ html[data-theme="dark"] .navbar.navbar-dark.bg-dark {
   color: #4da6d8;
 }
 
+/* Solicitudes & info boxes dark mode */
+[data-theme="dark"] .at-info-box {
+  background: rgba(43,138,196,.1) !important;
+}
+[data-theme="dark"] .at-info-box h6 {
+  color: #e0e6ed !important;
+}
+[data-theme="dark"] .at-info-box small {
+  color: #a0aab4 !important;
+}
+[data-theme="dark"] .at-detail-box {
+  background: rgba(43,138,196,.1) !important;
+}
+[data-theme="dark"] .at-detail-box strong {
+  color: #e0e6ed !important;
+}
+[data-theme="dark"] .at-desc-box {
+  background: rgba(255,255,255,.05) !important;
+  border-color: rgba(255,255,255,.1) !important;
+}
+[data-theme="dark"] .at-desc-box span {
+  color: #c0c8d0 !important;
+}
+[data-theme="dark"] .at-notes-box {
+  background: rgba(43,138,196,.08) !important;
+  border-color: rgba(43,138,196,.2) !important;
+}
+
 /* Smooth transition for theme switch */
 html {
   transition: background-color .3s ease, color .3s ease;

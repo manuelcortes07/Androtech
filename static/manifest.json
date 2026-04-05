@@ -9,15 +9,25 @@
   "orientation": "any",
   "icons": [
     {
-      "src": "/static/imagenes/logo.jpg",
+      "src": "/static/favicons/favicon-64x64.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/favicons/favicon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/favicons/favicon-192x192.png",
       "sizes": "192x192",
-      "type": "image/jpeg",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/static/imagenes/logo.jpg",
+      "src": "/static/favicons/favicon-512x512.png",
       "sizes": "512x512",
-      "type": "image/jpeg",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]
