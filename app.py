@@ -17,6 +17,8 @@ except ImportError:
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_mail import Mail
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 # local modules (split responsibilities)
 from utils.pdf_generator import generar_presupuesto_pdf
@@ -41,6 +43,9 @@ from utils.email_service import EmailService
 app = Flask(__name__)
 # Secret key should be provided via environment variable in production
 app.secret_key = os.environ.get('SECRET_KEY', secrets.token_urlsafe(32))
+
+# Rate limiter (protección contra fuerza bruta)
+limiter = Limiter(get_remote_address, app=app, storage_uri="memory://")
 # Configure session expiration
 app.permanent_session_lifetime = timedelta(hours=6)  # ajustable según política
 
@@ -48,6 +53,11 @@ app.permanent_session_lifetime = timedelta(hours=6)  # ajustable según polític
 @app.before_request
 def make_session_permanent():
     session.permanent = True
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    flash("Demasiados intentos. Espera un minuto antes de volver a intentarlo.", "danger")
+    return redirect(url_for("login"))
 
 @app.after_request
 def add_security_headers(response):
@@ -432,6 +442,7 @@ def validate_csrf():
 
 # LOGIN
 @app.route("/login", methods=["GET", "POST"])
+@limiter.limit("5 per minute", methods=["POST"])
 @csrf_protect
 def login():
     if request.method == "POST":
