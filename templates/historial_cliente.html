@@ -4,63 +4,75 @@
 
 {% block content %}
 
-<div class="container py-5">
-    <!-- HEADER -->
-    <div class="row mb-5">
-        <div class="col-lg-8">
-            <h1 class="display-5 fw-bold mb-2">
-                <i class="bi bi-clock-history text-primary me-2"></i>Mi Historial de Reparaciones
-            </h1>
-            <p class="lead text-muted">Consulta el estado de todas tus reparaciones, descargar presupuestos y facturas.</p>
+<div class="container py-4">
+
+    <!-- ENCABEZADO -->
+    <div class="row mb-4 align-items-end">
+        <div class="col">
+            <span class="at-pill"><i class="bi bi-clock-history me-1"></i>Historial</span>
+            <h1 class="at-section-title mt-2 mb-1">Mi Historial de Reparaciones</h1>
+            <p class="at-section-sub" style="margin:0;max-width:none;">Consulta el estado de todas tus reparaciones, descargar presupuestos y facturas.</p>
         </div>
     </div>
 
-    <!-- ESTADÍSTICAS PERSONALES (KPI CARDS) -->
-    <div class="row g-3 mb-5">
-        <div class="col-md-4 col-lg-3">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body text-center">
-                    <div class="fs-2 text-primary fw-bold mb-2">{{ stats.total_reparaciones }}</div>
-                    <p class="card-text text-muted small mb-0">Total de reparaciones</p>
+    <!-- KPI CARDS -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="at-dash-kpi">
+                <div class="at-dash-kpi-icon" style="background: rgba(43,138,196,.1);">
+                    <i class="bi bi-tools" style="color: #2B8AC4;"></i>
+                </div>
+                <div>
+                    <div class="at-dash-kpi-value" style="color: #2B8AC4;">{{ stats.total_reparaciones }}</div>
+                    <div class="at-dash-kpi-label">Total reparaciones</div>
                 </div>
             </div>
         </div>
-
-        <div class="col-md-4 col-lg-3">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body text-center">
-                    <div class="fs-2 text-success fw-bold mb-2">{{ stats.pagadas }}</div>
-                    <p class="card-text text-muted small mb-0">Reparaciones pagadas</p>
+        <div class="col-6 col-lg-3">
+            <div class="at-dash-kpi">
+                <div class="at-dash-kpi-icon" style="background: rgba(25,135,84,.1);">
+                    <i class="bi bi-check-circle-fill" style="color: #198754;"></i>
+                </div>
+                <div>
+                    <div class="at-dash-kpi-value" style="color: #198754;">{{ stats.pagadas }}</div>
+                    <div class="at-dash-kpi-label">Pagadas</div>
                 </div>
             </div>
         </div>
-
-        <div class="col-md-4 col-lg-3">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body text-center">
-                    <div class="fs-2 text-warning fw-bold mb-2">{{ stats.pendientes }}</div>
-                    <p class="card-text text-muted small mb-0">Pendientes de pago</p>
+        <div class="col-6 col-lg-3">
+            <div class="at-dash-kpi">
+                <div class="at-dash-kpi-icon" style="background: rgba(255,193,7,.1);">
+                    <i class="bi bi-hourglass-split" style="color: #ffc107;"></i>
+                </div>
+                <div>
+                    <div class="at-dash-kpi-value" style="color: #e6a800;">{{ stats.pendientes }}</div>
+                    <div class="at-dash-kpi-label">Pendientes de pago</div>
                 </div>
             </div>
         </div>
-
-        <div class="col-md-4 col-lg-3">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body text-center">
-                    <div class="fs-2 text-info fw-bold mb-2">{{ "%.2f"|format(stats.total_invertido) }} €</div>
-                    <p class="card-text text-muted small mb-0">Inversión total</p>
+        <div class="col-6 col-lg-3">
+            <div class="at-dash-kpi">
+                <div class="at-dash-kpi-icon" style="background: rgba(43,138,196,.1);">
+                    <i class="bi bi-cash-coin" style="color: #2B8AC4;"></i>
+                </div>
+                <div>
+                    <div class="at-dash-kpi-value" style="color: #2B8AC4;">{{ "%.2f"|format(stats.total_invertido) }}&euro;</div>
+                    <div class="at-dash-kpi-label">Inversi&oacute;n total</div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- FILTROS -->
-    <div class="card shadow-sm mb-4 border-0">
-        <div class="card-body">
-            <form method="GET" class="row g-3 align-items-end">
+    <div class="at-dash-card mb-4">
+        <div class="at-dash-card-header">
+            <i class="bi bi-funnel me-1"></i>Filtros
+        </div>
+        <div class="at-dash-card-body">
+            <form method="GET" class="at-admin-form row g-3 align-items-end">
                 <div class="col-md-4">
                     <label for="cliente_id" class="form-label fw-semibold">
-                        <i class="bi bi-people me-2"></i>Filtrar por cliente
+                        <i class="bi bi-people me-1"></i>Cliente
                     </label>
                     <select id="cliente_id" name="cliente_id" class="form-select">
                         <option value="">Todos los clientes</option>
@@ -71,7 +83,7 @@
                 </div>
                 <div class="col-md-4">
                     <label for="estado" class="form-label fw-semibold">
-                        <i class="bi bi-funnel me-2"></i>Filtrar por estado
+                        <i class="bi bi-funnel me-1"></i>Estado
                     </label>
                     <select id="estado" name="estado" class="form-select">
                         <option value="">Todos los estados</option>
@@ -82,31 +94,36 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-4">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-search me-2"></i>Filtrar
+                <div class="col-md-4 d-flex gap-2">
+                    <button type="submit" class="at-btn-primary btn flex-fill">
+                        <i class="bi bi-search me-1"></i>Filtrar
                     </button>
                 </div>
             </form>
+            {% if cliente_filtro %}
+            <div class="mt-2 pt-2" style="border-top:1px solid rgba(0,0,0,.06);">
+                <a href="/cliente/{{ cliente_filtro }}/historial-pdf" class="at-btn-outline btn btn-sm">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF del cliente seleccionado
+                </a>
+            </div>
+            {% endif %}
         </div>
     </div>
 
-    <!-- HISTORIAL: SIN REPARACIONES -->
+    <!-- EMPTY STATE -->
     {% if not reparaciones %}
-    <div class="alert alert-info text-center py-5" role="alert">
-        <div class="mb-3">
-            <i class="bi bi-inbox" style="font-size: 3rem; color: #0dcaf0;"></i>
-        </div>
-        <h5 class="alert-heading">No hay reparaciones en tu historial</h5>
-        <p class="mb-0">Cuando lleves un dispositivo a reparar, aparecerá aquí el historial completo.</p>
+    <div class="at-empty-state">
+        <i class="bi bi-inbox"></i>
+        <h5>No hay reparaciones en tu historial</h5>
+        <p>Cuando lleves un dispositivo a reparar, aparecer&aacute; aqu&iacute; el historial completo.</p>
     </div>
     {% else %}
 
-    <!-- HISTORIAL: TABLA DE REPARACIONES -->
-    <div class="card shadow-sm border-0 mb-4">
+    <!-- TABLA DE REPARACIONES -->
+    <div class="at-admin-card mb-4">
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
+            <table class="at-admin-table table table-hover mb-0">
+                <thead>
                     <tr>
                         <th class="text-center">#ID</th>
                         <th>Dispositivo</th>
@@ -120,45 +137,43 @@
                 <tbody>
                     {% for rep in reparaciones %}
                     <tr class="align-middle">
-                        <td class="text-center fw-semibold text-primary">#{{ rep.id }}</td>
+                        <td class="text-center fw-semibold" style="color:#2B8AC4;">#{{ rep.id }}</td>
                         <td>
                             <div class="fw-semibold">{{ rep.dispositivo }}</div>
-                            <small class="text-muted">{{ rep.descripcion[:50] if rep.descripcion else 'Sin descripción' }}</small>
+                            <small class="text-muted">{{ rep.descripcion[:50] if rep.descripcion else 'Sin descripci&oacute;n' }}</small>
                         </td>
                         <td class="text-center">
-                            <span class="badge
-                                {% if rep.estado == 'Entregado' %}bg-success
-                                {% elif rep.estado == 'Terminado' %}bg-success
-                                {% elif rep.estado == 'En proceso' %}bg-primary
-                                {% elif rep.estado == 'Pendiente' %}bg-warning text-dark
-                                {% else %}bg-secondary{% endif %}
-                            ">
-                                {{ rep.estado }}
-                            </span>
+                            {% if rep.estado == 'Pendiente' %}
+                                <span class="badge" style="background:rgba(255,193,7,.15);color:#997a00;">{{ rep.estado }}</span>
+                            {% elif rep.estado == 'En proceso' %}
+                                <span class="badge" style="background:rgba(43,138,196,.12);color:#2B8AC4;">{{ rep.estado }}</span>
+                            {% elif rep.estado in ['Terminado', 'Entregado'] %}
+                                <span class="badge" style="background:rgba(25,135,84,.12);color:#198754;">{{ rep.estado }}</span>
+                            {% else %}
+                                <span class="badge" style="background:rgba(108,117,125,.12);color:#6c757d;">{{ rep.estado }}</span>
+                            {% endif %}
                         </td>
-                        <td>
-                            {{ rep.fecha_entrada }}
-                        </td>
+                        <td>{{ rep.fecha_entrada }}</td>
                         <td class="text-end fw-semibold">
                             {% if rep.precio %}
-                                {{ "%.2f"|format(rep.precio) }} €
+                                {{ "%.2f"|format(rep.precio) }}&euro;
                             {% else %}
                                 <span class="text-muted">Pendiente</span>
                             {% endif %}
                         </td>
                         <td class="text-center">
                             {% if rep.estado_pago == 'Pagado' %}
-                                <span class="badge bg-success">✓ Pagado</span>
+                                <span class="badge" style="background:rgba(25,135,84,.12);color:#198754;">Pagado</span>
                             {% else %}
-                                <span class="badge bg-warning text-dark">⏳ Pendiente</span>
+                                <span class="badge" style="background:rgba(220,53,69,.1);color:#dc3545;">Pendiente</span>
                             {% endif %}
                         </td>
                         <td class="text-center">
-                            <button type="button" 
-                                    class="btn btn-sm btn-outline-primary" 
-                                    data-bs-toggle="modal" 
+                            <button type="button"
+                                    class="at-btn-outline btn btn-sm"
+                                    data-bs-toggle="modal"
                                     data-bs-target="#detallesModal{{ rep.id }}">
-                                <i class="bi bi-eye"></i> Ver
+                                <i class="bi bi-eye me-1"></i>Ver
                             </button>
                         </td>
                     </tr>
@@ -168,16 +183,16 @@
         </div>
     </div>
 
-    <!-- MODALES: DETALLES DE REPARACIÓN -->
+    <!-- MODALES -->
     {% for rep in reparaciones %}
     <div class="modal fade" id="detallesModal{{ rep.id }}" tabindex="-1" aria-labelledby="detallesLabel{{ rep.id }}" aria-hidden="true">
         <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white border-0">
-                    <h5 class="modal-title" id="detallesLabel{{ rep.id }}">
-                        <i class="bi bi-info-circle me-2"></i>Detalles Reparación #{{ rep.id }}
+            <div class="modal-content" style="border-top: 3px solid #2B8AC4;">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold" id="detallesLabel{{ rep.id }}" style="color:#0F1923;">
+                        <i class="bi bi-info-circle me-2" style="color:#2B8AC4;"></i>Detalles Reparaci&oacute;n #{{ rep.id }}
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
@@ -188,20 +203,20 @@
                         <div class="col-md-6">
                             <h6 class="fw-semibold text-muted small mb-2">ESTADO ACTUAL</h6>
                             <p class="mb-0">
-                                <span class="badge
-                                    {% if rep.estado == 'Entregado' %}bg-success
-                                    {% elif rep.estado == 'Terminado' %}bg-success
-                                    {% elif rep.estado == 'En proceso' %}bg-primary
-                                    {% elif rep.estado == 'Pendiente' %}bg-warning text-dark
-                                    {% else %}bg-secondary{% endif %}
-                                ">
-                                    {{ rep.estado }}
-                                </span>
+                                {% if rep.estado == 'Pendiente' %}
+                                    <span class="badge" style="background:rgba(255,193,7,.15);color:#997a00;">{{ rep.estado }}</span>
+                                {% elif rep.estado == 'En proceso' %}
+                                    <span class="badge" style="background:rgba(43,138,196,.12);color:#2B8AC4;">{{ rep.estado }}</span>
+                                {% elif rep.estado in ['Terminado', 'Entregado'] %}
+                                    <span class="badge" style="background:rgba(25,135,84,.12);color:#198754;">{{ rep.estado }}</span>
+                                {% else %}
+                                    <span class="badge" style="background:rgba(108,117,125,.12);color:#6c757d;">{{ rep.estado }}</span>
+                                {% endif %}
                             </p>
                         </div>
                         <div class="col-md-6">
                             <h6 class="fw-semibold text-muted small mb-2">
-                                <i class="bi bi-clock-history me-1"></i>ÚLTIMA ACTUALIZACIÓN
+                                <i class="bi bi-clock-history me-1"></i>ULTIMA ACTUALIZACION
                             </h6>
                             <p class="mb-0">
                                 {% if rep.ultima_actualizacion %}
@@ -219,21 +234,21 @@
                             <h6 class="fw-semibold text-muted small mb-2">PRESUPUESTO</h6>
                             <p class="mb-0">
                                 {% if rep.precio %}
-                                    <strong>{{ "%.2f"|format(rep.precio) }} €</strong> (IVA incluido)
+                                    <strong>{{ "%.2f"|format(rep.precio) }}&euro;</strong> (IVA incluido)
                                 {% else %}
                                     <span class="text-muted">A determinar</span>
                                 {% endif %}
                             </p>
                         </div>
                         <div class="col-12">
-                            <h6 class="fw-semibold text-muted small mb-2">DESCRIPCIÓN</h6>
-                            <p class="mb-0">{{ rep.descripcion or 'Sin descripción adicional' }}</p>
+                            <h6 class="fw-semibold text-muted small mb-2">DESCRIPCION</h6>
+                            <p class="mb-0">{{ rep.descripcion or 'Sin descripci&oacute;n adicional' }}</p>
                         </div>
                         <div class="col-md-6">
                             <h6 class="fw-semibold text-muted small mb-2">ESTADO DE PAGO</h6>
                             <p class="mb-0">
                                 {% if rep.estado_pago == 'Pagado' %}
-                                    <span class="badge bg-success">✓ Pagado</span>
+                                    <span class="badge" style="background:rgba(25,135,84,.12);color:#198754;">Pagado</span>
                                     {% if rep.fecha_pago %}
                                         <small class="text-muted d-block mt-1">{{ rep.fecha_pago }}</small>
                                     {% endif %}
@@ -241,7 +256,7 @@
                                         <small class="text-muted d-block">{{ rep.metodo_pago }}</small>
                                     {% endif %}
                                 {% else %}
-                                    <span class="badge bg-warning text-dark">⏳ Pendiente de pago</span>
+                                    <span class="badge" style="background:rgba(220,53,69,.1);color:#dc3545;">Pendiente de pago</span>
                                 {% endif %}
                             </p>
                         </div>
@@ -249,33 +264,32 @@
                 </div>
                 <div class="modal-footer border-top">
                     {% if rep.precio and rep.estado_pago != 'Pagado' %}
-                        <a href="/consulta?id={{ rep.id }}" class="btn btn-success">
-                            <i class="bi bi-credit-card me-2"></i>Pagar Ahora
+                        <a href="/consulta?id={{ rep.id }}" class="btn btn-sm" style="background:rgba(25,135,84,.12);color:#198754;font-weight:600;">
+                            <i class="bi bi-credit-card me-1"></i>Pagar Ahora
                         </a>
                     {% endif %}
-                    <a href="/reparaciones/pdf/{{ rep.id }}?tipo=presupuesto" class="btn btn-primary">
-                        <i class="bi bi-file-pdf me-2"></i>Descargar PDF
+                    <a href="/reparaciones/pdf/{{ rep.id }}?tipo=presupuesto" class="at-btn-primary btn btn-sm">
+                        <i class="bi bi-file-pdf me-1"></i>Descargar PDF
                     </a>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="at-btn-outline btn btn-sm" data-bs-dismiss="modal">Cerrar</button>
                 </div>
             </div>
         </div>
     </div>
     {% endfor %}
 
-    <!-- PAGINACIÓN -->
+    <!-- PAGINACION -->
     {% if total_pages > 1 %}
-    <nav aria-label="Paginación" class="mt-5">
+    <nav aria-label="Paginaci&oacute;n" class="mt-4">
         <ul class="pagination justify-content-center">
-            <!-- Botón Anterior -->
             {% if page > 1 %}
                 <li class="page-item">
-                    <a class="page-link" href="?page=1{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">
+                    <a class="page-link" href="?page=1{% if cliente_filtro %}&cliente_id={{ cliente_filtro }}{% endif %}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">
                         <i class="bi bi-chevron-double-left"></i>
                     </a>
                 </li>
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page-1 }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">
+                    <a class="page-link" href="?page={{ page-1 }}{% if cliente_filtro %}&cliente_id={{ cliente_filtro }}{% endif %}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">
                         Anterior
                     </a>
                 </li>
@@ -288,28 +302,26 @@
                 </li>
             {% endif %}
 
-            <!-- Números de página -->
             {% for i in range(1, total_pages + 1) %}
                 {% if i == page %}
                     <li class="page-item active">
-                        <span class="page-link">{{ i }}</span>
+                        <span class="page-link" style="background:#2B8AC4;border-color:#2B8AC4;">{{ i }}</span>
                     </li>
                 {% else %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ i }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">{{ i }}</a>
+                        <a class="page-link" style="color:#2B8AC4;" href="?page={{ i }}{% if cliente_filtro %}&cliente_id={{ cliente_filtro }}{% endif %}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">{{ i }}</a>
                     </li>
                 {% endif %}
             {% endfor %}
 
-            <!-- Botón Siguiente -->
             {% if page < total_pages %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page+1 }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">
+                    <a class="page-link" href="?page={{ page+1 }}{% if cliente_filtro %}&cliente_id={{ cliente_filtro }}{% endif %}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">
                         Siguiente
                     </a>
                 </li>
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ total_pages }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">
+                    <a class="page-link" href="?page={{ total_pages }}{% if cliente_filtro %}&cliente_id={{ cliente_filtro }}{% endif %}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">
                         <i class="bi bi-chevron-double-right"></i>
                     </a>
                 </li>
@@ -327,18 +339,16 @@
 
     {% endif %}
 
-    <!-- BOTÓN VOLVER -->
-    <div class="row mt-5">
-        <div class="col-12 text-center">
-            <a href="/" class="btn btn-secondary btn-lg">
-                <i class="bi bi-arrow-left me-2"></i>Volver al Inicio
-            </a>
-        </div>
+    <!-- BOTON VOLVER -->
+    <div class="text-center mt-4">
+        <a href="/" class="at-btn-outline btn">
+            <i class="bi bi-arrow-left me-1"></i>Volver al Inicio
+        </a>
     </div>
 
 </div>
 
-<!-- JavaScript para validación de formularios -->
+<!-- JavaScript para validacion de formularios -->
 <script>
     (function () {
         'use strict'

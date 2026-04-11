@@ -2,271 +2,294 @@
 
 {% block content %}
 
-<!-- HERO -->
-<section class="hero text-center">
+<!-- HERO — full width, centrado, grande y abierto -->
+<section class="at-home-hero">
+    <div class="at-home-hero-bg">
+        <div class="at-home-hero-orb at-home-hero-orb--1"></div>
+        <div class="at-home-hero-orb at-home-hero-orb--2"></div>
+        <div class="at-home-hero-orb at-home-hero-orb--3"></div>
+    </div>
+    <div class="container position-relative">
+        <div class="at-home-hero-content">
+            <div class="at-home-hero-badge">
+                <span class="at-home-hero-badge-dot"></span>
+                Servicio Tecnico Profesional en Huelva
+            </div>
+            <h1 class="at-home-hero-title">
+                Reparamos tus<br>
+                <span class="at-home-hero-accent">dispositivos</span> con garantia
+            </h1>
+            <p class="at-home-hero-desc">
+                Moviles, tablets y ordenadores. Diagnostico gratuito, piezas de calidad
+                y seguimiento en tiempo real de tu reparacion.
+            </p>
+            <div class="at-home-hero-actions">
+                <a href="/solicitar-reparacion" class="at-home-btn-main">
+                    <i class="bi bi-send me-2"></i>Solicitar reparacion
+                </a>
+                <a href="/consulta" class="at-home-btn-ghost">
+                    <i class="bi bi-search me-2"></i>Consultar estado
+                </a>
+                <a href="https://wa.me/34633234395?text=Hola%2C%20necesito%20informacion%20sobre%20una%20reparacion"
+                   target="_blank" rel="noopener" class="at-home-btn-wa">
+                    <i class="bi bi-whatsapp me-2"></i>WhatsApp
+                </a>
+            </div>
+        </div>
+
+        <!-- Floating stats cards -->
+        <div class="at-home-float-stats">
+            <div class="at-home-fcard at-home-fcard--1">
+                <div class="at-home-fcard-icon"><i class="bi bi-people-fill"></i></div>
+                <div>
+                    <span class="at-home-fcard-num">{{ total_clientes }}</span>
+                    <span class="at-home-fcard-label">Clientes</span>
+                </div>
+            </div>
+            <div class="at-home-fcard at-home-fcard--2">
+                <div class="at-home-fcard-icon" style="background:rgba(16,185,129,.12);color:#10b981;"><i class="bi bi-check-circle-fill"></i></div>
+                <div>
+                    <span class="at-home-fcard-num">{{ terminadas }}</span>
+                    <span class="at-home-fcard-label">Completadas</span>
+                </div>
+            </div>
+            <div class="at-home-fcard at-home-fcard--3">
+                <div class="at-home-fcard-icon" style="background:rgba(245,158,11,.12);color:#f59e0b;"><i class="bi bi-tools"></i></div>
+                <div>
+                    <span class="at-home-fcard-num">{{ activas }}</span>
+                    <span class="at-home-fcard-label">En curso</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- COMO FUNCIONA — pasos horizontales -->
+<section class="at-home-process">
     <div class="container">
-        <h1 class="display-5 fw-bold mb-2">AndroTech - Tu Taller de Confianza</h1>
-        <p class="lead text-muted mb-4">Reparamos móviles, ordenadores y recuperamos datos. Consulta el estado de tu reparación al instante.</p>
-        <div class="d-flex justify-content-center gap-3">
-            <a href="/consulta" class="btn btn-primary btn-lg">Consultar reparación</a>
-            <a href="/servicios" class="btn btn-outline-primary btn-lg">Nuestros servicios</a>
+        <div class="text-center mb-5">
+            <h2 class="at-section-title">Como funciona</h2>
+            <p class="at-section-sub">En 4 pasos sencillos, tu dispositivo vuelve a estar como nuevo</p>
         </div>
-    </div>
-</section>
-
-<!-- Wave Separator 1 -->
-<div class="wave-separator">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120">
-        <path fill="#ffffff" d="M0,80 C480,160 960,0 1440,80 V120 H0 Z"></path>
-    </svg>
-</div>
-
-<!-- ESTADÍSTICAS (KPI) -->
-<section class="container mb-4">
-    <div class="row g-3">
-
-        <div class="col-6 col-md-3">
-            <div class="card kpi-card shadow-sm p-3">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 bg-light rounded-3 p-2"><i class="bi bi-people kpi-icon"></i></div>
-                    <div>
-                        <div class="small text-muted">Clientes atendidos</div>
-                        <div class="h5 fw-bold">{{ total_clientes }}</div>
-                    </div>
-                </div>
+        <div class="at-home-steps">
+            <div class="at-home-step">
+                <div class="at-home-step-num">1</div>
+                <div class="at-home-step-line"></div>
+                <h5 class="at-home-step-title">Solicita</h5>
+                <p class="at-home-step-desc">Rellena el formulario online o contactanos por WhatsApp</p>
             </div>
-        </div>
-
-        <div class="col-6 col-md-3">
-            <div class="card kpi-card shadow-sm p-3">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 bg-light rounded-3 p-2"><i class="bi bi-wrench kpi-icon text-info"></i></div>
-                    <div>
-                        <div class="small text-muted">Reparaciones en proceso</div>
-                        <div class="h5 fw-bold">{{ activas }}</div>
-                    </div>
-                </div>
+            <div class="at-home-step">
+                <div class="at-home-step-num">2</div>
+                <div class="at-home-step-line"></div>
+                <h5 class="at-home-step-title">Diagnostico</h5>
+                <p class="at-home-step-desc">Analizamos tu dispositivo y te damos presupuesto sin compromiso</p>
             </div>
-        </div>
-
-        <div class="col-6 col-md-3">
-            <div class="card kpi-card shadow-sm p-3">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 bg-light rounded-3 p-2"><i class="bi bi-check2-square kpi-icon text-success"></i></div>
-                    <div>
-                        <div class="small text-muted">Reparaciones completadas</div>
-                        <div class="h5 fw-bold">{{ terminadas }}</div>
-                    </div>
-                </div>
+            <div class="at-home-step">
+                <div class="at-home-step-num">3</div>
+                <div class="at-home-step-line"></div>
+                <h5 class="at-home-step-title">Reparacion</h5>
+                <p class="at-home-step-desc">Nuestros tecnicos reparan con piezas de calidad garantizada</p>
             </div>
-        </div>
-
-        <div class="col-6 col-md-3">
-            <div class="card kpi-card shadow-sm p-3">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 bg-light rounded-3 p-2"><i class="bi bi-currency-euro kpi-icon text-warning"></i></div>
-                    <div>
-                        <div class="small text-muted">Ingresos estimados</div>
-                        <div class="h5 fw-bold">€ {{ ingresos }}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-</section>
-
-<!-- NUESTROS SERVICIOS -->
-<section class="container mb-5">
-    <div class="row">
-        <div class="col-lg-7">
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    <h5 class="card-title">Nuestros Servicios</h5>
-                    <p class="text-muted">Ofrecemos soluciones completas para la reparación y mantenimiento de tus dispositivos tecnológicos.</p>
-
-                    <ul class="list-unstyled feature-list">
-                        <li class="mb-2"><i class="bi bi-phone-fill"></i> Reparación de móviles y smartphones</li>
-                        <li class="mb-2"><i class="bi bi-laptop"></i> Reparación de ordenadores y laptops</li>
-                        <li class="mb-2"><i class="bi bi-hdd"></i> Recuperación de datos perdidos</li>
-                        <li class="mb-2"><i class="bi bi-shield-check"></i> Mantenimiento preventivo</li>
-                        <li class="mb-2"><i class="bi bi-search"></i> Diagnóstico técnico profesional</li>
-                        <li class="mb-2"><i class="bi bi-headset"></i> Soporte y asesoramiento personalizado</li>
-                    </ul>
-
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-5 d-none d-lg-block">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body d-flex align-items-center justify-content-center">
-                    <div class="text-center text-muted">
-                        <i class="bi bi-tools" style="font-size:3rem"></i>
-                        <p class="mt-3 mb-0">Equipos especializados y herramientas de última generación para garantizar la calidad de nuestros servicios.</p>
-                    </div>
-                </div>
+            <div class="at-home-step">
+                <div class="at-home-step-num">4</div>
+                <h5 class="at-home-step-title">Entrega</h5>
+                <p class="at-home-step-desc">Recoge tu dispositivo reparado con 3 meses de garantia</p>
             </div>
         </div>
     </div>
 </section>
 
-<!-- SOBRE ANDROTECH -->
-<section class="container mb-5">
-    <div class="row align-items-center g-4">
-        <!-- Columna 1: Imagen -->
-        <div class="col-lg-5">
-            <div class="about-image-container rounded overflow-hidden shadow-sm">
-                <img src="{{ url_for('static', filename='img/about.jpg') }}" alt="AndroTech - Taller técnico profesional" class="img-fluid w-100" style="object-fit: cover; height: 380px;">
+<!-- SERVICIOS — tarjetas con hover -->
+<section class="container at-section">
+    <div class="text-center mb-5">
+        <h2 class="at-section-title">Nuestros servicios</h2>
+        <p class="at-section-sub">Soluciones completas para todos tus dispositivos</p>
+    </div>
+    <div class="at-services-grid">
+        <div class="at-service-card">
+            <div class="at-service-icon">
+                <i class="bi bi-phone" style="font-size:1.4rem;color:#2B8AC4"></i>
             </div>
+            <h5 class="at-service-title">Reparacion de moviles</h5>
+            <p class="at-service-desc">Pantallas, baterias, conectores y mas. Todas las marcas.</p>
+            <span class="at-service-price">Desde 29&euro;</span>
         </div>
+        <div class="at-service-card">
+            <div class="at-service-icon">
+                <i class="bi bi-laptop" style="font-size:1.4rem;color:#2B8AC4"></i>
+            </div>
+            <h5 class="at-service-title">Reparacion de ordenadores</h5>
+            <p class="at-service-desc">Portatiles y sobremesa. Hardware y software.</p>
+            <span class="at-service-price">Desde 39&euro;</span>
+        </div>
+        <div class="at-service-card">
+            <div class="at-service-icon">
+                <i class="bi bi-tablet" style="font-size:1.4rem;color:#2B8AC4"></i>
+            </div>
+            <h5 class="at-service-title">Reparacion de tablets</h5>
+            <p class="at-service-desc">iPad, Samsung Galaxy Tab y todas las marcas del mercado.</p>
+            <span class="at-service-price">Desde 35&euro;</span>
+        </div>
+        <div class="at-service-card">
+            <div class="at-service-icon">
+                <i class="bi bi-cloud-arrow-down" style="font-size:1.4rem;color:#2B8AC4"></i>
+            </div>
+            <h5 class="at-service-title">Recuperacion de datos</h5>
+            <p class="at-service-desc">Discos duros, memorias USB, tarjetas SD y moviles.</p>
+            <span class="at-service-price">Desde 49&euro;</span>
+        </div>
+        <div class="at-service-card">
+            <div class="at-service-icon">
+                <i class="bi bi-shield-check" style="font-size:1.4rem;color:#2B8AC4"></i>
+            </div>
+            <h5 class="at-service-title">Mantenimiento preventivo</h5>
+            <p class="at-service-desc">Limpieza, optimizacion y revision completa del equipo.</p>
+            <span class="at-service-price">Desde 25&euro;</span>
+        </div>
+        <div class="at-service-card">
+            <div class="at-service-icon">
+                <i class="bi bi-search" style="font-size:1.4rem;color:#2B8AC4"></i>
+            </div>
+            <h5 class="at-service-title">Diagnostico profesional</h5>
+            <p class="at-service-desc">Analisis completo y presupuesto sin compromiso.</p>
+            <span class="at-service-price">Gratis</span>
+        </div>
+    </div>
+    <div class="text-center mt-4">
+        <a href="/servicios" class="at-home-btn-ghost">Ver todos los servicios <i class="bi bi-arrow-right ms-1"></i></a>
+    </div>
+</section>
 
-        <!-- Columna 2: Contenido -->
-        <div class="col-lg-7">
-            <div>
-                <h2 class="h3 fw-bold mb-2">Sobre AndroTech</h2>
-                <p class="text-muted mb-4">Tu solución completa para la gestión profesional de un taller técnico de reparaciones. Diseñado con la experiencia de talleres reales, para optimizar tiempos y mejorar la organización.</p>
-
-                <!-- Valores del taller -->
-                <ul class="list-unstyled about-values">
-                    <li class="mb-3 d-flex align-items-start">
-                        <div class="about-icon me-3"><i class="bi bi-check-circle-fill"></i></div>
-                        <div>
-                            <h6 class="mb-1">Atención profesional</h6>
-                            <small class="text-muted">Equipos capacitados para diagnosticar y resolver cualquier inconveniente técnico.</small>
-                        </div>
-                    </li>
-                    <li class="mb-3 d-flex align-items-start">
-                        <div class="about-icon me-3"><i class="bi bi-lightning-fill"></i></div>
-                        <div>
-                            <h6 class="mb-1">Reparaciones rápidas</h6>
-                            <small class="text-muted">Procesos optimizados para entrega ágil sin comprometer calidad.</small>
-                        </div>
-                    </li>
-                    <li class="mb-3 d-flex align-items-start">
-                        <div class="about-icon me-3"><i class="bi bi-search"></i></div>
-                        <div>
-                            <h6 class="mb-1">Diagnósticos precisos</h6>
-                            <small class="text-muted">Metodología rigurosa para identificar raíces de problemas técnicos.</small>
-                        </div>
-                    </li>
-                    <li class="d-flex align-items-start">
-                        <div class="about-icon me-3"><i class="bi bi-shield-check"></i></div>
-                        <div>
-                            <h6 class="mb-1">Garantía en servicios</h6>
-                            <small class="text-muted">Confianza y respaldo en cada reparación realizada en el taller.</small>
-                        </div>
-                    </li>
-                </ul>
+<!-- POR QUE ANDROTECH — asimetrico -->
+<section class="at-home-why">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-5">
+                <span class="at-pill">Por que elegirnos</span>
+                <h2 class="at-section-title" style="text-align:left;">Un taller en el que<br>puedes <span style="color:#2B8AC4;">confiar</span></h2>
+                <p class="at-about-desc">Somos un equipo tecnico en Huelva especializado en reparacion de dispositivos. Transparencia, rapidez y garantia en cada servicio.</p>
+                <a href="/sobre" class="at-home-btn-ghost mt-2">Conocenos <i class="bi bi-arrow-right ms-1"></i></a>
+            </div>
+            <div class="col-lg-7">
+                <div class="at-home-why-grid">
+                    <div class="at-home-why-card">
+                        <div class="at-home-why-icon"><i class="bi bi-lightning-charge-fill"></i></div>
+                        <h6>Rapido</h6>
+                        <p>La mayoria de reparaciones listas en 24-48h</p>
+                    </div>
+                    <div class="at-home-why-card">
+                        <div class="at-home-why-icon" style="background:rgba(16,185,129,.1);color:#10b981;"><i class="bi bi-shield-fill-check"></i></div>
+                        <h6>Garantia</h6>
+                        <p>3 meses en todas las reparaciones y piezas</p>
+                    </div>
+                    <div class="at-home-why-card">
+                        <div class="at-home-why-icon" style="background:rgba(139,92,246,.1);color:#8b5cf6;"><i class="bi bi-eye-fill"></i></div>
+                        <h6>Transparente</h6>
+                        <p>Consulta el estado de tu reparacion online 24/7</p>
+                    </div>
+                    <div class="at-home-why-card">
+                        <div class="at-home-why-icon" style="background:rgba(245,158,11,.1);color:#f59e0b;"><i class="bi bi-currency-euro"></i></div>
+                        <h6>Sin sorpresas</h6>
+                        <p>Presupuesto antes de empezar, sin costes ocultos</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- TESTIMONIOS DE CLIENTES -->
-<section class="container mb-5">
-    <div class="row mb-4">
-        <div class="col-12 text-center">
-            <h2 class="h3 fw-bold mb-2">Opiniones de nuestros clientes</h2>
-            <p class="text-muted">Lo que dicen sobre la calidad de nuestro servicio.</p>
-        </div>
+<!-- TESTIMONIOS -->
+<section class="container at-section">
+    <div class="text-center mb-5">
+        <h2 class="at-section-title">Lo que dicen nuestros clientes</h2>
+        <p class="at-section-sub">Opiniones reales de personas que confiaron en nosotros</p>
     </div>
-
     <div class="row g-4">
-        <!-- Testimonio 1 -->
         <div class="col-md-6 col-lg-4">
-            <div class="card testimonial-card shadow-sm border-0 h-100">
-                <div class="card-body d-flex flex-column">
-                    <!-- Icono de comillas -->
-                    <div class="mb-3">
-                        <i class="bi bi-quote" style="font-size: 1.8rem; color: var(--primary); opacity: 0.3;"></i>
-                    </div>
-
-                    <!-- Texto de reseña -->
-                    <p class="text-muted mb-4 flex-grow-1">Excelente servicio, personal muy profesional y rápido. Repararon mi dispositivo en 48 horas y quedó como nuevo. Muy recomendado.</p>
-
-                    <!-- Rating -->
-                    <div class="mb-3">
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                    </div>
-
-                    <!-- Avatar y nombre -->
-                    <div class="d-flex align-items-center">
-                        <img src="{{ url_for('static', filename='img/user1.jpg') }}" alt="Cliente 1" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover; margin-right: 12px;">
-                        <div>
-                            <h6 class="mb-0">Carlos Martínez</h6>
-                            <small class="text-muted">Cliente verificado</small>
-                        </div>
-                    </div>
+            <div class="at-testimonial">
+                <span class="at-testimonial-quote">&ldquo;</span>
+                <p class="at-testimonial-text">Excelente servicio, personal muy profesional y rapido. Repararon mi movil en 48 horas y quedo como nuevo. Muy recomendado.</p>
+                <div class="at-testimonial-stars">
+                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
+                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
+                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
+                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
+                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
+                </div>
+                <div class="at-testimonial-author">
+                    <strong>Carlos Martinez</strong>
+                    <span>Cliente verificado</span>
                 </div>
             </div>
         </div>
-
-        <!-- Testimonio 2 -->
         <div class="col-md-6 col-lg-4">
-            <div class="card testimonial-card shadow-sm border-0 h-100">
-                <div class="card-body d-flex flex-column">
-                    <!-- Icono de comillas -->
-                    <div class="mb-3">
-                        <i class="bi bi-quote" style="font-size: 1.8rem; color: var(--primary); opacity: 0.3;"></i>
-                    </div>
-
-                    <!-- Texto de reseña -->
-                    <p class="text-muted mb-4 flex-grow-1">Taller de confianza, con garantía en todos los servicios. El diagnóstico fue preciso y el precio justo. Volveré sin dudarlo.</p>
-
-                    <!-- Rating -->
-                    <div class="mb-3">
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                    </div>
-
-                    <!-- Avatar y nombre -->
-                    <div class="d-flex align-items-center">
-                        <img src="{{ url_for('static', filename='img/user2.jpg') }}" alt="Cliente 2" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover; margin-right: 12px;">
-                        <div>
-                            <h6 class="mb-0">Elena García</h6>
-                            <small class="text-muted">Cliente verificado</small>
-                        </div>
-                    </div>
+            <div class="at-testimonial">
+                <span class="at-testimonial-quote">&ldquo;</span>
+                <p class="at-testimonial-text">Taller de confianza, con garantia en todos los servicios. El diagnostico fue preciso y el precio justo. Volvere sin dudarlo.</p>
+                <div class="at-testimonial-stars">
+                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
+                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
+                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
+                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
+                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
+                </div>
+                <div class="at-testimonial-author">
+                    <strong>Elena Garcia</strong>
+                    <span>Cliente verificado</span>
                 </div>
             </div>
         </div>
-
-        <!-- Testimonio 3 -->
         <div class="col-md-6 col-lg-4">
-            <div class="card testimonial-card shadow-sm border-0 h-100">
-                <div class="card-body d-flex flex-column">
-                    <!-- Icono de comillas -->
-                    <div class="mb-3">
-                        <i class="bi bi-quote" style="font-size: 1.8rem; color: var(--primary); opacity: 0.3;"></i>
+            <div class="at-testimonial">
+                <span class="at-testimonial-quote">&ldquo;</span>
+                <p class="at-testimonial-text">Increible atencion al cliente. Solucionaron mi problema tecnico de manera profesional y meticulosa. Equipo excepcional.</p>
+                <div class="at-testimonial-stars">
+                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
+                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
+                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
+                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
+                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
+                </div>
+                <div class="at-testimonial-author">
+                    <strong>Jorge Fernandez</strong>
+                    <span>Cliente verificado</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA FINAL — horario + contacto -->
+<section class="at-home-cta-final">
+    <div class="container">
+        <div class="at-home-cta-inner">
+            <div class="at-home-cta-left">
+                <h2>Tu dispositivo necesita<br><span style="color:#4da6d8;">una segunda oportunidad?</span></h2>
+                <p>Estamos en el centro de Huelva, listos para atenderte.</p>
+                <div class="at-home-cta-btns">
+                    <a href="/solicitar-reparacion" class="at-home-btn-main">
+                        <i class="bi bi-send me-2"></i>Solicitar reparacion
+                    </a>
+                    <a href="https://wa.me/34633234395?text=Hola%2C%20necesito%20informacion%20sobre%20una%20reparacion"
+                       target="_blank" rel="noopener" class="at-home-btn-wa">
+                        <i class="bi bi-whatsapp me-2"></i>WhatsApp
+                    </a>
+                </div>
+            </div>
+            <div class="at-home-cta-right">
+                <div class="at-home-schedule-card">
+                    <h6><i class="bi bi-clock me-2"></i>Horario</h6>
+                    <div class="at-home-schedule-row">
+                        <span>Lunes - Viernes</span>
+                        <span>09:30 - 14:00 / 17:00 - 20:00</span>
                     </div>
-
-                    <!-- Texto de reseña -->
-                    <p class="text-muted mb-4 flex-grow-1">Increíble atención al cliente. Solucionaron mi problema técnico de manera profesional y meticulosa. Equipo excepcional.</p>
-
-                    <!-- Rating -->
-                    <div class="mb-3">
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
-                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
+                    <div class="at-home-schedule-row">
+                        <span>Sabados</span>
+                        <span>10:00 - 13:30</span>
                     </div>
-
-                    <!-- Avatar y nombre -->
-                    <div class="d-flex align-items-center">
-                        <img src="{{ url_for('static', filename='img/user3.jpg') }}" alt="Cliente 3" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover; margin-right: 12px;">
-                        <div>
-                            <h6 class="mb-0">Jorge Fernández</h6>
-                            <small class="text-muted">Cliente verificado</small>
-                        </div>
+                    <div class="at-home-schedule-row at-home-schedule-closed">
+                        <span>Domingos</span>
+                        <span>Cerrado</span>
                     </div>
                 </div>
             </div>
@@ -274,63 +297,20 @@
     </div>
 </section>
 
-<!-- MAPA: ubicación del taller (iframe de Google Maps - cambia por tu ubicación) -->
-<section class="container mb-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h6 class="mb-3">Ubicación del taller</h6>
-                    <div class="ratio ratio-16x9 rounded" style="overflow:hidden;">
-                        <iframe
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3048.373803646332!2d-3.703790584607508!3d40.41677597936306!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd4229a7f4b2a1b7%3A0x4b4b5c4f3f2d6b2!2sMadrid%2C%20España!5e0!3m2!1ses!2ses!4v1600000000000!5m2!1ses!2ses"
-                            width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Wave Separator 3 -->
-<div class="wave-separator">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120">
-        <path fill="#ffffff" d="M0,80 C480,160 960,0 1440,80 V120 H0 Z"></path>
-    </svg>
-</div>
-
-<!-- Pequeño script para animar iconos al cargar -->
-<script>
-        document.addEventListener('DOMContentLoaded', function () {
-                // Animación de iconos KPI y lista de features
-                const icons = document.querySelectorAll('.kpi-icon, .feature-list i');
-                icons.forEach((el, idx) => {
-                        el.style.transform = 'translateY(6px)';
-                        el.style.opacity = 0;
-                        setTimeout(() => {
-                                el.style.transition = 'transform .35s ease, opacity .35s ease';
-                                el.style.transform = 'translateY(0)';
-                                el.style.opacity = 1;
-                        }, 120 * idx);
-                });
-        });
-</script>
-
-<!-- ScrollReveal para animaciones de scroll reveal -->
+<!-- ScrollReveal -->
 <script src="https://unpkg.com/scrollreveal"></script>
-
 <script>
-        // ScrollReveal config
-        ScrollReveal().reveal('.hero', { delay: 120, distance: '20px', duration: 800 });
-        ScrollReveal().reveal('.quick-card', { interval: 120, distance: '20px', origin: 'bottom' });
-        ScrollReveal().reveal('.kpi-card', { interval: 100, distance: '20px', origin: 'bottom' });
-        ScrollReveal().reveal('.feature-list li', { interval: 80, distance: '12px', origin: 'left' });
-        ScrollReveal().reveal('.card.shadow-sm', { interval: 120 });
-        ScrollReveal().reveal('.about-image-container', { delay: 120, distance: '30px', origin: 'left' });
-        ScrollReveal().reveal('.about-values li', { interval: 100, distance: '15px', origin: 'bottom' });
-        ScrollReveal().reveal('.testimonial-card', { interval: 100, distance: '20px', origin: 'bottom' });
-        ScrollReveal().reveal('.footer-col', { interval: 100, distance: '15px', origin: 'bottom' });
+    var sr = ScrollReveal({ duration: 900, distance: '30px', easing: 'ease-out' });
+    sr.reveal('.at-home-hero-content', { origin: 'bottom', delay: 100 });
+    sr.reveal('.at-home-fcard--1', { origin: 'left', delay: 400 });
+    sr.reveal('.at-home-fcard--2', { origin: 'bottom', delay: 550 });
+    sr.reveal('.at-home-fcard--3', { origin: 'right', delay: 700 });
+    sr.reveal('.at-home-step', { interval: 150, origin: 'bottom' });
+    sr.reveal('.at-service-card', { interval: 100, origin: 'bottom', distance: '25px' });
+    sr.reveal('.at-home-why-card', { interval: 120, origin: 'right', distance: '30px' });
+    sr.reveal('.at-testimonial', { interval: 130, origin: 'bottom' });
+    sr.reveal('.at-home-cta-left', { origin: 'left', delay: 100 });
+    sr.reveal('.at-home-cta-right', { origin: 'right', delay: 250 });
 </script>
 
 {% endblock %}
-

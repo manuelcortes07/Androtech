@@ -1,90 +1,72 @@
 {% extends "base.html" %}
+{% block title %}Nuevo Cliente - AndroTech{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center py-4">
-	<div class="col-xl-6 col-lg-7 col-md-9">
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-xl-6 col-lg-7 col-md-9">
+            <span class="at-pill"><i class="bi bi-person-plus me-1"></i>Clientes</span>
+            <h1 class="at-section-title mt-2 mb-1">Nuevo Cliente</h1>
+            <p class="at-section-sub">Registro rapido del cliente y datos de contacto</p>
 
-		<!-- Panel administrativo: tarjeta con sombra -->
-		<div class="card shadow-sm border-0">
-			<div class="card-header bg-primary text-white d-flex align-items-center justify-content-between">
-				<div>
-					<h4 class="mb-0">Nuevo Cliente</h4>
-					<small class="text-white-50">Registro rápido del cliente y datos de contacto</small>
-				</div>
-				<div class="text-end">
-					<small class="badge bg-light text-dark">Administración</small>
-				</div>
-			</div>
+            <div class="at-admin-card mt-4">
+                <div class="at-admin-card-header d-flex align-items-center justify-content-between">
+                    <span><i class="bi bi-person-plus me-2"></i>Formulario de Registro</span>
+                    <span class="badge" style="background: #EBF5FB; color: #2B8AC4;">Administracion</span>
+                </div>
+                <div class="p-4">
+                    <form action="/clientes/nuevo" method="POST" class="at-admin-form needs-validation" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
-			<div class="card-body">
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label fw-semibold">Nombre completo <span class="text-danger">*</span></label>
+                            <input id="nombre" name="nombre" type="text" class="form-control form-control-lg" required placeholder="Ej: Juan Gomez">
+                            <div class="invalid-feedback">Por favor introduce el nombre completo del cliente.</div>
+                        </div>
 
-				<!-- Formulario moderno, limpio y organizado -->
-				<form action="/clientes/nuevo" method="POST" class="needs-validation" novalidate>
-					{# Si usas CSRF en Flask, descomenta la línea siguiente #}
-<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="telefono" class="form-label">Telefono</label>
+                                <input id="telefono" name="telefono" type="tel" class="form-control" placeholder="Ej: 666123456">
+                                <div class="form-text">Incluye prefijo si aplica (opcional).</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">Correo electronico</label>
+                                <input id="email" name="email" type="email" class="form-control" placeholder="Ej: correo@ejemplo.com">
+                            </div>
+                        </div>
 
-					<div class="mb-3">
-						<label for="nombre" class="form-label fw-semibold">Nombre completo <span class="text-danger">*</span></label>
-						<input id="nombre" name="nombre" type="text" class="form-control form-control-lg" required placeholder="Ej: Juan Gómez">
-						<div class="invalid-feedback">Por favor introduce el nombre completo del cliente.</div>
-					</div>
+                        <div class="row g-3 mt-3">
+                            <div class="col-md-8">
+                                <label for="direccion" class="form-label">Direccion</label>
+                                <input id="direccion" name="direccion" type="text" class="form-control" placeholder="Ej: Calle Falsa 123, Piso 2">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="ciudad" class="form-label">Ciudad</label>
+                                <input id="ciudad" name="ciudad" type="text" class="form-control" placeholder="Ej: Madrid">
+                            </div>
+                        </div>
 
-					<div class="row g-3">
-						<div class="col-md-6">
-							<label for="telefono" class="form-label">Teléfono</label>
-							<input id="telefono" name="telefono" type="tel" class="form-control" placeholder="Ej: 666123456">
-							<div class="form-text">Incluye prefijo si aplica (opcional).</div>
-						</div>
+                        <div class="mt-3 mb-3">
+                            <label for="notas" class="form-label">Notas / Observaciones</label>
+                            <textarea id="notas" name="notas" rows="3" class="form-control" placeholder="Comentarios relevantes sobre el cliente (opcional)"></textarea>
+                        </div>
 
-						<div class="col-md-6">
-							<label for="email" class="form-label">Correo electrónico</label>
-							<input id="email" name="email" type="email" class="form-control" placeholder="Ej: correo@ejemplo.com">
-						</div>
-					</div>
-
-					<div class="row g-3 mt-3">
-						<div class="col-md-8">
-							<label for="direccion" class="form-label">Dirección</label>
-							<input id="direccion" name="direccion" type="text" class="form-control" placeholder="Ej: Calle Falsa 123, Piso 2">
-						</div>
-
-						<div class="col-md-4">
-							<label for="ciudad" class="form-label">Ciudad</label>
-							<input id="ciudad" name="ciudad" type="text" class="form-control" placeholder="Ej: Madrid">
-						</div>
-					</div>
-
-					<div class="mt-3 mb-3">
-						<label for="notas" class="form-label">Notas / Observaciones</label>
-						<textarea id="notas" name="notas" rows="3" class="form-control" placeholder="Comentarios relevantes sobre el cliente (opcional)"></textarea>
-					</div>
-
-					<div class="row mt-4">
-						<div class="col-12 col-md-6 mb-2 mb-md-0">
-							<a href="/clientes" class="btn btn-secondary w-100">Cancelar</a>
-						</div>
-
-						<div class="col-6 col-md-3 d-none d-md-block">
-							<button type="reset" class="btn btn-primary w-100">Limpiar</button>
-						</div>
-
-						<div class="col-6 col-md-3">
-							<button type="submit" class="btn btn-success w-100">Guardar Cliente</button>
-						</div>
-					</div>
-
-				</form>
-
-			</div>
-
-			<div class="card-footer bg-light small text-muted d-flex justify-content-between align-items-center">
-				<div>Campos obligatorios <span class="text-danger">*</span></div>
-				<div>Plantilla diseñada para Bootstrap 5 — responsive</div>
-			</div>
-
-		</div>
-
-	</div>
+                        <div class="d-flex flex-wrap gap-2 mt-4">
+                            <a href="/clientes" class="at-btn-outline flex-fill text-center">
+                                <i class="bi bi-x-lg me-1"></i>Cancelar
+                            </a>
+                            <button type="reset" class="at-btn-outline flex-fill d-none d-md-inline-block">
+                                <i class="bi bi-eraser me-1"></i>Limpiar
+                            </button>
+                            <button type="submit" class="at-btn-primary flex-fill">
+                                <i class="bi bi-check-lg me-1"></i>Guardar Cliente
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
-

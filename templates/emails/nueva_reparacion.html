@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confirmación de Pago - AndroTech</title>
+    <title>Nueva Reparación Registrada - AndroTech</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -35,21 +35,6 @@
         .status-icon {
             font-size: 48px;
             margin-bottom: 20px;
-            color: #198754;
-        }
-        .payment-info {
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-            border-left: 4px solid #198754;
-        }
-        .payment-amount {
-            text-align: center;
-            font-size: 32px;
-            font-weight: bold;
-            color: #198754;
-            margin: 15px 0;
         }
         .repair-details {
             background-color: #f8f9fa;
@@ -68,6 +53,13 @@
         }
         .detail-value {
             color: #333;
+        }
+        .next-steps {
+            background-color: #d1ecf1;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #2B8AC4;
+            margin: 20px 0;
         }
         .contact-info {
             background-color: #e9ecef;
@@ -88,38 +80,39 @@
 <body>
     <div class="container">
         <div class="header">
-            <div class="status-icon">💳</div>
+            <div class="status-icon">🔧</div>
             <div class="logo">AndroTech</div>
-            <h1>Confirmación de Pago</h1>
-            <p>Tu pago ha sido registrado correctamente</p>
+            <h1>Nueva Reparación Registrada</h1>
+            <p>Hemos recibido tu dispositivo</p>
         </div>
 
         <p>Hola <strong>{{ cliente_nombre }}</strong>,</p>
-        <p>Te confirmamos que hemos recibido tu pago para la siguiente reparación:</p>
-
-        <div class="payment-info">
-            <h3>Importe Pagado</h3>
-            <div class="payment-amount">{{ "%.2f"|format(precio) }} €</div>
-        </div>
+        <p>Hemos registrado tu reparación en nuestro sistema. A continuación te mostramos los detalles:</p>
 
         <div class="repair-details">
             <h3>Detalles de la Reparación</h3>
             <div class="detail-row">
-                <span class="detail-label">Cliente:</span>
-                <span class="detail-value">{{ cliente_nombre }}</span>
-            </div>
-            <div class="detail-row">
                 <span class="detail-label">Reparación ID:</span>
                 <span class="detail-value">#{{ reparacion_id }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Dispositivo:</span>
+                <span class="detail-value">{{ dispositivo }}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Descripción:</span>
                 <span class="detail-value">{{ descripcion }}</span>
             </div>
             <div class="detail-row">
-                <span class="detail-label">Fecha de Pago:</span>
-                <span class="detail-value">{{ fecha_pago }}</span>
+                <span class="detail-label">Fecha de Entrada:</span>
+                <span class="detail-value">{{ fecha_entrada }}</span>
             </div>
+        </div>
+
+        <div class="next-steps">
+            <h4>Próximos Pasos</h4>
+            <p>Nuestros técnicos revisarán tu dispositivo y te mantendremos informado sobre el progreso de la reparación. Recibirás notificaciones por email cada vez que haya una actualización de estado.</p>
+            <p><strong>Horario de atención:</strong> Lunes a Viernes de 9:00 a 18:00</p>
         </div>
 
         <div class="contact-info">

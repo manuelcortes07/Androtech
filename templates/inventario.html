@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Inventario de Piezas - AndroTech{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-xl-11 col-lg-12">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+                <div>
+                    <span class="at-pill"><i class="bi bi-box-seam me-1"></i>Administracion</span>
+                    <h1 class="at-section-title mt-2 mb-1">Inventario de Piezas</h1>
+                    <p class="at-section-sub">Gestion de repuestos y componentes del taller</p>
+                </div>
+                <a href="{{ url_for('nueva_pieza') }}" class="at-btn-primary btn">
+                    <i class="bi bi-plus-lg me-1"></i>Nueva Pieza
+                </a>
+            </div>
+
+            <!-- KPIs -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="at-dash-kpi">
+                        <div class="at-dash-kpi-icon" style="background:rgba(43,138,196,.12);color:#2B8AC4;">
+                            <i class="bi bi-box-seam"></i>
+                        </div>
+                        <div>
+                            <div class="at-dash-kpi-value">{{ total }}</div>
+                            <div class="at-dash-kpi-label">Total Piezas</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="at-dash-kpi">
+                        <div class="at-dash-kpi-icon" style="background:rgba(220,53,69,.1);color:#dc3545;">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </div>
+                        <div>
+                            <div class="at-dash-kpi-value">{{ stock_bajo }}</div>
+                            <div class="at-dash-kpi-label">Stock Bajo</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="at-dash-kpi">
+                        <div class="at-dash-kpi-icon" style="background:rgba(25,135,84,.1);color:#198754;">
+                            <i class="bi bi-currency-euro"></i>
+                        </div>
+                        <div>
+                            <div class="at-dash-kpi-value">{{ "%.2f"|format(valor_total) }} &euro;</div>
+                            <div class="at-dash-kpi-label">Valor del Inventario</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="at-admin-card mb-4">
+                <div class="p-3">
+                    <form method="GET" action="{{ url_for('inventario') }}" class="row g-2 align-items-end">
+                        <div class="col-md-5">
+                            <input type="text" name="q" class="form-control" placeholder="Buscar por nombre o proveedor..."
+                                   value="{{ buscar }}" style="border-radius:10px;">
+                        </div>
+                        <div class="col-md-4">
+                            <select name="categoria" class="form-select" style="border-radius:10px;">
+                                <option value="">Todas las categorias</option>
+                                {% for cat in ['Pantallas', 'Baterias', 'Conectores', 'Placas', 'Carcasas', 'Accesorios', 'General'] %}
+                                <option value="{{ cat }}" {% if categoria == cat %}selected{% endif %}>{{ cat }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex gap-2">
+                            <button type="submit" class="at-btn-primary btn flex-fill">
+                                <i class="bi bi-search me-1"></i>Filtrar
+                            </button>
+                            {% if buscar or categoria %}
+                            <a href="{{ url_for('inventario') }}" class="at-btn-outline btn">
+                                <i class="bi bi-x-lg"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Tabla -->
+            <div class="at-admin-card">
+                <div class="table-responsive">
+                    <table class="at-admin-table table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Pieza</th>
+                                <th>Categoria</th>
+                                <th class="text-center">Stock</th>
+                                <th>P. Coste</th>
+                                <th>P. Venta</th>
+                                <th>Proveedor</th>
+                                <th class="text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pieza in piezas %}
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">{{ pieza.nombre }}</div>
+                                    {% if pieza.ubicacion %}
+                                    <small class="text-muted"><i class="bi bi-geo-alt me-1"></i>{{ pieza.ubicacion }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge" style="background:rgba(43,138,196,.1);color:#2B8AC4;">{{ pieza.categoria }}</span>
+                                </td>
+                                <td class="text-center">
+                                    {% if pieza.cantidad <= pieza.cantidad_minima %}
+                                    <span class="badge" style="background:rgba(220,53,69,.1);color:#dc3545;font-weight:700;">
+                                        <i class="bi bi-exclamation-triangle me-1"></i>{{ pieza.cantidad }}
+                                    </span>
+                                    {% else %}
+                                    <span class="badge" style="background:rgba(25,135,84,.1);color:#198754;font-weight:700;">{{ pieza.cantidad }}</span>
+                                    {% endif %}
+                                    <div style="font-size:.7rem;color:#9ba5b0;">min: {{ pieza.cantidad_minima }}</div>
+                                </td>
+                                <td>{{ "%.2f"|format(pieza.precio_coste or 0) }} &euro;</td>
+                                <td class="fw-semibold">{{ "%.2f"|format(pieza.precio_venta or 0) }} &euro;</td>
+                                <td>{{ pieza.proveedor or '—' }}</td>
+                                <td class="text-end">
+                                    <a href="{{ url_for('editar_pieza', id=pieza.id) }}" class="btn btn-sm" style="color:#2B8AC4;" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{{ url_for('eliminar_pieza', id=pieza.id) }}" class="btn btn-sm" style="color:#dc3545;"
+                                       title="Eliminar" onclick="return confirm('Eliminar esta pieza del inventario?');">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7">
+                                    <div class="at-empty-state py-4">
+                                        <i class="bi bi-box-seam" style="font-size:2rem;"></i>
+                                        <p class="mb-1">No hay piezas en el inventario</p>
+                                        <a href="{{ url_for('nueva_pieza') }}" class="at-btn-primary btn btn-sm mt-2">
+                                            <i class="bi bi-plus-lg me-1"></i>Añadir primera pieza
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

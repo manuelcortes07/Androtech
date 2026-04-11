@@ -4,109 +4,91 @@
 
 {% block content %}
 
-<!-- FORMULARIO DE CONTACTO -->
+<!-- Hero mini -->
+<section class="text-center py-5">
+    <span class="at-pill">Contacto</span>
+    <h2 class="at-section-title mt-3">Ponte en contacto con nosotros</h2>
+    <p class="at-section-sub">Responderemos tu mensaje lo antes posible</p>
+</section>
+
+<!-- Formulario -->
 <div class="row justify-content-center mb-5">
     <div class="col-lg-8 col-xl-7">
-        <div class="card shadow-sm border-0 contact-card">
-            
-            <!-- Encabezado del formulario -->
-            <div class="card-header bg-primary text-white py-4">
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-envelope-fill me-3" style="font-size: 1.8rem;"></i>
-                    <div>
-                        <h4 class="mb-0">Ponte en contacto</h4>
-                        <small>Responderemos tu mensaje en breve</small>
-                    </div>
-                </div>
-            </div>
+        <div class="at-service-card p-0" style="border-top: 3px solid #2B8AC4;">
 
-            <!-- Cuerpo del formulario -->
-            <div class="card-body p-4">
+            <div class="p-4">
                 <form action="/contacto" method="POST" class="needs-validation" novalidate>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <!-- Fila 1: Nombre y Email -->
+
+                    <!-- Nombre y Email -->
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="nombre" class="form-label fw-500">Nombre completo</label>
+                            <label for="nombre" class="form-label fw-semibold">Nombre completo</label>
                             <input type="text" class="form-control" id="nombre" name="nombre" placeholder="Tu nombre" required>
-                            <div class="invalid-feedback">
-                                Por favor, ingresa tu nombre.
-                            </div>
+                            <div class="invalid-feedback">Por favor, ingresa tu nombre.</div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="email" class="form-label fw-500">Correo electrónico</label>
+                            <label for="email" class="form-label fw-semibold">Correo electronico</label>
                             <input type="email" class="form-control" id="email" name="email" placeholder="tu@email.com" required>
-                            <div class="invalid-feedback">
-                                Por favor, ingresa un correo válido.
-                            </div>
+                            <div class="invalid-feedback">Por favor, ingresa un correo valido.</div>
                         </div>
                     </div>
 
-                    <!-- Fila 2: Teléfono y Tipo -->
+                    <!-- Telefono y Tipo -->
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="telefono" class="form-label fw-500">Teléfono</label>
+                            <label for="telefono" class="form-label fw-semibold">Telefono</label>
                             <input type="tel" class="form-control" id="telefono" name="telefono" placeholder="+34 612 345 678" required>
-                            <div class="invalid-feedback">
-                                Por favor, ingresa un teléfono.
-                            </div>
+                            <div class="invalid-feedback">Por favor, ingresa un telefono.</div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="tipo" class="form-label fw-500">Tipo de consulta</label>
+                            <label for="tipo" class="form-label fw-semibold">Tipo de consulta</label>
                             <select class="form-select" id="tipo" name="tipo" required>
-                                <option value="">— Selecciona una opción —</option>
+                                <option value="">-- Selecciona una opcion --</option>
                                 <option value="Cliente">Cliente</option>
-                                <option value="Reparación">Reparación</option>
-                                <option value="Información">Información</option>
+                                <option value="Reparacion">Reparacion</option>
+                                <option value="Informacion">Informacion</option>
                                 <option value="Otro">Otro</option>
                             </select>
-                            <div class="invalid-feedback">
-                                Por favor, selecciona un tipo de consulta.
-                            </div>
+                            <div class="invalid-feedback">Por favor, selecciona un tipo de consulta.</div>
                         </div>
                     </div>
 
-                    <!-- Fila 3: Mensaje -->
+                    <!-- Mensaje -->
                     <div class="mb-3">
-                        <label for="mensaje" class="form-label fw-500">Mensaje</label>
-                        <textarea class="form-control" id="mensaje" name="mensaje" rows="5" placeholder="Cuéntanos cómo podemos ayudarte..." required></textarea>
-                        <small class="text-muted">Mínimo 10 caracteres</small>
-                        <div class="invalid-feedback">
-                            Por favor, ingresa tu mensaje.
-                        </div>
+                        <label for="mensaje" class="form-label fw-semibold">Mensaje</label>
+                        <textarea class="form-control" id="mensaje" name="mensaje" rows="5" placeholder="Cuentanos como podemos ayudarte..." required></textarea>
+                        <small class="text-muted">Minimo 10 caracteres</small>
+                        <div class="invalid-feedback">Por favor, ingresa tu mensaje.</div>
                     </div>
 
-                    <!-- Fila 4: Botones -->
-                    <div class="row mt-4">
-                        <div class="col-12 d-flex gap-2">
-                            <a href="/" class="btn btn-outline-secondary">
-                                <i class="bi bi-arrow-left me-2"></i>Cancelar
-                            </a>
-                            <button type="submit" class="btn btn-primary ms-auto">
-                                <i class="bi bi-send-fill me-2"></i>Enviar mensaje
-                            </button>
-                        </div>
+                    <!-- Botones -->
+                    <div class="d-flex gap-2 mt-4">
+                        <a href="/" class="at-btn-outline">
+                            <i class="bi bi-arrow-left me-2"></i>Cancelar
+                        </a>
+                        <button type="submit" class="at-btn-primary ms-auto">
+                            <i class="bi bi-send-fill me-2"></i>Enviar mensaje
+                        </button>
                     </div>
 
                 </form>
             </div>
 
-            <!-- Footer de la card con info adicional -->
-            <div class="card-footer bg-light py-3 text-center">
+            <!-- Footer info -->
+            <div class="px-4 py-3 text-center" style="background: #EBF5FB; border-radius: 0 0 12px 12px;">
                 <small class="text-muted">
-                    <i class="bi bi-info-circle me-1"></i>
-                    También puedes llamarnos directamente al <strong>+34 912 345 678</strong>
+                    <i class="bi bi-telephone me-1"></i>
+                    Tambien puedes llamarnos al <strong>+34 633 234 395</strong>
+                    &nbsp;|&nbsp;
+                    <a href="https://wa.me/34633234395" target="_blank" rel="noopener" style="color: #25D366; text-decoration: none;">
+                        <i class="bi bi-whatsapp me-1"></i>WhatsApp
+                    </a>
                 </small>
             </div>
 
         </div>
     </div>
 </div>
-
-<!-- ScrollReveal para animación -->
-<script src="https://unpkg.com/scrollreveal"></script>
-<script>
-    ScrollReveal().reveal('.contact-card', { delay: 120, distance: '30px', origin: 'bottom' });
-</script>
 
 {% endblock %}

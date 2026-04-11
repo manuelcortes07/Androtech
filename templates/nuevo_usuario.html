@@ -1,121 +1,133 @@
 {% extends "base.html" %}
-
 {% block title %}Nuevo Usuario - AndroTech{% endblock %}
 
 {% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-xl-6 col-lg-7 col-md-9">
+            <span class="at-pill"><i class="bi bi-person-plus me-1"></i>Usuarios</span>
+            <h1 class="at-section-title mt-2 mb-1">Crear Nuevo Usuario</h1>
+            <p class="at-section-sub">Registra un nuevo usuario en el sistema</p>
 
-<div class="container py-5">
-    
-    <!-- ENCABEZADO -->
-    <div class="row mb-4">
-        <div class="col-md-8 offset-md-2">
-            <h1 class="display-6 fw-bold text-primary mb-2">
-                <i class="bi bi-person-plus-fill"></i> Crear Nuevo Usuario
-            </h1>
-            <p class="text-muted">Registra un nuevo usuario en el sistema</p>
-        </div>
-    </div>
-
-    <!-- FORMULARIO -->
-    <div class="row">
-        <div class="col-md-6 offset-md-3">
-            <div class="card border-0 shadow-lg">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="bi bi-pencil-square"></i> Formulario de Registro</h5>
+            <div class="at-admin-card mt-4">
+                <div class="at-admin-card-header d-flex align-items-center justify-content-between">
+                    <span><i class="bi bi-person-plus me-2"></i>Formulario de Registro</span>
+                    <span class="badge" style="background: #EBF5FB; color: #2B8AC4;">Administracion</span>
                 </div>
-                <div class="card-body p-4">
-                    <form method="POST" novalidate>
-                        
-                        <!-- CSRF Token -->
+                <div class="p-4">
+                    <form method="POST" class="at-admin-form needs-validation" novalidate>
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
-                        <!-- Usuario -->
-                        <div class="mb-4">
-                            <label for="usuario" class="form-label fw-bold">
-                                <i class="bi bi-person-badge"></i> Nombre de Usuario
+                        <div class="mb-3">
+                            <label for="usuario" class="form-label fw-semibold">
+                                <i class="bi bi-person-badge me-1"></i>Nombre de Usuario <span class="text-danger">*</span>
                             </label>
-                            <input 
-                                type="text" 
-                                class="form-control form-control-lg" 
-                                id="usuario" 
-                                name="usuario"
-                                placeholder="ej: juan.perez"
-                                required
-                                minlength="3"
-                                pattern="[a-zA-Z0-9._-]{3,}"
-                            >
-                            <small class="text-muted d-block mt-2">
-                                <i class="bi bi-info-circle"></i>
-                                Mínimo 3 caracteres (letras, números, puntos, guiones)
-                            </small>
+                            <input type="text" class="form-control form-control-lg" id="usuario" name="usuario"
+                                   placeholder="ej: juan.perez" required minlength="3" pattern="[a-zA-Z0-9._-]{3,}">
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>Minimo 3 caracteres (letras, numeros, puntos, guiones)
+                            </div>
                         </div>
 
-                        <!-- Contraseña -->
-                        <div class="mb-4">
-                            <label for="contraseña" class="form-label fw-bold">
-                                <i class="bi bi-lock-fill"></i> Contraseña
+                        <div class="mb-3">
+                            <label for="contraseña" class="form-label fw-semibold">
+                                <i class="bi bi-lock-fill me-1"></i>Contraseña <span class="text-danger">*</span>
                             </label>
-                            <input 
-                                type="password" 
-                                class="form-control form-control-lg" 
-                                id="contraseña" 
-                                name="contraseña"
-                                placeholder="Mínimo 6 caracteres"
-                                required
-                                minlength="6"
-                            >
-                            <small class="text-muted d-block mt-2">
-                                <i class="bi bi-shield-check"></i>
-                                Mínimo 6 caracteres. Usa mayúsculas, minúsculas y números para mayor seguridad.
-                            </small>
+                            <input type="password" class="form-control form-control-lg" id="contraseña" name="contraseña"
+                                   placeholder="Minimo 8 caracteres" required minlength="8">
+                            <div class="mt-2" id="pwd-strength">
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar" id="pwd-bar" style="width: 0%;"></div>
+                                </div>
+                                <small id="pwd-text" class="text-muted mt-1 d-block"></small>
+                            </div>
+                            <div class="mt-2 small">
+                                <span id="chk-len" class="text-muted"><i class="bi bi-x-circle"></i> Minimo 8 caracteres</span><br>
+                                <span id="chk-upper" class="text-muted"><i class="bi bi-x-circle"></i> Una mayuscula</span><br>
+                                <span id="chk-lower" class="text-muted"><i class="bi bi-x-circle"></i> Una minuscula</span><br>
+                                <span id="chk-num" class="text-muted"><i class="bi bi-x-circle"></i> Un numero</span>
+                            </div>
                         </div>
 
-                        <!-- Rol -->
-                        <div class="mb-4">
-                            <label for="rol" class="form-label fw-bold">
-                                <i class="bi bi-shield-check"></i> Rol
+                        <div class="mb-3">
+                            <label for="rol" class="form-label fw-semibold">
+                                <i class="bi bi-shield-check me-1"></i>Rol <span class="text-danger">*</span>
                             </label>
                             <select class="form-select form-select-lg" id="rol" name="rol" required>
                                 <option value="">-- Selecciona un rol --</option>
-                                <option value="tecnico" selected>
-                                    👨‍🔧 Técnico (Acceso a reparaciones y clientes)
+                                {% for r in roles %}
+                                <option value="{{ r.nombre }}" {% if r.nombre == 'tecnico' %}selected{% endif %}>
+                                    {{ r.nombre|capitalize }} {% if r.descripcion %}({{ r.descripcion|truncate(50) }}){% endif %}
                                 </option>
-                                <option value="admin">
-                                    🛡️ Administrador (Acceso completo)
-                                </option>
+                                {% endfor %}
                             </select>
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>
+                                <a href="{{ url_for('admin_roles') }}">Gestionar roles y permisos</a>
+                            </div>
                         </div>
 
-                        <!-- Botones -->
-                        <div class="d-grid gap-2 d-md-flex mt-5">
-                            <button type="submit" class="btn btn-primary btn-lg flex-md-fill">
-                                <i class="bi bi-check-circle"></i> Crear Usuario
+                        <div class="d-flex flex-wrap gap-2 mt-4">
+                            <button type="submit" class="at-btn-primary flex-fill">
+                                <i class="bi bi-check-circle me-1"></i>Crear Usuario
                             </button>
-                            <a href="{{ url_for('admin_usuarios') }}" class="btn btn-outline-secondary btn-lg flex-md-fill">
-                                <i class="bi bi-arrow-left"></i> Cancelar
+                            <a href="{{ url_for('admin_usuarios') }}" class="at-btn-outline flex-fill text-center">
+                                <i class="bi bi-arrow-left me-1"></i>Cancelar
                             </a>
                         </div>
-
                     </form>
                 </div>
             </div>
 
-            <!-- AYUDA -->
-            <div class="card border-0 shadow-sm mt-4 bg-light">
-                <div class="card-body">
-                    <h6 class="card-title"><i class="bi bi-lightbulb text-warning"></i> Recomendaciones</h6>
+            <!-- Recomendaciones -->
+            <div class="at-admin-card mt-4">
+                <div class="at-admin-card-header">
+                    <i class="bi bi-lightbulb me-2"></i>Recomendaciones
+                </div>
+                <div class="p-4">
                     <ul class="mb-0 ps-3 small text-muted">
-                        <li>Elige nombres cortos y fáciles de recordar para los usuarios</li>
-                        <li>Los técnicos pueden cambiar el estado de reparaciones y registrar cambios</li>
+                        <li>Elige nombres cortos y faciles de recordar para los usuarios</li>
+                        <li>Los tecnicos pueden cambiar el estado de reparaciones y registrar cambios</li>
                         <li>Los administradores tienen acceso total al sistema y pueden gestionar usuarios</li>
-                        <li>Comparte la contraseña inicial de forma segura con el nuevo usuario</li>
+                        <li>Comparte la contrasena inicial de forma segura con el nuevo usuario</li>
                     </ul>
                 </div>
             </div>
-
         </div>
     </div>
-
 </div>
+{% endblock %}
 
+{% block scripts %}
+<script>
+document.getElementById('contraseña').addEventListener('input', function() {
+    const pwd = this.value;
+    const bar = document.getElementById('pwd-bar');
+    const txt = document.getElementById('pwd-text');
+    const checks = {
+        len: pwd.length >= 8,
+        upper: /[A-Z]/.test(pwd),
+        lower: /[a-z]/.test(pwd),
+        num: /[0-9]/.test(pwd)
+    };
+    let score = Object.values(checks).filter(Boolean).length;
+
+    ['len','upper','lower','num'].forEach(k => {
+        const el = document.getElementById('chk-' + k);
+        if (checks[k]) {
+            el.className = 'text-success';
+            el.querySelector('i').className = 'bi bi-check-circle-fill';
+        } else {
+            el.className = 'text-muted';
+            el.querySelector('i').className = 'bi bi-x-circle';
+        }
+    });
+
+    const levels = ['','danger','warning','info','success'];
+    const labels = ['','Debil','Regular','Buena','Fuerte'];
+    bar.style.width = (score * 25) + '%';
+    bar.className = 'progress-bar bg-' + (levels[score] || '');
+    txt.textContent = pwd.length ? labels[score] : '';
+});
+</script>
 {% endblock %}

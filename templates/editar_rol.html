@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Editar Rol: {{ rol.nombre|capitalize }} - AndroTech{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-xl-8 col-lg-10">
+            <span class="at-pill"><i class="bi bi-pencil-square me-1"></i>Roles</span>
+            <h1 class="at-section-title mt-2 mb-1">Editar Rol: <span style="color:{{ rol.color }}">{{ rol.nombre|capitalize }}</span></h1>
+            <p class="at-section-sub">
+                {% if rol.nombre == 'admin' %}
+                El rol admin siempre tiene todos los permisos. No se pueden modificar.
+                {% else %}
+                Marca o desmarca los permisos que quieras asignar a este rol.
+                {% endif %}
+            </p>
+
+            <form method="POST" class="needs-validation" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <div class="at-admin-card mt-4">
+                    <div class="at-admin-card-header">
+                        <i class="bi bi-info-circle me-2"></i>Informacion del Rol
+                    </div>
+                    <div class="p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-tag me-1"></i>Nombre
+                                </label>
+                                <input type="text" class="form-control form-control-lg" value="{{ rol.nombre }}" disabled>
+                                <div class="form-text">El nombre del rol no se puede cambiar.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="color" class="form-label fw-semibold">
+                                    <i class="bi bi-palette me-1"></i>Color
+                                </label>
+                                <input type="color" class="form-control form-control-lg form-control-color w-100"
+                                       id="color" name="color" value="{{ rol.color or '#6c757d' }}"
+                                       {% if rol.nombre == 'admin' %}disabled{% endif %}>
+                            </div>
+                            <div class="col-12">
+                                <label for="descripcion" class="form-label fw-semibold">
+                                    <i class="bi bi-text-paragraph me-1"></i>Descripcion
+                                </label>
+                                <input type="text" class="form-control" id="descripcion" name="descripcion"
+                                       value="{{ rol.descripcion or '' }}"
+                                       placeholder="Describe que hace este rol">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Permisos por categoría -->
+                <div class="at-admin-card mt-4">
+                    <div class="at-admin-card-header d-flex align-items-center justify-content-between">
+                        <span><i class="bi bi-key me-2"></i>Permisos ({{ permisos_actuales|length }} activos)</span>
+                        {% if rol.nombre != 'admin' %}
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="marcarTodos(true)">
+                                <i class="bi bi-check-all me-1"></i>Todos
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="marcarTodos(false)">
+                                <i class="bi bi-x-circle me-1"></i>Ninguno
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="p-4">
+                        {% for cat_name, cat_permisos in categorias.items() %}
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <h6 class="mb-0 fw-bold" style="color:#0F1923;">
+                                    {% if cat_name == 'Clientes' %}<i class="bi bi-people me-1" style="color:#2B8AC4;"></i>
+                                    {% elif cat_name == 'Reparaciones' %}<i class="bi bi-tools me-1" style="color:#2B8AC4;"></i>
+                                    {% elif cat_name == 'Inventario' %}<i class="bi bi-box-seam me-1" style="color:#2B8AC4;"></i>
+                                    {% elif cat_name == 'General' %}<i class="bi bi-grid me-1" style="color:#2B8AC4;"></i>
+                                    {% elif cat_name == 'Administracion' %}<i class="bi bi-shield-exclamation me-1" style="color:#dc3545;"></i>
+                                    {% endif %}
+                                    {{ cat_name }}
+                                </h6>
+                                {% if rol.nombre != 'admin' %}
+                                <button type="button" class="btn btn-sm btn-link p-0 text-muted"
+                                        onclick="toggleCategoria('{{ cat_name }}')">
+                                    <small>Todos/Ninguno</small>
+                                </button>
+                                {% endif %}
+
+                                <!-- Contador de permisos activos en esta categoria -->
+                                {% set ns = namespace(count=0) %}
+                                {% for p in cat_permisos %}
+                                    {% if p.clave in permisos_actuales %}{% set ns.count = ns.count + 1 %}{% endif %}
+                                {% endfor %}
+                                <span class="badge" style="background:{% if ns.count == cat_permisos|length %}rgba(25,135,84,.1);color:#198754{% else %}rgba(255,193,7,.15);color:#997a00{% endif %};font-size:.7rem;">
+                                    {{ ns.count }}/{{ cat_permisos|length }}
+                                </span>
+                            </div>
+                            <div class="row g-2">
+                                {% for p in cat_permisos %}
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="form-check p-2 rounded"
+                                         style="background:{% if p.clave in permisos_actuales %}rgba(25,135,84,.05){% else %}rgba(0,0,0,.02){% endif %};">
+                                        <input class="form-check-input permiso-check" type="checkbox"
+                                               name="permisos" value="{{ p.clave }}"
+                                               id="p_{{ p.clave }}" data-cat="{{ cat_name }}"
+                                               {% if p.clave in permisos_actuales %}checked{% endif %}
+                                               {% if rol.nombre == 'admin' %}checked disabled{% endif %}>
+                                        <label class="form-check-label small {% if p.clave in permisos_actuales %}fw-semibold{% endif %}"
+                                               for="p_{{ p.clave }}">
+                                            {{ p.nombre }}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+
+                        {% if rol.nombre == 'admin' %}
+                        <div class="alert mb-0" style="background:rgba(220,53,69,.05);color:#dc3545;border:1px solid rgba(220,53,69,.2);">
+                            <i class="bi bi-lock me-1"></i>
+                            <strong>Rol protegido:</strong> El administrador siempre tiene todos los permisos por seguridad.
+                        </div>
+                        {% elif rol.es_sistema %}
+                        <div class="alert mb-0" style="background:#EBF5FB;color:#1a6fbd;border:1px solid #4da6d8;">
+                            <i class="bi bi-info-circle me-1"></i>
+                            <strong>Rol del sistema:</strong> Puedes modificar sus permisos pero no eliminarlo.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                    {% if rol.nombre != 'admin' %}
+                    <button type="submit" class="at-btn-primary flex-fill">
+                        <i class="bi bi-check-circle me-1"></i>Guardar Cambios
+                    </button>
+                    {% else %}
+                    <button type="submit" class="at-btn-primary flex-fill">
+                        <i class="bi bi-check-circle me-1"></i>Guardar Descripcion
+                    </button>
+                    {% endif %}
+                    <a href="{{ url_for('admin_roles') }}" class="at-btn-outline flex-fill text-center">
+                        <i class="bi bi-arrow-left me-1"></i>Volver
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function marcarTodos(estado) {
+    document.querySelectorAll('.permiso-check:not(:disabled)').forEach(cb => cb.checked = estado);
+}
+function toggleCategoria(cat) {
+    const checks = document.querySelectorAll(`.permiso-check[data-cat="${cat}"]:not(:disabled)`);
+    const allChecked = Array.from(checks).every(cb => cb.checked);
+    checks.forEach(cb => cb.checked = !allChecked);
+}
+</script>
+{% endblock %}

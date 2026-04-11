@@ -1,521 +1,377 @@
 """
-PDF Invoice Generator - AndroTech
-Generador profesional de facturas PDF con diseño corporativo.
-Versión avanzada con múltiples servicios, información fiscal completa y templates profesionales.
+PDF Generator - AndroTech
+Generador profesional de presupuestos y facturas PDF con diseno corporativo.
+Adaptado para taller de reparacion de dispositivos moviles en Huelva, España.
 """
 
 import os
 import logging
-import tempfile
 from datetime import datetime
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch, cm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.units import cm
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.graphics.shapes import Drawing
+from reportlab.graphics.barcode.qr import QrCodeWidget
 from io import BytesIO
 
 logger = logging.getLogger(__name__)
 
-class InvoiceGenerator:
-    """Generador profesional de facturas PDF para AndroTech."""
+# Colores corporativos AndroTech
+AT_PRIMARY = colors.HexColor('#2B8AC4')
+AT_DARK = colors.HexColor('#0F1923')
+AT_LIGHT = colors.HexColor('#EBF5FB')
+AT_SUCCESS = colors.HexColor('#198754')
+AT_GRAY = colors.HexColor('#6c757d')
+AT_BORDER = colors.HexColor('#dee2e6')
 
-    def __init__(self, template_dir: str = "templates/pdf"):
-        """Inicializar el generador de facturas."""
-        self.template_dir = template_dir
-        self.company_info = {
-            'name': 'AndroTech',
-            'address': 'Calle 123 #45-67, Bogotá, Colombia',
-            'phone': '+57 300 123 4567',
-            'email': 'info@androtech.com',
-            'website': 'www.androtech.com',
-            'nit': '901.234.567-8',
-            'logo_path': os.path.join(template_dir, 'logo.png')
-        }
+# Datos de la empresa
+COMPANY = {
+    'name': 'AndroTech',
+    'tagline': 'Taller de Reparacion de Dispositivos Moviles',
+    'address': 'Huelva, España',
+    'phone': '+34 633 234 395',
+    'email': 'manuelcortescontreras11@gmail.com',
+    'web': 'AndroTech',
+    'iva_rate': 0.21,
+}
 
-        # Crear directorio si no existe
-        os.makedirs(template_dir, exist_ok=True)
 
-        # Configurar estilos
-        self._setup_styles()
+def _get_styles():
+    """Configurar estilos del documento."""
+    styles = getSampleStyleSheet()
 
-        logger.info("Invoice generator initialized")
+    styles.add(ParagraphStyle(
+        name='ATTitle', parent=styles['Heading1'], fontSize=22,
+        textColor=AT_PRIMARY, alignment=TA_CENTER, spaceAfter=5
+    ))
+    styles.add(ParagraphStyle(
+        name='ATSub', parent=styles['Normal'], fontSize=10,
+        textColor=AT_GRAY, alignment=TA_CENTER, spaceAfter=20
+    ))
+    styles.add(ParagraphStyle(
+        name='ATSection', parent=styles['Heading2'], fontSize=13,
+        textColor=AT_DARK, spaceAfter=10
+    ))
+    styles.add(ParagraphStyle(
+        name='ATSmall', parent=styles['Normal'], fontSize=8,
+        textColor=AT_GRAY, alignment=TA_CENTER
+    ))
+    styles.add(ParagraphStyle(
+        name='ATFooter', parent=styles['Normal'], fontSize=8,
+        textColor=colors.HexColor('#9ba5b0'), alignment=TA_CENTER
+    ))
+    return styles
 
-    def _setup_styles(self):
-        """Configurar estilos de documento."""
-        self.styles = getSampleStyleSheet()
 
-        # Estilo para títulos
-        self.styles.add(ParagraphStyle(
-            name='CustomTitle',
-            parent=self.styles['Heading1'],
-            fontSize=24,
-            textColor=colors.HexColor('#2c3e50'),
-            alignment=TA_CENTER,
-            spaceAfter=30
-        ))
+def _build_header(styles, doc_type="PRESUPUESTO", doc_number=""):
+    """Construir cabecera del documento."""
+    elements = []
 
-        # Estilo para subtítulos
-        self.styles.add(ParagraphStyle(
-            name='CustomSubtitle',
-            parent=self.styles['Heading2'],
-            fontSize=14,
-            textColor=colors.HexColor('#34495e'),
-            alignment=TA_LEFT,
-            spaceAfter=15
-        ))
+    # Titulo
+    elements.append(Paragraph("AndroTech", styles['ATTitle']))
+    elements.append(Paragraph(COMPANY['tagline'], styles['ATSub']))
 
-        # Estilo para información de empresa
-        self.styles.add(ParagraphStyle(
-            name='CompanyInfo',
-            parent=self.styles['Normal'],
-            fontSize=10,
-            textColor=colors.HexColor('#7f8c8d'),
-            alignment=TA_LEFT
-        ))
+    # Tipo de documento y numero
+    header_data = [
+        [doc_type, f'N. {doc_number}'],
+        ['Fecha:', datetime.now().strftime('%d/%m/%Y')],
+    ]
+    header_table = Table(header_data, colWidths=[8.5 * cm, 8.5 * cm])
+    header_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), AT_PRIMARY),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
+        ('TEXTCOLOR', (0, 1), (-1, -1), AT_GRAY),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (-1, -1), 12),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+    ]))
+    elements.append(header_table)
+    elements.append(Spacer(1, 15))
+    return elements
 
-        # Estilo para totales
-        self.styles.add(ParagraphStyle(
-            name='TotalStyle',
-            parent=self.styles['Normal'],
-            fontSize=14,
-            textColor=colors.HexColor('#27ae60'),
-            alignment=TA_RIGHT,
-            fontName='Helvetica-Bold'
-        ))
 
-    def generate_invoice(self, invoice_data: Dict[str, Any], output_path: str) -> bool:
-        """
-        Generar factura PDF.
+def _build_client_info(styles, cliente):
+    """Construir seccion de datos del cliente."""
+    elements = []
+    elements.append(Paragraph("Datos del Cliente", styles['ATSection']))
 
-        Args:
-            invoice_data: Datos de la factura
-            output_path: Ruta donde guardar el PDF
+    info_data = [
+        ['Nombre:', cliente.get('nombre', '—')],
+        ['Telefono:', cliente.get('telefono', '—') or '—'],
+        ['Email:', cliente.get('email', '—') or '—'],
+        ['Direccion:', cliente.get('direccion', '—') or '—'],
+    ]
+    info_table = Table(info_data, colWidths=[3.5 * cm, 13.5 * cm])
+    info_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('TEXTCOLOR', (0, 0), (0, -1), AT_PRIMARY),
+        ('LINEBELOW', (0, -1), (-1, -1), 0.5, AT_BORDER),
+    ]))
+    elements.append(info_table)
+    elements.append(Spacer(1, 12))
+    return elements
 
-        Returns:
-            bool: True si se generó correctamente
-        """
-        try:
-            # Crear documento
-            doc = SimpleDocTemplate(
-                output_path,
-                pagesize=A4,
-                rightMargin=2*cm,
-                leftMargin=2*cm,
-                topMargin=2*cm,
-                bottomMargin=2*cm
-            )
 
-            # Construir elementos del documento
-            elements = []
+def _build_device_info(styles, reparacion):
+    """Construir seccion de datos del dispositivo."""
+    elements = []
+    elements.append(Paragraph("Dispositivo", styles['ATSection']))
 
-            # Header con logo e información de empresa
-            elements.extend(self._build_header())
+    device_data = [
+        ['Dispositivo:', reparacion.get('dispositivo', '—')],
+        ['Descripcion:', reparacion.get('descripcion', '—') or '—'],
+        ['Estado:', reparacion.get('estado', '—')],
+        ['Fecha Entrada:', reparacion.get('fecha_entrada', '—') or '—'],
+    ]
+    device_table = Table(device_data, colWidths=[3.5 * cm, 13.5 * cm])
+    device_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('TEXTCOLOR', (0, 0), (0, -1), AT_DARK),
+        ('LINEBELOW', (0, -1), (-1, -1), 0.5, AT_BORDER),
+    ]))
+    elements.append(device_table)
+    elements.append(Spacer(1, 12))
+    return elements
 
-            # Información del cliente y factura
-            elements.extend(self._build_invoice_info(invoice_data))
 
-            # Tabla de servicios
-            elements.extend(self._build_services_table(invoice_data))
+def _build_services_table(styles, servicios, piezas=None):
+    """Construir tabla de servicios/piezas."""
+    elements = []
+    elements.append(Paragraph("Detalle de Servicios", styles['ATSection']))
 
-            # Totales
-            elements.extend(self._build_totals(invoice_data))
+    headers = ['Concepto', 'Cant.', 'Precio Unit.', 'Subtotal']
+    table_data = [headers]
 
-            # Términos y condiciones
-            elements.extend(self._build_terms())
+    for s in servicios:
+        qty = s.get('cantidad', 1)
+        unit = s.get('precio', 0)
+        sub = qty * unit
+        table_data.append([
+            s.get('descripcion', 'Reparacion'),
+            str(qty),
+            f'{unit:.2f} EUR',
+            f'{sub:.2f} EUR'
+        ])
 
-            # Footer
-            elements.extend(self._build_footer())
+    # Anadir piezas si existen
+    if piezas:
+        for p in piezas:
+            qty = p.get('cantidad', 1)
+            unit = p.get('precio_venta', 0)
+            sub = qty * unit
+            table_data.append([
+                f'Pieza: {p.get("nombre", "")}',
+                str(qty),
+                f'{unit:.2f} EUR',
+                f'{sub:.2f} EUR'
+            ])
 
-            # Generar PDF
-            doc.build(elements)
+    svc_table = Table(table_data, colWidths=[8 * cm, 2 * cm, 3.5 * cm, 3.5 * cm])
+    svc_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), AT_DARK),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+        ('ALIGN', (2, 1), (-1, -1), 'RIGHT'),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('GRID', (0, 0), (-1, -1), 0.5, AT_BORDER),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
+    ]))
+    elements.append(svc_table)
+    elements.append(Spacer(1, 12))
+    return elements
 
-            logger.info(f"Invoice PDF generated successfully: {output_path}")
-            return True
 
-        except Exception as e:
-            logger.error(f"Failed to generate invoice PDF: {str(e)}")
-            return False
+def _build_totals(styles, subtotal):
+    """Construir seccion de totales con IVA."""
+    elements = []
 
-    def _build_header(self) -> List[Any]:
-        """Construir header del documento."""
-        elements = []
+    iva = subtotal * COMPANY['iva_rate']
+    total = subtotal + iva
 
-        # Logo (si existe)
-        if os.path.exists(self.company_info['logo_path']):
-            try:
-                logo = Image(self.company_info['logo_path'], 2*inch, 1*inch)
-                elements.append(logo)
-                elements.append(Spacer(1, 20))
-            except:
-                pass  # Si no hay logo, continuar sin él
+    totals_data = [
+        ['Base Imponible:', f'{subtotal:.2f} EUR'],
+        [f'IVA ({int(COMPANY["iva_rate"] * 100)}%):', f'{iva:.2f} EUR'],
+        ['TOTAL:', f'{total:.2f} EUR'],
+    ]
 
-        # Nombre de la empresa
-        title = Paragraph("AndroTech", self.styles['CustomTitle'])
-        elements.append(title)
+    totals_table = Table(totals_data, colWidths=[12.5 * cm, 4.5 * cm])
+    totals_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+        ('FONTSIZE', (0, 0), (-1, -1), 11),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, -1), (-1, -1), 13),
+        ('BACKGROUND', (0, -1), (-1, -1), AT_SUCCESS),
+        ('TEXTCOLOR', (0, -1), (-1, -1), colors.white),
+        ('LINEABOVE', (0, 0), (-1, 0), 1, AT_BORDER),
+    ]))
+    elements.append(totals_table)
+    elements.append(Spacer(1, 15))
+    return elements
 
-        # Información de contacto
-        contact_info = f"""
-        <b>Dirección:</b> {self.company_info['address']}<br/>
-        <b>Teléfono:</b> {self.company_info['phone']}<br/>
-        <b>Email:</b> {self.company_info['email']}<br/>
-        <b>Sitio Web:</b> {self.company_info['website']}<br/>
-        <b>NIT:</b> {self.company_info['nit']}
-        """
-        contact = Paragraph(contact_info, self.styles['CompanyInfo'])
-        elements.append(contact)
-        elements.append(Spacer(1, 30))
 
-        return elements
+def _build_terms(styles, tipo="presupuesto"):
+    """Construir terminos y condiciones."""
+    elements = []
+    elements.append(Paragraph("Terminos y Condiciones", styles['ATSection']))
 
-    def _build_invoice_info(self, invoice_data: Dict[str, Any]) -> List[Any]:
-        """Construir información de factura y cliente."""
-        elements = []
+    if tipo == "presupuesto":
+        terms_text = (
+            '<b>1.</b> Este presupuesto tiene una validez de 30 dias naturales.<br/>'
+            '<b>2.</b> Los precios pueden variar si se detectan averias adicionales durante la reparacion.<br/>'
+            '<b>3.</b> Garantia de 3 meses en piezas y mano de obra.<br/>'
+            '<b>4.</b> El dispositivo debe recogerse en un plazo maximo de 30 dias tras la notificacion de finalizacion.<br/>'
+            '<b>5.</b> AndroTech no se hace responsable de datos almacenados en el dispositivo.'
+        )
+    else:
+        terms_text = (
+            '<b>1.</b> Garantia de 3 meses en piezas y mano de obra desde la fecha de entrega.<br/>'
+            '<b>2.</b> La garantia no cubre danos por agua, golpes o manipulacion por terceros.<br/>'
+            '<b>3.</b> Conserve esta factura como comprobante de garantia.<br/>'
+            '<b>4.</b> AndroTech no se hace responsable de datos almacenados en el dispositivo.'
+        )
 
-        # Título de factura
-        invoice_title = Paragraph("FACTURA ELECTRÓNICA", self.styles['CustomSubtitle'])
-        elements.append(invoice_title)
+    terms = Paragraph(terms_text, ParagraphStyle(
+        'Terms', parent=styles['Normal'], fontSize=8, textColor=AT_GRAY,
+        leading=13
+    ))
+    elements.append(terms)
+    elements.append(Spacer(1, 15))
+    return elements
 
-        # Información de factura
-        invoice_info = [
-            ['Número de Factura:', invoice_data.get('invoice_number', 'N/A')],
-            ['Fecha de Emisión:', invoice_data.get('date', datetime.now().strftime('%Y-%m-%d'))],
-            ['Fecha de Vencimiento:', invoice_data.get('due_date', 'Inmediato')],
-            ['Cliente:', invoice_data.get('customer_name', 'N/A')],
-            ['Identificación:', invoice_data.get('customer_id', 'N/A')],
-            ['Dirección:', invoice_data.get('customer_address', 'N/A')],
-            ['Teléfono:', invoice_data.get('customer_phone', 'N/A')],
-            ['Email:', invoice_data.get('customer_email', 'N/A')]
+
+def _build_qr(styles, reparacion_id):
+    """Construir QR de consulta."""
+    elements = []
+    try:
+        url = f"http://127.0.0.1:5000/consulta"
+        qr = QrCodeWidget(url)
+        qr.barWidth = 80
+        qr.barHeight = 80
+        d = Drawing(90, 90)
+        d.add(qr)
+
+        qr_data = [
+            [d, Paragraph(
+                f'<b>Reparacion #{reparacion_id}</b><br/>'
+                f'Escanea el QR para consultar<br/>el estado de tu reparacion',
+                ParagraphStyle('QRText', parent=styles['Normal'], fontSize=8,
+                               textColor=AT_GRAY, alignment=TA_LEFT)
+            )]
         ]
-
-        # Crear tabla de información
-        info_table = Table(invoice_info, colWidths=[3*inch, 4*inch])
-        info_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#ecf0f1')),
-            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#2c3e50')),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#bdc3c7'))
+        qr_table = Table(qr_data, colWidths=[3 * cm, 10 * cm])
+        qr_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5),
         ]))
-
-        elements.append(info_table)
-        elements.append(Spacer(1, 20))
-
-        return elements
-
-    def _build_services_table(self, invoice_data: Dict[str, Any]) -> List[Any]:
-        """Construir tabla de servicios."""
-        elements = []
-
-        # Título de servicios
-        services_title = Paragraph("DETALLE DE SERVICIOS", self.styles['CustomSubtitle'])
-        elements.append(services_title)
-
-        # Headers de tabla
-        headers = [['Descripción', 'Cantidad', 'Valor Unitario', 'Subtotal']]
-
-        # Datos de servicios
-        services_data = invoice_data.get('services', [])
-        table_data = headers.copy()
-
-        for service in services_data:
-            row = [
-                service.get('description', ''),
-                str(service.get('quantity', 1)),
-                f"${service.get('unit_price', 0):,.0f}",
-                f"${service.get('subtotal', 0):,.0f}"
-            ]
-            table_data.append(row)
-
-        # Crear tabla
-        services_table = Table(table_data, colWidths=[4*inch, 1*inch, 1.5*inch, 1.5*inch])
-        services_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#34495e')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#bdc3c7')),
-            ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
-        ]))
-
-        elements.append(services_table)
-        elements.append(Spacer(1, 20))
-
-        return elements
-
-    def _build_totals(self, invoice_data: Dict[str, Any]) -> List[Any]:
-        """Construir sección de totales."""
-        elements = []
-
-        # Calcular totales
-        subtotal = invoice_data.get('subtotal', 0)
-        tax_rate = invoice_data.get('tax_rate', 0.19)  # IVA Colombia
-        tax_amount = subtotal * tax_rate
-        total = subtotal + tax_amount
-
-        # Tabla de totales
-        totals_data = [
-            ['Subtotal:', f"${subtotal:,.0f}"],
-            [f'IVA ({tax_rate*100:.0f}%):', f"${tax_amount:,.0f}"],
-            ['TOTAL:', f"${total:,.0f}"]
-        ]
-
-        totals_table = Table(totals_data, colWidths=[5*inch, 2*inch])
-        totals_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#27ae60')),
-            ('TEXTCOLOR', (0, -1), (-1, -1), colors.white),
-            ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
-            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 12),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 10),
-            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#bdc3c7'))
-        ]))
-
-        elements.append(totals_table)
-        elements.append(Spacer(1, 20))
-
-        return elements
-
-    def _build_terms(self) -> List[Any]:
-        """Construir términos y condiciones."""
-        elements = []
-
-        terms_title = Paragraph("TÉRMINOS Y CONDICIONES", self.styles['CustomSubtitle'])
-        elements.append(terms_title)
-
-        terms_text = """
-        <b>1. Condiciones de Pago:</b> El pago debe realizarse en las fechas estipuladas.<br/>
-        <b>2. Garantía:</b> Los servicios tienen garantía de 3 meses contra defectos de fabricación.<br/>
-        <b>3. Devoluciones:</b> No se aceptan devoluciones de servicios consumidos.<br/>
-        <b>4. Jurisdicción:</b> Esta factura se rige por las leyes de Colombia.<br/>
-        <b>5. Notas:</b> Gracias por confiar en AndroTech para sus necesidades tecnológicas.
-        """
-
-        terms = Paragraph(terms_text, self.styles['Normal'])
-        elements.append(terms)
-        elements.append(Spacer(1, 30))
-
-        return elements
-
-    def _build_footer(self) -> List[Any]:
-        """Construir footer del documento."""
-        elements = []
-
-        footer_text = f"""
-        <para alignment="center">
-        <b>AndroTech</b> - Tu aliado en tecnología móvil<br/>
-        Generado el {datetime.now().strftime('%d/%m/%Y %H:%M')}<br/>
-        Documento electrónico válido sin firma digital
-        </para>
-        """
-
-        footer = Paragraph(footer_text, self.styles['CompanyInfo'])
-        elements.append(footer)
-
-        return elements
-
-    def generate_receipt(self, payment_data: Dict[str, Any], output_path: str) -> bool:
-        """
-        Generar recibo de pago simple.
-
-        Args:
-            payment_data: Datos del pago
-            output_path: Ruta donde guardar el PDF
-
-        Returns:
-            bool: True si se generó correctamente
-        """
-        try:
-            doc = SimpleDocTemplate(output_path, pagesize=A4)
-            elements = []
-
-            # Título
-            title = Paragraph("RECIBO DE PAGO", self.styles['CustomTitle'])
-            elements.append(title)
-
-            # Información del pago
-            receipt_info = [
-                ['Fecha:', payment_data.get('date', datetime.now().strftime('%Y-%m-%d'))],
-                ['Cliente:', payment_data.get('customer_name', 'N/A')],
-                ['Concepto:', payment_data.get('concept', 'Servicio Técnico')],
-                ['Monto:', f"${payment_data.get('amount', 0):,.0f} {payment_data.get('currency', 'COP')}"],
-                ['Método de Pago:', payment_data.get('payment_method', 'Tarjeta')],
-                ['Referencia:', payment_data.get('reference', 'N/A')]
-            ]
-
-            receipt_table = Table(receipt_info, colWidths=[2*inch, 4*inch])
-            receipt_table.setStyle(TableStyle([
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f0f0f0')),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('PADDING', (0, 0), (-1, -1), 8),
-            ]))
-
-            elements.append(receipt_table)
-            elements.append(Spacer(1, 30))
-
-            # Firma
-            signature_text = f"""
-            <para alignment="center">
-            _______________________________<br/>
-            Firma Autorizada<br/>
-            AndroTech
-            </para>
-            """
-            signature = Paragraph(signature_text, self.styles['Normal'])
-            elements.append(signature)
-
-            doc.build(elements)
-
-            logger.info(f"Payment receipt PDF generated: {output_path}")
-            return True
-
-        except Exception as e:
-            logger.error(f"Failed to generate receipt PDF: {str(e)}")
-            return False
-
-    def generate_quote(self, quote_data: Dict[str, Any], output_path: str) -> bool:
-        """
-        Generar presupuesto/cotización PDF.
-
-        Args:
-            quote_data: Datos del presupuesto
-            output_path: Ruta donde guardar el PDF
-
-        Returns:
-            bool: True si se generó correctamente
-        """
-        try:
-            # Similar a invoice pero con texto de "presupuesto"
-            invoice_data = quote_data.copy()
-            invoice_data['document_type'] = 'quote'
-
-            # Crear documento
-            doc = SimpleDocTemplate(
-                output_path,
-                pagesize=A4,
-                rightMargin=2*cm,
-                leftMargin=2*cm,
-                topMargin=2*cm,
-                bottomMargin=2*cm
-            )
-
-            elements = []
-            elements.extend(self._build_header())
-
-            # Título de presupuesto
-            quote_title = Paragraph("PRESUPUESTO", self.styles['CustomSubtitle'])
-            elements.append(quote_title)
-
-            elements.extend(self._build_invoice_info(invoice_data))
-            elements.extend(self._build_services_table(invoice_data))
-            elements.extend(self._build_totals(invoice_data))
-
-            # Términos para presupuesto
-            elements.extend(self._build_quote_terms())
-            elements.extend(self._build_footer())
-
-            doc.build(elements)
-
-            logger.info(f"Quote PDF generated successfully: {output_path}")
-            return True
-
-        except Exception as e:
-            logger.error(f"Failed to generate quote PDF: {str(e)}")
-            return False
-
-    def _build_quote_terms(self) -> List[Any]:
-        """Construir términos para presupuesto."""
-        elements = []
-
-        terms_title = Paragraph("TÉRMINOS DEL PRESUPUESTO", self.styles['CustomSubtitle'])
-        elements.append(terms_title)
-
-        terms_text = """
-        <b>1. Validez:</b> Este presupuesto tiene una validez de 30 días naturales.<br/>
-        <b>2. Aprobación:</b> La aceptación del presupuesto implica la conformidad con nuestros términos.<br/>
-        <b>3. Precios:</b> Los precios pueden variar según la complejidad final del trabajo.<br/>
-        <b>4. Pago:</b> 50% anticipo y 50% contra entrega una vez aprobado el trabajo.<br/>
-        <b>5. Garantía:</b> 3 meses de garantía sobre piezas y mano de obra.
-        """
-
-        terms = Paragraph(terms_text, self.styles['Normal'])
-        elements.append(terms)
-        elements.append(Spacer(1, 30))
-
-        return elements
+        elements.append(qr_table)
+        elements.append(Spacer(1, 10))
+    except Exception as e:
+        logger.warning(f"No se pudo generar QR: {e}")
+    return elements
 
 
-# Instancia global del generador
-invoice_generator: Optional[InvoiceGenerator] = None
+def _build_footer(styles):
+    """Construir pie de pagina."""
+    elements = []
+    footer_text = (
+        f'<b>{COMPANY["name"]}</b> — {COMPANY["tagline"]}<br/>'
+        f'{COMPANY["address"]} | Tel: {COMPANY["phone"]} | {COMPANY["email"]}<br/>'
+        f'Documento generado el {datetime.now().strftime("%d/%m/%Y a las %H:%M")}'
+    )
+    elements.append(Paragraph(footer_text, styles['ATFooter']))
+    return elements
 
-def init_invoice_generator(template_dir: str = "templates/pdf") -> InvoiceGenerator:
-    """Inicializar el generador de facturas global."""
-    global invoice_generator
-    invoice_generator = InvoiceGenerator(template_dir)
-    return invoice_generator
 
-def get_invoice_generator() -> InvoiceGenerator:
-    """Obtener la instancia del generador de facturas."""
-    if invoice_generator is None:
-        raise RuntimeError("Invoice generator not initialized. Call init_invoice_generator() first.")
-    return invoice_generator
-
-# Funciones de compatibilidad con código existente
 def generar_presupuesto_pdf(reparacion_data, tipo_documento="presupuesto"):
     """
-    Función de compatibilidad con código existente.
-    Genera un PDF usando la nueva clase InvoiceGenerator.
+    Generar un PDF de presupuesto o factura para una reparacion.
+
+    Args:
+        reparacion_data: dict con campos: id, dispositivo, descripcion, estado,
+                         precio, fecha_entrada, cliente_nombre, cliente_telefono,
+                         cliente_email, cliente_direccion, piezas (opcional)
+        tipo_documento: 'presupuesto' o 'factura'
+
+    Returns:
+        BytesIO buffer con el PDF generado
     """
-    if invoice_generator is None:
-        init_invoice_generator()
-
-    # Convertir datos antiguos al nuevo formato
-    invoice_data = {
-        'invoice_number': f"{'F' if tipo_documento == 'factura' else 'P'}-{reparacion_data.get('id', 'N/A'):05d}",
-        'date': datetime.now().strftime('%Y-%m-%d'),
-        'customer_name': reparacion_data.get('cliente_nombre', 'N/A'),
-        'customer_phone': reparacion_data.get('cliente_telefono', 'N/A'),
-        'services': [{
-            'description': reparacion_data.get('dispositivo', 'Reparación'),
-            'quantity': 1,
-            'unit_price': reparacion_data.get('precio', 0),
-            'subtotal': reparacion_data.get('precio', 0)
-        }],
-        'subtotal': reparacion_data.get('precio', 0),
-        'tax_rate': 0.19  # IVA Colombia
-    }
-
-    # Crear buffer para retorno
     buffer = BytesIO()
-    rep_id = reparacion_data.get('id', 'temp')
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=2 * cm, leftMargin=2 * cm,
+                            topMargin=2 * cm, bottomMargin=2 * cm)
+    styles = _get_styles()
+    elements = []
 
-    if tipo_documento == "factura":
-        with tempfile.NamedTemporaryFile(suffix='.pdf', prefix=f'invoice_{rep_id}_', delete=False) as tmp:
-            temp_path = tmp.name
-        if invoice_generator.generate_invoice(invoice_data, temp_path):
-            with open(temp_path, 'rb') as f:
-                buffer.write(f.read())
-        os.remove(temp_path)
-    else:
-        with tempfile.NamedTemporaryFile(suffix='.pdf', prefix=f'quote_{rep_id}_', delete=False) as tmp:
-            temp_path = tmp.name
-        if invoice_generator.generate_quote(invoice_data, temp_path):
-            with open(temp_path, 'rb') as f:
-                buffer.write(f.read())
-        os.remove(temp_path)
+    rep_id = reparacion_data.get('id', 0)
+    prefix = 'F' if tipo_documento == 'factura' else 'P'
+    doc_number = f'{prefix}-{rep_id:05d}'
+    doc_title = 'FACTURA' if tipo_documento == 'factura' else 'PRESUPUESTO'
 
+    # Header
+    elements.extend(_build_header(styles, doc_title, doc_number))
+
+    # Datos del cliente
+    cliente = {
+        'nombre': reparacion_data.get('cliente_nombre', '—'),
+        'telefono': reparacion_data.get('cliente_telefono', ''),
+        'email': reparacion_data.get('cliente_email', ''),
+        'direccion': reparacion_data.get('cliente_direccion', ''),
+    }
+    elements.extend(_build_client_info(styles, cliente))
+
+    # Datos del dispositivo
+    elements.extend(_build_device_info(styles, reparacion_data))
+
+    # Servicios
+    precio = reparacion_data.get('precio', 0) or 0
+    servicios = [{
+        'descripcion': f'Reparacion: {reparacion_data.get("dispositivo", "Dispositivo")}',
+        'cantidad': 1,
+        'precio': precio,
+    }]
+
+    # Piezas utilizadas (si las hay)
+    piezas = reparacion_data.get('piezas', [])
+    elements.extend(_build_services_table(styles, servicios, piezas))
+
+    # Totales
+    subtotal_piezas = sum((p.get('cantidad', 1) * p.get('precio_venta', 0)) for p in piezas)
+    subtotal = precio + subtotal_piezas
+    elements.extend(_build_totals(styles, subtotal))
+
+    # Terminos
+    elements.extend(_build_terms(styles, tipo_documento))
+
+    # QR
+    elements.extend(_build_qr(styles, rep_id))
+
+    # Footer
+    elements.extend(_build_footer(styles))
+
+    doc.build(elements)
     buffer.seek(0)
     return buffer

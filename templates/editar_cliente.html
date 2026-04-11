@@ -1,27 +1,58 @@
 {% extends "base.html" %}
+{% block title %}Editar Cliente - AndroTech{% endblock %}
 
 {% block content %}
-<h2>Editar Cliente</h2>
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-xl-6 col-lg-7 col-md-9">
+            <span class="at-pill"><i class="bi bi-pencil-square me-1"></i>Clientes</span>
+            <h1 class="at-section-title mt-2 mb-1">Editar Cliente</h1>
+            <p class="at-section-sub">Actualizar datos del cliente: <strong>{{ cliente.nombre }}</strong></p>
 
-<form method="POST" class="needs-validation" novalidate>
+            <div class="at-admin-card mt-4">
+                <div class="at-admin-card-header d-flex align-items-center justify-content-between">
+                    <span><i class="bi bi-pencil-square me-2"></i>Datos del Cliente</span>
+                    <span class="badge" style="background: #EBF5FB; color: #2B8AC4;">Administracion</span>
+                </div>
+                <div class="p-4">
+                    <form method="POST" class="at-admin-form needs-validation" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
-    {# Si usas Flask-WTF / CSRF, descomenta la siguiente línea: #}
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <label>Nombre:</label>
-    <input type="text" name="nombre" class="form-control" value="{{ cliente.nombre }}" required>
-    <div class="invalid-feedback">Por favor introduce el nombre completo del cliente.</div>
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label fw-semibold">Nombre completo <span class="text-danger">*</span></label>
+                            <input id="nombre" name="nombre" type="text" class="form-control form-control-lg" value="{{ cliente.nombre }}" required placeholder="Ej: Juan Gomez">
+                            <div class="invalid-feedback">Por favor introduce el nombre completo del cliente.</div>
+                        </div>
 
-    <label>Teléfono:</label>
-    <input type="text" name="telefono" class="form-control" value="{{ cliente.telefono }}">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="telefono" class="form-label">Telefono</label>
+                                <input id="telefono" name="telefono" type="tel" class="form-control" value="{{ cliente.telefono }}" placeholder="Ej: 666123456">
+                                <div class="form-text">Incluye prefijo si aplica (opcional).</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">Correo electronico</label>
+                                <input id="email" name="email" type="email" class="form-control" value="{{ cliente.email }}" placeholder="Ej: correo@ejemplo.com">
+                            </div>
+                        </div>
 
-    <label>Email:</label>
-    <input type="email" name="email" class="form-control" value="{{ cliente.email }}">
+                        <div class="mb-3 mt-3">
+                            <label for="direccion" class="form-label">Direccion</label>
+                            <input id="direccion" name="direccion" type="text" class="form-control" value="{{ cliente.direccion }}" placeholder="Ej: Calle Falsa 123, Piso 2">
+                        </div>
 
-    <label>Dirección:</label>
-    <input type="text" name="direccion" class="form-control" value="{{ cliente.direccion }}">
-
-    <br>
-    <button class="btn btn-primary">Actualizar</button>
-</form>
-
+                        <div class="d-flex flex-wrap gap-2 mt-4">
+                            <a href="/clientes" class="at-btn-outline flex-fill text-center">
+                                <i class="bi bi-x-lg me-1"></i>Cancelar
+                            </a>
+                            <button type="submit" class="at-btn-primary flex-fill">
+                                <i class="bi bi-check-lg me-1"></i>Actualizar Cliente
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

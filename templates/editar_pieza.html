@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Editar Pieza - AndroTech{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-xl-7 col-lg-8 col-md-10">
+            <span class="at-pill"><i class="bi bi-box-seam me-1"></i>Inventario</span>
+            <h1 class="at-section-title mt-2 mb-1">Editar Pieza</h1>
+            <p class="at-section-sub">Modifica los datos del componente</p>
+
+            <div class="at-admin-card mt-4">
+                <div class="at-admin-card-header d-flex align-items-center gap-2">
+                    <i class="bi bi-pencil" style="color:#2B8AC4;"></i>
+                    {{ pieza.nombre }}
+                </div>
+                <div class="p-4">
+                    <form action="{{ url_for('editar_pieza', id=pieza.id) }}" method="POST" class="at-admin-form needs-validation" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
+                            <input id="nombre" name="nombre" type="text" class="form-control" required value="{{ pieza.nombre }}">
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="categoria" class="form-label fw-semibold">Categoria</label>
+                                <select id="categoria" name="categoria" class="form-select">
+                                    {% for cat in ['General', 'Pantallas', 'Baterias', 'Conectores', 'Placas', 'Carcasas', 'Accesorios'] %}
+                                    <option value="{{ cat }}" {% if pieza.categoria == cat %}selected{% endif %}>{{ cat }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="proveedor" class="form-label">Proveedor</label>
+                                <input id="proveedor" name="proveedor" type="text" class="form-control" value="{{ pieza.proveedor or '' }}">
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <label for="descripcion" class="form-label">Descripcion</label>
+                            <textarea id="descripcion" name="descripcion" rows="2" class="form-control">{{ pieza.descripcion or '' }}</textarea>
+                        </div>
+
+                        <div class="row g-3 mt-1">
+                            <div class="col-md-3">
+                                <label for="cantidad" class="form-label fw-semibold">Stock</label>
+                                <input id="cantidad" name="cantidad" type="number" min="0" class="form-control" value="{{ pieza.cantidad }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="cantidad_minima" class="form-label">Stock min.</label>
+                                <input id="cantidad_minima" name="cantidad_minima" type="number" min="0" class="form-control" value="{{ pieza.cantidad_minima }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="precio_coste" class="form-label">P. Coste</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">&euro;</span>
+                                    <input id="precio_coste" name="precio_coste" type="number" step="0.01" min="0" class="form-control" value="{{ pieza.precio_coste }}">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="precio_venta" class="form-label">P. Venta</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">&euro;</span>
+                                    <input id="precio_venta" name="precio_venta" type="number" step="0.01" min="0" class="form-control" value="{{ pieza.precio_venta }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <label for="ubicacion" class="form-label">Ubicacion en taller</label>
+                            <input id="ubicacion" name="ubicacion" type="text" class="form-control" value="{{ pieza.ubicacion or '' }}">
+                        </div>
+
+                        <div class="d-flex gap-2 mt-4 pt-3" style="border-top:1px solid rgba(0,0,0,.06);">
+                            <a href="{{ url_for('inventario') }}" class="at-btn-outline btn flex-fill text-center">
+                                <i class="bi bi-x-lg me-1"></i>Cancelar
+                            </a>
+                            <button type="submit" class="at-btn-primary btn flex-fill">
+                                <i class="bi bi-check-lg me-1"></i>Guardar Cambios
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% if pieza.fecha_actualizacion %}
+            <div class="text-center mt-3" style="font-size:.78rem;color:#9ba5b0;">
+                Ultima actualizacion: {{ pieza.fecha_actualizacion|strftime('%d/%m/%Y %H:%M') }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

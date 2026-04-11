@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Gestion de Roles - AndroTech{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <div class="d-flex flex-wrap justify-content-between align-items-start mb-4">
+        <div>
+            <span class="at-pill"><i class="bi bi-shield-lock me-1"></i>Roles</span>
+            <h1 class="at-section-title mt-2 mb-1">Gestion de Roles y Permisos</h1>
+            <p class="at-section-sub">Define que puede hacer cada tipo de usuario en el sistema</p>
+        </div>
+        <a href="{{ url_for('nuevo_rol') }}" class="at-btn-primary btn mt-2 mt-md-0">
+            <i class="bi bi-plus-circle me-1"></i> Nuevo Rol
+        </a>
+    </div>
+
+    <!-- KPIs -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="at-dash-kpi">
+                <div class="at-dash-kpi-icon" style="background: rgba(43,138,196,.1);">
+                    <i class="bi bi-shield-lock" style="color: #2B8AC4; font-size: 1.3rem;"></i>
+                </div>
+                <div>
+                    <div class="at-dash-kpi-value" style="color: #2B8AC4;">{{ roles|length }}</div>
+                    <div class="at-dash-kpi-label">Roles</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="at-dash-kpi">
+                <div class="at-dash-kpi-icon" style="background: rgba(25,135,84,.1);">
+                    <i class="bi bi-key" style="color: #198754; font-size: 1.3rem;"></i>
+                </div>
+                <div>
+                    <div class="at-dash-kpi-value" style="color: #198754;">{{ permisos_disponibles|length }}</div>
+                    <div class="at-dash-kpi-label">Permisos Disponibles</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROLES CARDS -->
+    <div class="row g-3 mb-4">
+        {% for rol in roles %}
+        <div class="col-lg-6 col-xl-4">
+            <div class="at-admin-card h-100">
+                <div class="at-admin-card-header d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
+                        <span style="width:12px;height:12px;border-radius:50%;background:{{ rol.color }};display:inline-block;"></span>
+                        <strong>{{ rol.nombre|capitalize }}</strong>
+                        {% if rol.es_sistema %}
+                        <span class="badge" style="background:rgba(108,117,125,.1);color:#6c757d;font-size:.65rem;">Sistema</span>
+                        {% endif %}
+                    </div>
+                    <span class="badge" style="background:rgba(43,138,196,.1);color:#2B8AC4;">
+                        {{ rol.num_usuarios }} usuario{{ 's' if rol.num_usuarios != 1 else '' }}
+                    </span>
+                </div>
+                <div class="p-3">
+                    <p class="text-muted small mb-3">{{ rol.descripcion or 'Sin descripcion' }}</p>
+
+                    <!-- Permisos agrupados -->
+                    <div class="mb-3">
+                        <small class="fw-semibold text-muted d-block mb-2">
+                            <i class="bi bi-key me-1"></i>{{ rol.num_permisos }} permiso{{ 's' if rol.num_permisos != 1 else '' }}
+                        </small>
+                        <div class="d-flex flex-wrap gap-1">
+                            {% for cat_name, cat_permisos in categorias.items() %}
+                                {% set ns = namespace(count=0) %}
+                                {% for p in cat_permisos %}
+                                    {% if p.clave in rol.permisos %}
+                                        {% set ns.count = ns.count + 1 %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% if ns.count > 0 %}
+                                <span class="badge" style="background:rgba(43,138,196,.08);color:#2B8AC4;font-size:.7rem;font-weight:500;">
+                                    {{ cat_name }}: {{ ns.count }}/{{ cat_permisos|length }}
+                                </span>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Acciones -->
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('editar_rol', id=rol.id) }}" class="btn btn-sm flex-fill"
+                           style="border:1px solid #2B8AC4;color:#2B8AC4;">
+                            <i class="bi bi-pencil me-1"></i>Editar Permisos
+                        </a>
+                        {% if not rol.es_sistema %}
+                        <a href="{{ url_for('borrar_rol', id=rol.id) }}"
+                           class="btn btn-sm" style="border:1px solid #dc3545;color:#dc3545;"
+                           onclick="return confirm('Eliminar el rol {{ rol.nombre }}?');">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Info card -->
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="at-dash-card">
+                <div class="at-dash-card-header">
+                    <i class="bi bi-info-circle me-2" style="color:#2B8AC4;"></i>Como funciona
+                </div>
+                <div class="at-dash-card-body">
+                    <ul class="mb-0 ps-3 small" style="color:#6c757d;">
+                        <li><strong>Admin</strong> siempre tiene todos los permisos (no se puede modificar)</li>
+                        <li><strong>Tecnico</strong> tiene permisos basicos que puedes personalizar</li>
+                        <li>Puedes crear roles nuevos (ej: "recepcionista", "supervisor")</li>
+                        <li>Cada permiso controla una accion concreta del sistema</li>
+                        <li>Los cambios de permisos se aplican en el siguiente login del usuario</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="at-dash-card">
+                <div class="at-dash-card-header">
+                    <i class="bi bi-arrow-left-right me-2" style="color:#198754;"></i>Volver
+                </div>
+                <div class="at-dash-card-body">
+                    <a href="{{ url_for('admin_usuarios') }}" class="at-btn-outline btn btn-sm">
+                        <i class="bi bi-people me-1"></i>Gestion de Usuarios
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
