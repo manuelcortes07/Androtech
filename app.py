@@ -2966,6 +2966,97 @@ def admin_defensa():
 
 
 # =========================================
+# ADMIN: ESTADO DEL SISTEMA
+# =========================================
+
+@app.route('/admin/sistema')
+@login_required
+def admin_sistema():
+    """Estadisticas tecnicas del servidor en tiempo real (solo admin)."""
+    if session.get('rol') != 'admin':
+        flash('Acceso restringido al administrador.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    import sys
+    import flask as _flask
+
+    # Version Python (sin saltos de linea)
+    python_version = sys.version.split('\n')[0].strip()
+
+    # Version Flask
+    try:
+        flask_version = _flask.__version__
+    except Exception:
+        try:
+            from importlib.metadata import version as _v
+            flask_version = _v('flask')
+        except Exception:
+            flask_version = 'desconocida'
+
+    # Numero total de rutas
+    total_rutas = len(app.url_map._rules)
+
+    # Tamano BD en KB
+    db_path = "database/andro_tech.db"
+    try:
+        db_size_kb = round(os.path.getsize(db_path) / 1024, 2)
+    except OSError:
+        db_size_kb = 0
+
+    # Conteo de registros por tabla
+    conn = get_db()
+    tablas_conteo = {}
+    for tabla in ('clientes', 'reparaciones', 'usuarios', 'audit_log'):
+        try:
+            c = conn.execute(f"SELECT COUNT(*) FROM {tabla}").fetchone()
+            tablas_conteo[tabla] = c[0] if c else 0
+        except Exception:
+            tablas_conteo[tabla] = None
+
+    # Ultimo evento del audit_log
+    ultimo_evento = None
+    try:
+        row = conn.execute(
+            "SELECT event_type, timestamp FROM audit_log ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        if row:
+            ultimo_evento = {
+                'event_type': row['event_type'],
+                'timestamp': row['timestamp'],
+            }
+    except Exception:
+        ultimo_evento = None
+    conn.close()
+
+    # Fecha y hora actual del servidor
+    ahora = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    # Memoria del proceso (psutil opcional)
+    memoria_mb = None
+    psutil_disponible = False
+    try:
+        import psutil  # type: ignore
+        proc = psutil.Process(os.getpid())
+        memoria_mb = round(proc.memory_info().rss / (1024 * 1024), 2)
+        psutil_disponible = True
+    except Exception:
+        psutil_disponible = False
+
+    return render_template(
+        'admin_sistema.html',
+        python_version=python_version,
+        flask_version=flask_version,
+        total_rutas=total_rutas,
+        db_size_kb=db_size_kb,
+        tablas_conteo=tablas_conteo,
+        ultimo_evento=ultimo_evento,
+        ahora=ahora,
+        memoria_mb=memoria_mb,
+        psutil_disponible=psutil_disponible,
+    )
+
+
+# =========================================
 # ADMIN: GESTIONAR SOLICITUDES
 # =========================================
 
