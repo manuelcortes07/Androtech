@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+
+{% block title %}Recursos de Defensa - AndroTech{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- HEADER -->
+    <div class="d-flex flex-wrap justify-content-between align-items-start mb-4">
+        <div>
+            <span class="at-pill"><i class="bi bi-mortarboard-fill me-1"></i>Defensa</span>
+            <h1 class="at-section-title mt-2 mb-1">Recursos de Defensa</h1>
+            <p class="at-section-sub">Proyecto Intermodular &mdash; Material centralizado para la exposicion</p>
+        </div>
+    </div>
+
+    <!-- PRESENTACION DESTACADA -->
+    <div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #2B8AC4 0%, #1a6fbd 100%); color: #fff;">
+        <div class="card-body p-4 p-md-5">
+            <div class="row align-items-center g-4">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center gap-2 mb-2" style="opacity: .9;">
+                        <i class="bi bi-stars"></i>
+                        <span class="fw-semibold text-uppercase small">Presentacion principal</span>
+                    </div>
+                    <h2 class="fw-bold mb-2">Presentacion Final AndroTech</h2>
+                    <p class="mb-0" style="opacity: .92;">
+                        Diapositivas interactivas en formato HTML, listas para proyectar durante la defensa.
+                        Incluye todas las secciones del proyecto con capturas y ejemplos reales.
+                    </p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <a href="{{ url_for('static', filename='defensa/AndroTech_Presentacion_Final.html') }}"
+                       target="_blank" rel="noopener"
+                       class="btn btn-light btn-lg fw-semibold px-4">
+                        <i class="bi bi-play-circle-fill me-2"></i>Abrir presentacion
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DOCUMENTACION (WORD + MARKDOWN) -->
+    <h5 class="fw-semibold mb-3 mt-4" style="color: #2B8AC4;">
+        <i class="bi bi-file-earmark-word-fill me-2"></i>Documentacion del proyecto
+    </h5>
+    <div class="row g-3 mb-4">
+
+        <!-- Documento Word completo -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center"
+                             style="width: 44px; height: 44px; background: rgba(43,138,196,.1);">
+                            <i class="bi bi-file-earmark-word-fill" style="color: #2B8AC4; font-size: 1.4rem;"></i>
+                        </div>
+                        <span class="badge bg-light text-dark border">Word .docx</span>
+                    </div>
+                    <h6 class="fw-bold mb-1">Documento completo</h6>
+                    <p class="text-muted small mb-3">Memoria tecnica completa del Proyecto Intermodular (9 capitulos).</p>
+                    <a href="{{ url_for('static', filename='defensa/AndroTech_Documento_Proyecto.docx') }}"
+                       download class="btn at-btn-primary btn-sm w-100">
+                        <i class="bi bi-download me-1"></i>Descargar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Capitulos 1-2 -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center"
+                             style="width: 44px; height: 44px; background: rgba(108,117,125,.1);">
+                            <i class="bi bi-markdown-fill" style="color: #6c757d; font-size: 1.4rem;"></i>
+                        </div>
+                        <span class="badge bg-light text-dark border">Markdown</span>
+                    </div>
+                    <h6 class="fw-bold mb-1">Cap. 1: Presentacion</h6>
+                    <p class="text-muted small mb-3">Introduccion, objetivos y motivaciones del proyecto.</p>
+                    <a href="{{ url_for('static', filename='defensa/AndroTech_Documento_Proyecto_Cap1.md') }}"
+                       download class="btn btn-outline-secondary btn-sm w-100">
+                        <i class="bi bi-download me-1"></i>Descargar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center"
+                             style="width: 44px; height: 44px; background: rgba(108,117,125,.1);">
+                            <i class="bi bi-markdown-fill" style="color: #6c757d; font-size: 1.4rem;"></i>
+                        </div>
+                        <span class="badge bg-light text-dark border">Markdown</span>
+                    </div>
+                    <h6 class="fw-bold mb-1">Cap. 2: Viabilidad</h6>
+                    <p class="text-muted small mb-3">Estudio de viabilidad tecnica y economica.</p>
+                    <a href="{{ url_for('static', filename='defensa/AndroTech_Documento_Proyecto_Cap2.md') }}"
+                       download class="btn btn-outline-secondary btn-sm w-100">
+                        <i class="bi bi-download me-1"></i>Descargar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center"
+                             style="width: 44px; height: 44px; background: rgba(108,117,125,.1);">
+                            <i class="bi bi-markdown-fill" style="color: #6c757d; font-size: 1.4rem;"></i>
+                        </div>
+                        <span class="badge bg-light text-dark border">Markdown</span>
+                    </div>
+                    <h6 class="fw-bold mb-1">Cap. 3 y 4: Analisis y Diseno</h6>
+                    <p class="text-muted small mb-3">Analisis de requisitos y diseno tecnico del sistema.</p>
+                    <a href="{{ url_for('static', filename='defensa/AndroTech_Documento_Proyecto_Cap3_Cap4.md') }}"
+                       download class="btn btn-outline-secondary btn-sm w-100">
+                        <i class="bi bi-download me-1"></i>Descargar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center"
+                             style="width: 44px; height: 44px; background: rgba(108,117,125,.1);">
+                            <i class="bi bi-markdown-fill" style="color: #6c757d; font-size: 1.4rem;"></i>
+                        </div>
+                        <span class="badge bg-light text-dark border">Markdown</span>
+                    </div>
+                    <h6 class="fw-bold mb-1">Cap. 5, 6 y 7: Implementacion y Conclusiones</h6>
+                    <p class="text-muted small mb-3">Implementacion, pruebas y conclusiones finales.</p>
+                    <a href="{{ url_for('static', filename='defensa/AndroTech_Documento_Proyecto_Cap5_Cap6_Cap7_Final.md') }}"
+                       download class="btn btn-outline-secondary btn-sm w-100">
+                        <i class="bi bi-download me-1"></i>Descargar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center"
+                             style="width: 44px; height: 44px; background: rgba(40,167,69,.1);">
+                            <i class="bi bi-book-fill" style="color: #28a745; font-size: 1.4rem;"></i>
+                        </div>
+                        <span class="badge bg-light text-dark border">README</span>
+                    </div>
+                    <h6 class="fw-bold mb-1">README del proyecto</h6>
+                    <p class="text-muted small mb-3">Guia rapida, instalacion y funcionalidades principales.</p>
+                    <a href="{{ url_for('static', filename='defensa/README.md') }}"
+                       download class="btn btn-outline-secondary btn-sm w-100">
+                        <i class="bi bi-download me-1"></i>Descargar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MATERIAL DE APOYO -->
+    <h5 class="fw-semibold mb-3 mt-4" style="color: #2B8AC4;">
+        <i class="bi bi-journal-bookmark-fill me-2"></i>Material de apoyo
+    </h5>
+    <div class="row g-3 mb-4">
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center"
+                             style="width: 44px; height: 44px; background: rgba(255,193,7,.15);">
+                            <i class="bi bi-tools" style="color: #e0a800; font-size: 1.4rem;"></i>
+                        </div>
+                        <span class="badge bg-light text-dark border">Manual</span>
+                    </div>
+                    <h6 class="fw-bold mb-1">Manual de instalacion</h6>
+                    <p class="text-muted small mb-3">Pasos para desplegar AndroTech en local o en Railway.</p>
+                    <a href="{{ url_for('static', filename='defensa/AndroTech_Manual_Instalacion.md') }}"
+                       download class="btn btn-outline-secondary btn-sm w-100">
+                        <i class="bi bi-download me-1"></i>Descargar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center"
+                             style="width: 44px; height: 44px; background: rgba(23,162,184,.15);">
+                            <i class="bi bi-person-workspace" style="color: #17a2b8; font-size: 1.4rem;"></i>
+                        </div>
+                        <span class="badge bg-light text-dark border">Manual</span>
+                    </div>
+                    <h6 class="fw-bold mb-1">Manual de usuario</h6>
+                    <p class="text-muted small mb-3">Guia de uso para tecnicos y administradores.</p>
+                    <a href="{{ url_for('static', filename='defensa/AndroTech_Manual_Usuario.md') }}"
+                       download class="btn btn-outline-secondary btn-sm w-100">
+                        <i class="bi bi-download me-1"></i>Descargar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center"
+                             style="width: 44px; height: 44px; background: rgba(220,53,69,.15);">
+                            <i class="bi bi-question-circle-fill" style="color: #dc3545; font-size: 1.4rem;"></i>
+                        </div>
+                        <span class="badge bg-light text-dark border">Preparacion</span>
+                    </div>
+                    <h6 class="fw-bold mb-1">Preguntas del tribunal</h6>
+                    <p class="text-muted small mb-3">Posibles preguntas del tribunal con respuestas preparadas.</p>
+                    <a href="{{ url_for('static', filename='defensa/AndroTech_Preguntas_Tribunal.md') }}"
+                       download class="btn btn-outline-secondary btn-sm w-100">
+                        <i class="bi bi-download me-1"></i>Descargar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ENLACES EXTERNOS -->
+    <h5 class="fw-semibold mb-3 mt-4" style="color: #2B8AC4;">
+        <i class="bi bi-link-45deg me-2"></i>Enlaces en vivo
+    </h5>
+    <div class="row g-3 mb-4">
+
+        <div class="col-md-6">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center"
+                             style="width: 52px; height: 52px; background: rgba(43,138,196,.1);">
+                            <i class="bi bi-globe2" style="color: #2B8AC4; font-size: 1.6rem;"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-0">App en produccion</h6>
+                            <small class="text-muted">Despliegue actual en Railway</small>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-3">
+                        <code>androtech-production.up.railway.app</code>
+                    </p>
+                    <a href="https://androtech-production.up.railway.app"
+                       target="_blank" rel="noopener"
+                       class="btn at-btn-primary btn-sm w-100">
+                        <i class="bi bi-box-arrow-up-right me-1"></i>Abrir aplicacion
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center"
+                             style="width: 52px; height: 52px; background: rgba(36,41,47,.1);">
+                            <i class="bi bi-github" style="color: #24292f; font-size: 1.6rem;"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-0">Repositorio GitHub</h6>
+                            <small class="text-muted">Codigo fuente e historial de commits</small>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-3">
+                        <code>github.com/manuelcortes07/Androtech</code>
+                    </p>
+                    <a href="https://github.com/manuelcortes07/Androtech"
+                       target="_blank" rel="noopener"
+                       class="btn btn-dark btn-sm w-100">
+                        <i class="bi bi-github me-1"></i>Ver repositorio
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

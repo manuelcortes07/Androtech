@@ -2952,6 +2952,20 @@ def solicitar_reparacion():
 
 
 # =========================================
+# ADMIN: RECURSOS DE DEFENSA
+# =========================================
+
+@app.route('/admin/defensa')
+@login_required
+def admin_defensa():
+    """Pagina con los recursos de defensa del Proyecto Intermodular (solo admin)."""
+    if session.get('rol') != 'admin':
+        flash('Acceso restringido al administrador.', 'danger')
+        return redirect(url_for('dashboard'))
+    return render_template('admin_defensa.html')
+
+
+# =========================================
 # ADMIN: GESTIONAR SOLICITUDES
 # =========================================
 

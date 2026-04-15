@@ -115,7 +115,7 @@
                     </li>
 
                     <!-- Administración (visible si tiene algun permiso de admin) -->
-                    {% if tiene_permiso('usuarios_ver') or tiene_permiso('roles_gestionar') or tiene_permiso('inventario_ver') %}
+                    {% if tiene_permiso('usuarios_ver') or tiene_permiso('roles_gestionar') or tiene_permiso('inventario_ver') or session.rol == 'admin' %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center gap-1 text-danger fw-semibold"
                            href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -148,6 +148,14 @@
                             <li>
                                 <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('admin_solicitudes') }}">
                                     <i class="bi bi-clipboard-check"></i>Solicitudes Web
+                                </a>
+                            </li>
+                            {% endif %}
+                            {% if session.rol == 'admin' %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('admin_defensa') }}">
+                                    <i class="bi bi-mortarboard-fill"></i>Recursos de Defensa
                                 </a>
                             </li>
                             {% endif %}
