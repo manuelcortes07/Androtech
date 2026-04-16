@@ -42,7 +42,8 @@
                                    name="id_reparacion"
                                    required
                                    placeholder="Ejemplo: 123"
-                                   min="1">
+                                   min="1"
+                                   value="{{ id_prefill if id_prefill else '' }}">
                             <div class="invalid-feedback">
                                 Por favor introduce un número válido.
                             </div>

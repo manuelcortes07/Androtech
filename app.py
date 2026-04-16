@@ -16,6 +16,7 @@ except ImportError:
     stripe = None
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_mail import Mail
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -41,6 +42,8 @@ from utils.security import (
 from utils.email_service import EmailService
 
 app = Flask(__name__)
+# Trust Railway / Nginx reverse-proxy headers so request.host_url returns https://
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 # Secret key should be provided via environment variable in production
 app.secret_key = os.environ.get('SECRET_KEY', secrets.token_urlsafe(32))
 
@@ -2140,8 +2143,10 @@ def ticket_recogida(id):
     elements.append(Paragraph("AndroTech", styles['TKTitle']))
     elements.append(Paragraph("TICKET DE RECOGIDA", styles['TKSub']))
 
-    # QR code with repair ID
-    qr_data = f"ANDROTECH-REP-{id}"
+    # QR code: URL directa a la consulta de esta reparacion
+    # request.host_url ya incluye esquema y host correctos (https en Railway via ProxyFix)
+    base_url = request.host_url.rstrip('/')
+    qr_data = f"{base_url}/consulta?id={id}"
     qr = QrCodeWidget(qr_data)
     qr.barWidth = 100
     qr.barHeight = 100
@@ -2189,7 +2194,7 @@ def ticket_recogida(id):
     elements.append(Paragraph(
         '<font size="8" color="#6c757d">'
         'Presente este ticket al recoger su dispositivo. '
-        'El código QR será escaneado para verificar la entrega.<br/>'
+        'Escanee el código QR para consultar el estado de su reparación en línea.<br/>'
         f'Generado: {datetime.now().strftime("%d/%m/%Y %H:%M")} — AndroTech, Huelva — +34 633 234 395'
         '</font>', styles['TKCenter']
     ))
@@ -2316,7 +2321,10 @@ def generar_pdf_presupuesto(id):
     }
 
     # Generar PDF con tipo de documento
-    pdf_buffer = generar_presupuesto_pdf(reparacion_data, tipo_documento=tipo_documento)
+    # Pasamos base_url para que el QR apunte al servidor correcto (local o Railway)
+    base_url = request.host_url.rstrip('/')
+    pdf_buffer = generar_presupuesto_pdf(reparacion_data, tipo_documento=tipo_documento,
+                                         base_url=base_url)
     
     # Retornar como descarga
     nombre_archivo = f"{tipo_documento}_reparacion_{id}.pdf"
@@ -2821,14 +2829,18 @@ def consulta():
     reparacion = None
     error = None
 
-    if request.method == "POST":
-        id_reparacion = request.form.get("id_reparacion")
+    # Soporte para enlace directo desde QR: GET /consulta?id=5
+    # El CSRF decorator solo valida en POST, así que GET es seguro aquí.
+    id_get = request.args.get('id', '').strip()
 
-        if not id_reparacion:
+    if request.method == "POST" or id_get:
+        id_raw = request.form.get("id_reparacion") or id_get
+
+        if not id_raw:
             error = "Por favor, introduce un número de reparación."
         else:
             try:
-                id_reparacion = int(id_reparacion)
+                id_reparacion = int(id_raw)
                 conn = get_db()
                 reparacion = conn.execute("""
                     SELECT reparaciones.id, reparaciones.dispositivo, reparaciones.estado,
@@ -2847,7 +2859,8 @@ def consulta():
             except ValueError:
                 error = "Por favor, introduce un número válido."
 
-    return render_template("consulta.html", reparacion=reparacion, error=error)
+    return render_template("consulta.html", reparacion=reparacion, error=error,
+                           id_prefill=id_get)
 
 
 @app.route("/mis-reparaciones", methods=["GET", "POST"])
@@ -3742,7 +3755,10 @@ def stripe_webhook():
                             'cliente_nombre': reparacion_data['nombre'],
                             'cliente_telefono': reparacion_data['telefono'],
                         }
-                        pdf_buffer = generar_presupuesto_pdf(pdf_reparacion, tipo_documento="factura")
+                        pdf_buffer = generar_presupuesto_pdf(
+                            pdf_reparacion, tipo_documento="factura",
+                            base_url=request.host_url.rstrip('/')
+                        )
                     except Exception:
                         logger.exception(f'[WEBHOOK] Error generando PDF para reparacion {reparacion_id}, se enviara email sin adjunto')
 

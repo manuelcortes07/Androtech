@@ -264,11 +264,24 @@ def _build_terms(styles, tipo="presupuesto"):
     return elements
 
 
-def _build_qr(styles, reparacion_id):
-    """Construir QR de consulta."""
+def _build_qr(styles, reparacion_id, base_url=None):
+    """
+    Construir QR de consulta directa.
+
+    El QR codifica la URL completa /consulta?id=X para que el cliente
+    pueda escanear y ver el estado de su reparacion sin escribir nada.
+    base_url se recibe desde la vista Flask (request.host_url) para
+    que funcione correctamente tanto en local como en Railway (https).
+    """
     elements = []
     try:
-        url = f"http://127.0.0.1:5000/consulta"
+        # Fallback por si se llama fuera de contexto de peticion (tests, etc.)
+        if not base_url:
+            base_url = os.environ.get(
+                'APP_BASE_URL', 'https://androtech-production.up.railway.app'
+            )
+        url = f"{base_url.rstrip('/')}/consulta?id={reparacion_id}"
+
         qr = QrCodeWidget(url)
         qr.barWidth = 80
         qr.barHeight = 80
@@ -307,7 +320,7 @@ def _build_footer(styles):
     return elements
 
 
-def generar_presupuesto_pdf(reparacion_data, tipo_documento="presupuesto"):
+def generar_presupuesto_pdf(reparacion_data, tipo_documento="presupuesto", base_url=None):
     """
     Generar un PDF de presupuesto o factura para una reparacion.
 
@@ -367,7 +380,7 @@ def generar_presupuesto_pdf(reparacion_data, tipo_documento="presupuesto"):
     elements.extend(_build_terms(styles, tipo_documento))
 
     # QR
-    elements.extend(_build_qr(styles, rep_id))
+    elements.extend(_build_qr(styles, rep_id, base_url=base_url))
 
     # Footer
     elements.extend(_build_footer(styles))
