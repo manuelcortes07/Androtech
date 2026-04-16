@@ -319,7 +319,7 @@ def build_reparaciones_filters(args):
 
 
 # ==============================
-# Endpoint: Export reparaciones
+# Endpoint: Export reparaciones (filtrado)
 # ==============================
 @app.route('/export/reparaciones', methods=['GET'])
 @login_required
@@ -340,40 +340,59 @@ def export_reparaciones():
         "FROM reparaciones JOIN clientes ON clientes.id = reparaciones.cliente_id "
         f"WHERE {where} ORDER BY reparaciones.id DESC"
     )
-
     rows = conn.execute(query, params).fetchall()
+    conn.close()
 
-    import csv
-    from io import StringIO
-    from flask import Response
+    # ── Estadísticas ─────────────────────────────────────────────────────────
+    total            = len(rows)
+    total_facturado  = sum(r['precio'] or 0 for r in rows)
+    total_pagado     = sum(r['precio'] or 0 for r in rows if r['estado_pago'] == 'Pagado')
+    total_pendiente  = total_facturado - total_pagado
+    n_pendiente      = sum(1 for r in rows if r['estado'] == 'Pendiente')
+    n_en_proceso     = sum(1 for r in rows if r['estado'] == 'En proceso')
+    n_terminado      = sum(1 for r in rows if r['estado'] == 'Terminado')
+    n_entregado      = sum(1 for r in rows if r['estado'] == 'Entregado')
 
-    output = StringIO()
-    writer = csv.writer(output)
+    si = StringIO()
+    w  = csv.writer(si, delimiter=';')
 
-    # Header
-    header = [
-        'ID', 'Cliente', 'Teléfono', 'Dispositivo', 'Estado', 'Estado pago',
-        'Precio', 'Fecha entrada', 'Fecha finalización', 'Días en taller', 'Alertas'
-    ]
-    writer.writerow(header)
+    # ── Cabecera corporativa ──────────────────────────────────────────────────
+    _csv_empresa_header(w, 'INFORME FILTRADO DE REPARACIONES')
+
+    # ── Resumen ejecutivo ─────────────────────────────────────────────────────
+    w.writerow(['--- RESUMEN ---'])
+    w.writerow(['Total reparaciones', total])
+    w.writerow(['Total facturado',    _fmt_precio_csv(total_facturado)])
+    w.writerow(['Total cobrado',      _fmt_precio_csv(total_pagado)])
+    w.writerow(['Pendiente de cobro', _fmt_precio_csv(total_pendiente)])
+    w.writerow([])
+    w.writerow(['Estado', 'Cantidad'])
+    w.writerow(['Pendiente',   n_pendiente])
+    w.writerow(['En proceso',  n_en_proceso])
+    w.writerow(['Terminado',   n_terminado])
+    w.writerow(['Entregado',   n_entregado])
+    w.writerow([])
+
+    # ── Datos ─────────────────────────────────────────────────────────────────
+    w.writerow(['--- DETALLE DE REPARACIONES ---'])
+    w.writerow([
+        'N. Reparacion', 'Cliente', 'Telefono', 'Dispositivo',
+        'Estado', 'Estado Pago', 'Precio',
+        'Fecha Entrada', 'Fecha Finalizacion', 'Dias en Taller', 'Alertas',
+    ])
 
     for r in rows:
         rdict = dict(r)
         fecha_entrada = rdict.get('fecha_entrada')
-        fecha_fin = rdict.get('fecha_finalizacion')
+        fecha_fin     = rdict.get('fecha_finalizacion')
 
-        # calcular dias en taller
+        # calcular dias en taller (usando fechas crudas)
         dias = ''
         try:
             if fecha_entrada:
-                fmt = '%Y-%m-%d'
-                from datetime import datetime
-                d_ent = datetime.strptime(fecha_entrada, fmt)
-                if fecha_fin:
-                    d_fin = datetime.strptime(fecha_fin, fmt)
-                else:
-                    d_fin = datetime.now()
-                dias = (d_fin - d_ent).days
+                d_ent = datetime.strptime(str(fecha_entrada)[:10], '%Y-%m-%d')
+                d_fin = datetime.strptime(str(fecha_fin)[:10], '%Y-%m-%d') if fecha_fin else datetime.now()
+                dias  = (d_fin - d_ent).days
         except Exception:
             dias = ''
 
@@ -382,22 +401,35 @@ def export_reparaciones():
         try:
             alert_info = calcular_alertas_reparacion(rdict)
             if alert_info and alert_info.get('tiene_alertas'):
-                alertas_txt = '; '.join([a['mensaje'] for a in alert_info['alertas']])
+                alertas_txt = ' | '.join(a['mensaje'] for a in alert_info['alertas'])
         except Exception:
             alertas_txt = ''
 
-        writer.writerow([
-            rdict.get('id'), rdict.get('cliente'), rdict.get('telefono'),
-            rdict.get('dispositivo'), rdict.get('estado'), rdict.get('estado_pago'),
-            rdict.get('precio'), fecha_entrada, fecha_fin, dias, alertas_txt
+        w.writerow([
+            rdict.get('id'),
+            rdict.get('cliente')   or 'Sin asignar',
+            rdict.get('telefono')  or '',
+            rdict.get('dispositivo'),
+            rdict.get('estado'),
+            rdict.get('estado_pago'),
+            _fmt_precio_csv(rdict.get('precio')),
+            _fmt_fecha_csv(fecha_entrada),
+            _fmt_fecha_csv(fecha_fin),
+            dias,
+            alertas_txt,
         ])
 
-    conn.close()
+    # ── Pie ───────────────────────────────────────────────────────────────────
+    w.writerow([])
+    w.writerow([_SEP_CSV])
+    w.writerow([f'Fin del informe  |  AndroTech  |  {datetime.now().strftime("%d/%m/%Y %H:%M")}'])
+    w.writerow([_SEP_CSV])
+
+    output = BytesIO()
+    output.write(si.getvalue().encode('utf-8-sig'))
     output.seek(0)
-    filename = f"reparaciones_{datetime.now().strftime('%Y%m%d')}.csv"
-    return Response(output.getvalue(), mimetype='text/csv', headers={
-        'Content-Disposition': f'attachment;filename={filename}'
-    })
+    return send_file(output, mimetype='text/csv', as_attachment=True,
+                     download_name=f'AndroTech_Reparaciones_Filtro_{datetime.now().strftime("%Y%m%d_%H%M")}.csv')
 
 
 
@@ -1131,6 +1163,41 @@ def buscar():
 import csv
 from io import StringIO, BytesIO
 
+# ── Helpers compartidos para exportacion CSV ──────────────────────────────────
+
+_SEP_CSV = '=' * 62   # separador visual de sección
+
+def _fmt_fecha_csv(fecha_str):
+    """Convierte '2026-04-15 20:35:44' o '2026-04-15' a '15/04/2026'."""
+    if not fecha_str:
+        return ''
+    for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%d'):
+        try:
+            return datetime.strptime(str(fecha_str), fmt).strftime('%d/%m/%Y')
+        except ValueError:
+            continue
+    return str(fecha_str)
+
+def _fmt_precio_csv(valor):
+    """Formatea un precio como '89,99 €' (coma decimal, sin notacion cientifica)."""
+    if valor is None:
+        return '0,00 €'
+    return f'{float(valor):.2f}'.replace('.', ',') + ' €'
+
+def _csv_empresa_header(writer, titulo):
+    """Escribe el bloque de cabecera corporativa en el CSV."""
+    writer.writerow([_SEP_CSV])
+    writer.writerow(['ANDROTECH — Taller de Reparacion de Dispositivos'])
+    writer.writerow(['Huelva, España  |  Tel: +34 633 234 395  |  manuelcortescontreras11@gmail.com'])
+    writer.writerow([_SEP_CSV])
+    writer.writerow([])
+    writer.writerow([titulo])
+    writer.writerow([f'Generado: {datetime.now().strftime("%d/%m/%Y a las %H:%M")}'])
+    writer.writerow([f'Exportado por: {session.get("usuario", "sistema")}'])
+    writer.writerow([])
+
+# ─────────────────────────────────────────────────────────────────────────────
+
 @app.route("/exportar/reparaciones.csv")
 @login_required
 @permiso_requerido('reparaciones_exportar')
@@ -1149,47 +1216,78 @@ def exportar_reparaciones_csv():
         ORDER BY r.id DESC
     ''').fetchall()
 
-    # Estadisticas resumen
     total = len(rows)
-    total_facturado = sum(r['precio'] or 0 for r in rows)
-    total_pagado = sum(r['precio'] or 0 for r in rows if r['estado_pago'] == 'Pagado')
-    total_pendiente = total_facturado - total_pagado
+    total_facturado  = sum(r['precio'] or 0 for r in rows)
+    total_pagado     = sum(r['precio'] or 0 for r in rows if r['estado_pago'] == 'Pagado')
+    total_pendiente  = total_facturado - total_pagado
+    n_pendiente      = sum(1 for r in rows if r['estado'] == 'Pendiente')
+    n_en_proceso     = sum(1 for r in rows if r['estado'] == 'En proceso')
+    n_terminado      = sum(1 for r in rows if r['estado'] == 'Terminado')
+    n_entregado      = sum(1 for r in rows if r['estado'] == 'Entregado')
     conn.close()
 
     si = StringIO()
-    writer = csv.writer(si, delimiter=';')
+    w  = csv.writer(si, delimiter=';')
 
-    # Cabecera del informe
-    writer.writerow(['INFORME DE REPARACIONES - ANDROTECH'])
-    writer.writerow([f'Fecha de exportacion: {datetime.now().strftime("%d/%m/%Y %H:%M")}'])
-    writer.writerow([f'Total registros: {total}'])
-    writer.writerow([f'Total facturado: {total_facturado:.2f} EUR'])
-    writer.writerow([f'Total cobrado: {total_pagado:.2f} EUR'])
-    writer.writerow([f'Pendiente de cobro: {total_pendiente:.2f} EUR'])
-    writer.writerow([])
+    # ── Cabecera corporativa ──────────────────────────────────────────────────
+    _csv_empresa_header(w, 'INFORME COMPLETO DE REPARACIONES')
 
-    # Cabeceras de columnas
-    writer.writerow(['N. Reparacion', 'Cliente', 'Email', 'Telefono', 'Direccion',
-                     'Dispositivo', 'Descripcion', 'Estado', 'Estado Pago',
-                     'Precio (EUR)', 'Tipo Documento', 'Fecha Entrada', 'Fecha Salida',
-                     'Fecha Pago', 'Metodo Pago', 'Fotos', 'Notas', 'Firmado'])
+    # ── Resumen ejecutivo ─────────────────────────────────────────────────────
+    w.writerow(['--- RESUMEN ---'])
+    w.writerow(['Total reparaciones', total])
+    w.writerow(['Total facturado',    _fmt_precio_csv(total_facturado)])
+    w.writerow(['Total cobrado',      _fmt_precio_csv(total_pagado)])
+    w.writerow(['Pendiente de cobro', _fmt_precio_csv(total_pendiente)])
+    w.writerow([])
+    w.writerow(['Estado', 'Cantidad'])
+    w.writerow(['Pendiente',   n_pendiente])
+    w.writerow(['En proceso',  n_en_proceso])
+    w.writerow(['Terminado',   n_terminado])
+    w.writerow(['Entregado',   n_entregado])
+    w.writerow([])
+
+    # ── Datos ─────────────────────────────────────────────────────────────────
+    w.writerow(['--- DETALLE DE REPARACIONES ---'])
+    w.writerow([
+        'N. Reparacion', 'Cliente', 'Email', 'Telefono', 'Direccion',
+        'Dispositivo', 'Descripcion', 'Estado', 'Estado Pago',
+        'Precio', 'Tipo Documento', 'Fecha Entrada', 'Fecha Salida',
+        'Fecha Pago', 'Metodo Pago', 'Fotos', 'Notas', 'Firmado',
+    ])
 
     for r in rows:
-        precio_fmt = f'{r["precio"]:.2f}'.replace('.', ',') if r['precio'] else '0,00'
-        writer.writerow([
-            r['id'], r['cliente'] or 'Sin asignar', r['email'] or '', r['telefono'] or '',
-            r['direccion'] or '', r['dispositivo'], r['descripcion'] or '',
-            r['estado'], r['estado_pago'], precio_fmt, r['tipo_documento'] or '',
-            r['fecha_entrada'] or '', r['fecha_salida'] or '',
-            r['fecha_pago'] or '', r['metodo_pago'] or '',
-            r['num_fotos'], r['num_notas'], r['firmado']
+        w.writerow([
+            r['id'],
+            r['cliente']       or 'Sin asignar',
+            r['email']         or '',
+            r['telefono']      or '',
+            r['direccion']     or '',
+            r['dispositivo'],
+            r['descripcion']   or '',
+            r['estado'],
+            r['estado_pago'],
+            _fmt_precio_csv(r['precio']),
+            r['tipo_documento'] or '',
+            _fmt_fecha_csv(r['fecha_entrada']),
+            _fmt_fecha_csv(r['fecha_salida']),
+            _fmt_fecha_csv(r['fecha_pago']),
+            r['metodo_pago']   or '',
+            r['num_fotos'],
+            r['num_notas'],
+            r['firmado'],
         ])
+
+    # ── Pie ───────────────────────────────────────────────────────────────────
+    w.writerow([])
+    w.writerow([_SEP_CSV])
+    w.writerow([f'Fin del informe  |  AndroTech  |  {datetime.now().strftime("%d/%m/%Y %H:%M")}'])
+    w.writerow([_SEP_CSV])
 
     output = BytesIO()
     output.write(si.getvalue().encode('utf-8-sig'))
     output.seek(0)
     return send_file(output, mimetype='text/csv', as_attachment=True,
-                     download_name=f'AndroTech_Reparaciones_{datetime.now().strftime("%Y%m%d")}.csv')
+                     download_name=f'AndroTech_Reparaciones_{datetime.now().strftime("%Y%m%d_%H%M")}.csv')
 
 
 @app.route("/exportar/clientes.csv")
@@ -1212,45 +1310,64 @@ def exportar_clientes_csv():
         ORDER BY c.nombre
     ''').fetchall()
 
-    total_clientes = len(rows)
-    total_facturado = sum(r['total_facturado'] or 0 for r in rows)
-    total_cobrado = sum(r['total_pagado'] or 0 for r in rows)
+    total_clientes   = len(rows)
+    total_facturado  = sum(r['total_facturado'] or 0 for r in rows)
+    total_cobrado    = sum(r['total_pagado']    or 0 for r in rows)
+    total_pendiente  = total_facturado - total_cobrado
+    clientes_activos = sum(1 for r in rows if (r['reparaciones_activas'] or 0) > 0)
     conn.close()
 
     si = StringIO()
-    writer = csv.writer(si, delimiter=';')
+    w  = csv.writer(si, delimiter=';')
 
-    # Cabecera del informe
-    writer.writerow(['INFORME DE CLIENTES - ANDROTECH'])
-    writer.writerow([f'Fecha de exportacion: {datetime.now().strftime("%d/%m/%Y %H:%M")}'])
-    writer.writerow([f'Total clientes: {total_clientes}'])
-    writer.writerow([f'Total facturado: {total_facturado:.2f} EUR'])
-    writer.writerow([f'Total cobrado: {total_cobrado:.2f} EUR'])
-    writer.writerow([])
+    # ── Cabecera corporativa ──────────────────────────────────────────────────
+    _csv_empresa_header(w, 'INFORME COMPLETO DE CLIENTES')
 
-    # Cabeceras de columnas
-    writer.writerow(['N. Cliente', 'Nombre', 'Email', 'Telefono', 'Direccion',
-                     'Total Reparaciones', 'Activas', 'Completadas',
-                     'Total Facturado (EUR)', 'Total Pagado (EUR)', 'Pendiente (EUR)',
-                     'Ultima Visita'])
+    # ── Resumen ejecutivo ─────────────────────────────────────────────────────
+    w.writerow(['--- RESUMEN ---'])
+    w.writerow(['Total clientes',          total_clientes])
+    w.writerow(['Clientes con rep. activa', clientes_activos])
+    w.writerow(['Total facturado',          _fmt_precio_csv(total_facturado)])
+    w.writerow(['Total cobrado',            _fmt_precio_csv(total_cobrado)])
+    w.writerow(['Pendiente de cobro',       _fmt_precio_csv(total_pendiente)])
+    w.writerow([])
+
+    # ── Datos ─────────────────────────────────────────────────────────────────
+    w.writerow(['--- DETALLE DE CLIENTES ---'])
+    w.writerow([
+        'N. Cliente', 'Nombre', 'Email', 'Telefono', 'Direccion',
+        'Total Reparaciones', 'Reparaciones Activas', 'Reparaciones Completadas',
+        'Total Facturado', 'Total Pagado', 'Pendiente',
+        'Ultima Visita',
+    ])
 
     for r in rows:
-        facturado_fmt = f'{r["total_facturado"]:.2f}'.replace('.', ',')
-        pagado_fmt = f'{r["total_pagado"]:.2f}'.replace('.', ',')
-        pendiente_fmt = f'{r["total_pendiente"]:.2f}'.replace('.', ',')
-        writer.writerow([
-            r['id'], r['nombre'], r['email'] or '', r['telefono'] or '',
-            r['direccion'] or '', r['total_reparaciones'],
-            r['reparaciones_activas'] or 0, r['reparaciones_completadas'] or 0,
-            facturado_fmt, pagado_fmt, pendiente_fmt,
-            r['ultima_visita'] or 'Sin visitas'
+        w.writerow([
+            r['id'],
+            r['nombre'],
+            r['email']         or '',
+            r['telefono']      or '',
+            r['direccion']     or '',
+            r['total_reparaciones'],
+            r['reparaciones_activas']    or 0,
+            r['reparaciones_completadas'] or 0,
+            _fmt_precio_csv(r['total_facturado']),
+            _fmt_precio_csv(r['total_pagado']),
+            _fmt_precio_csv(r['total_pendiente']),
+            _fmt_fecha_csv(r['ultima_visita']) or 'Sin visitas',
         ])
+
+    # ── Pie ───────────────────────────────────────────────────────────────────
+    w.writerow([])
+    w.writerow([_SEP_CSV])
+    w.writerow([f'Fin del informe  |  AndroTech  |  {datetime.now().strftime("%d/%m/%Y %H:%M")}'])
+    w.writerow([_SEP_CSV])
 
     output = BytesIO()
     output.write(si.getvalue().encode('utf-8-sig'))
     output.seek(0)
     return send_file(output, mimetype='text/csv', as_attachment=True,
-                     download_name=f'AndroTech_Clientes_{datetime.now().strftime("%Y%m%d")}.csv')
+                     download_name=f'AndroTech_Clientes_{datetime.now().strftime("%Y%m%d_%H%M")}.csv')
 
 
 # =========================================
