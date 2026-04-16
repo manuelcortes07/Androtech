@@ -2952,6 +2952,353 @@ def solicitar_reparacion():
 
 
 # =========================================
+# ADMIN: RECURSOS DE DEFENSA
+# =========================================
+
+@app.route('/admin/defensa')
+@login_required
+def admin_defensa():
+    """Pagina con los recursos de defensa del Proyecto Intermodular (solo admin)."""
+    if session.get('rol') != 'admin':
+        flash('Acceso restringido al administrador.', 'danger')
+        return redirect(url_for('dashboard'))
+    return render_template('admin_defensa.html')
+
+
+# =========================================
+# ADMIN: SEED DE DATOS DEMO (ejecutar UNA VEZ desde el navegador)
+# =========================================
+
+@app.route('/admin/seed-demo')
+@login_required
+def admin_seed_demo():
+    """
+    Inserta datos de demo en la BD si no existen.
+    Solo accesible para admin y protegido con una clave en la URL.
+    Pensado para poblar la BD efimera de Railway tras un redeploy.
+    """
+    if session.get('rol') != 'admin':
+        flash('Acceso restringido al administrador.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    SEED_KEY = "demo2026"
+    if request.args.get('key') != SEED_KEY:
+        return ("<h3>Acceso denegado</h3>"
+                "<p>Falta la clave en la URL: "
+                "<code>/admin/seed-demo?key=...</code></p>"), 403
+
+    CLIENTES = [
+        ("Juan Pérez",     "634 112 233", "juan.perez@gmail.com",      "Calle Real 12, Huelva"),
+        ("María García",   "612 445 667", "maria.garcia@hotmail.com",  "Av. Andalucía 45, Huelva"),
+        ("Carlos López",   "698 334 112", "carlos.lopez@gmail.com",    "C/ Tartessos 8, Huelva"),
+        ("Ana Martínez",   "677 223 445", "ana.martinez@gmail.com",    "Plaza del Punto 3, Huelva"),
+        ("Pedro Sánchez",  "655 778 990", "pedro.sanchez@outlook.com", "C/ Cristóbal Colón 22, Huelva"),
+    ]
+
+    REPARACIONES = [
+        ("Juan Pérez",    "iPhone 12",            "Pantalla rota",       "Entregado",  89.99, "Pagado",    "Stripe",   75, 60),
+        ("María García",  "Samsung Galaxy A52",   "Bateria agotada",     "Terminado",  45.00, "Pendiente", None,       20, 5),
+        ("Carlos López",  "MacBook Air",          "Teclado no responde", "En proceso", 120.00, "Pendiente", None,      15, None),
+        ("Ana Martínez",  "Xiaomi Redmi Note 10", "No carga",            "Pendiente",  35.00, "Pendiente", None,       3,  None),
+        ("Juan Pérez",    "iPad Pro",             "Pantalla rota",       "Terminado",  150.00, "Pagado",   "Efectivo", 30, 7),
+        ("Pedro Sánchez", "Huawei P30",           "Camara no funciona",  "En proceso", 65.00, "Pendiente", None,       10, None),
+        ("María García",  "HP Pavilion",          "Va muy lento",        "Pendiente",  None,  "Pendiente", None,       2,  None),
+        ("Carlos López",  "OnePlus 9",            "Se apaga solo",       "Entregado",  55.00, "Pagado",    "Bizum",    50, 35),
+    ]
+
+    PIEZAS = [
+        ("Pantalla iPhone 12",      "Pantallas",   3, 2, 45.00, 75.00, "Mobile Spain SL"),
+        ("Bateria Samsung A52",     "Baterias",    5, 3, 18.00, 35.00, "ElectroParts"),
+        ("Bateria iPhone generica", "Baterias",    1, 2, 12.00, 25.00, "ChinaTech"),
+        ("Cargador USB-C",          "Accesorios",  8, 2,  5.00, 15.00, "ElectroParts"),
+        ("Pantalla Xiaomi Redmi",   "Pantallas",   2, 2, 35.00, 60.00, "Mobile Spain SL"),
+        ("Pasta termica",           "Consumibles", 10, 3, 2.00,  8.00, "ChinaTech"),
+    ]
+
+    NOTAS = [
+        ("Carlos López", "MacBook Air",
+         "admin",
+         "Cliente avisado por telefono: pieza pedida, llegara en 5 dias laborables.",
+         1),
+        ("Pedro Sánchez", "Huawei P30",
+         "admin",
+         "Modulo de camara averiado, presupuesto adicional aceptado por el cliente.",
+         0),
+    ]
+
+    def fmt(dt):
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+    inserted = {"clientes": 0, "reparaciones": 0, "historial": 0, "piezas": 0, "notas": 0}
+    updated = {"clientes": 0}
+    skipped = {"reparaciones": 0, "piezas": 0, "notas": 0}
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    # ---- CLIENTES ----
+    cliente_ids = {}
+    for nombre, tel, email, dirc in CLIENTES:
+        existing = cur.execute(
+            "SELECT id, telefono, email, direccion FROM clientes WHERE nombre = ?",
+            (nombre,),
+        ).fetchone()
+        if existing:
+            cid = existing["id"]
+            needs_update = (
+                not existing["telefono"]
+                or str(existing["telefono"]).startswith("555-")
+                or not existing["email"]
+                or not existing["direccion"]
+            )
+            if needs_update:
+                cur.execute(
+                    "UPDATE clientes SET telefono=?, email=?, direccion=? WHERE id=?",
+                    (tel, email, dirc, cid),
+                )
+                updated["clientes"] += 1
+        else:
+            cur.execute(
+                "INSERT INTO clientes (nombre, telefono, email, direccion) VALUES (?, ?, ?, ?)",
+                (nombre, tel, email, dirc),
+            )
+            cid = cur.lastrowid
+            inserted["clientes"] += 1
+        cliente_ids[nombre] = cid
+
+    # ---- REPARACIONES + HISTORIAL ----
+    now = datetime.now()
+    for cli_nombre, disp, desc, estado, precio, estado_pago, metodo, dias_e, dias_s in REPARACIONES:
+        cid = cliente_ids.get(cli_nombre)
+        if cid is None:
+            continue
+        dup = cur.execute(
+            "SELECT id FROM reparaciones WHERE cliente_id=? AND dispositivo=? AND descripcion=?",
+            (cid, disp, desc),
+        ).fetchone()
+        if dup:
+            skipped["reparaciones"] += 1
+            continue
+
+        fecha_entrada = fmt(now - timedelta(days=dias_e))
+        fecha_salida = fmt(now - timedelta(days=dias_s)) if dias_s is not None else None
+        fecha_pago = fecha_salida if estado_pago == "Pagado" else None
+
+        cur.execute(
+            """INSERT INTO reparaciones
+               (cliente_id, dispositivo, descripcion, estado, fecha_entrada, fecha_salida,
+                precio, tipo_documento, estado_pago, fecha_pago, metodo_pago)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (cid, disp, desc, estado, fecha_entrada, fecha_salida,
+             precio, "presupuesto", estado_pago, fecha_pago, metodo),
+        )
+        rid = cur.lastrowid
+        inserted["reparaciones"] += 1
+
+        flujo = ["Pendiente", "En proceso", "Terminado", "Entregado"]
+        try:
+            idx_final = flujo.index(estado)
+        except ValueError:
+            idx_final = 0
+        t_inicio = now - timedelta(days=dias_e)
+        t_fin = now - timedelta(days=dias_s) if dias_s is not None else now
+        paso = (t_fin - t_inicio) / max(idx_final, 1) if idx_final > 0 and t_fin > t_inicio else timedelta(0)
+
+        anterior = None
+        for i in range(idx_final + 1):
+            estado_paso = flujo[i]
+            fecha_paso = fecha_entrada if i == 0 else fmt(t_inicio + paso * i)
+            cur.execute(
+                """INSERT INTO reparaciones_historial
+                   (reparacion_id, estado_anterior, estado_nuevo, fecha_cambio, usuario)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (rid, anterior, estado_paso, fecha_paso, "admin"),
+            )
+            inserted["historial"] += 1
+            anterior = estado_paso
+
+    # ---- INVENTARIO ----
+    fecha_act = fmt(now)
+    for nombre, cat, cant, cmin, coste, venta, prov in PIEZAS:
+        existing = cur.execute(
+            "SELECT id FROM inventario_piezas WHERE nombre = ?", (nombre,)
+        ).fetchone()
+        if existing:
+            skipped["piezas"] += 1
+            continue
+        cur.execute(
+            """INSERT INTO inventario_piezas
+               (nombre, categoria, cantidad, cantidad_minima, precio_coste,
+                precio_venta, proveedor, fecha_actualizacion)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (nombre, cat, cant, cmin, coste, venta, prov, fecha_act),
+        )
+        inserted["piezas"] += 1
+
+    # ---- NOTAS ----
+    for cli_nombre, disp, usuario, contenido, imp in NOTAS:
+        cid = cliente_ids.get(cli_nombre)
+        if cid is None:
+            continue
+        rep = cur.execute(
+            "SELECT id FROM reparaciones WHERE cliente_id=? AND dispositivo=? ORDER BY id DESC LIMIT 1",
+            (cid, disp),
+        ).fetchone()
+        if not rep:
+            continue
+        rid = rep["id"]
+        dup = cur.execute(
+            "SELECT id FROM notas_reparacion WHERE reparacion_id=? AND contenido=?",
+            (rid, contenido),
+        ).fetchone()
+        if dup:
+            skipped["notas"] += 1
+            continue
+        cur.execute(
+            """INSERT INTO notas_reparacion
+               (reparacion_id, usuario, contenido, fecha_creacion, es_importante)
+               VALUES (?, ?, ?, ?, ?)""",
+            (rid, usuario, contenido, fecha_act, imp),
+        )
+        inserted["notas"] += 1
+
+    conn.commit()
+    conn.close()
+
+    html = f"""
+    <!doctype html>
+    <html lang="es">
+    <head>
+      <meta charset="utf-8">
+      <title>Seed demo - AndroTech</title>
+      <style>
+        body {{ font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 720px; margin: 60px auto; padding: 20px; color: #1a202c; }}
+        h1 {{ color: #2B8AC4; }}
+        .card {{ background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 12px; padding: 24px; margin: 20px 0; }}
+        .ok {{ color: #28a745; font-weight: 600; }}
+        ul {{ line-height: 1.9; }}
+        a.btn {{ display: inline-block; background: #2B8AC4; color: white; padding: 10px 20px;
+                text-decoration: none; border-radius: 8px; margin-top: 20px; }}
+      </style>
+    </head>
+    <body>
+      <h1>✓ Seed demo ejecutado</h1>
+      <div class="card">
+        <h3 class="ok">Insertados</h3>
+        <ul>
+          <li>Clientes nuevos: <b>{inserted['clientes']}</b></li>
+          <li>Clientes actualizados: <b>{updated['clientes']}</b></li>
+          <li>Reparaciones nuevas: <b>{inserted['reparaciones']}</b></li>
+          <li>Historial de estados: <b>{inserted['historial']}</b></li>
+          <li>Piezas de inventario: <b>{inserted['piezas']}</b></li>
+          <li>Notas internas: <b>{inserted['notas']}</b></li>
+        </ul>
+        <h3>Saltados (ya existian)</h3>
+        <ul>
+          <li>Reparaciones: {skipped['reparaciones']}</li>
+          <li>Piezas: {skipped['piezas']}</li>
+          <li>Notas: {skipped['notas']}</li>
+        </ul>
+      </div>
+      <a class="btn" href="{url_for('dashboard')}">Ir al dashboard →</a>
+    </body>
+    </html>
+    """
+    return html
+
+
+# =========================================
+# ADMIN: ESTADO DEL SISTEMA
+# =========================================
+
+@app.route('/admin/sistema')
+@login_required
+def admin_sistema():
+    """Estadisticas tecnicas del servidor en tiempo real (solo admin)."""
+    if session.get('rol') != 'admin':
+        flash('Acceso restringido al administrador.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    import sys
+    import flask as _flask
+
+    # Version Python (sin saltos de linea)
+    python_version = sys.version.split('\n')[0].strip()
+
+    # Version Flask
+    try:
+        flask_version = _flask.__version__
+    except Exception:
+        try:
+            from importlib.metadata import version as _v
+            flask_version = _v('flask')
+        except Exception:
+            flask_version = 'desconocida'
+
+    # Numero total de rutas
+    total_rutas = len(app.url_map._rules)
+
+    # Tamano BD en KB
+    db_path = "database/andro_tech.db"
+    try:
+        db_size_kb = round(os.path.getsize(db_path) / 1024, 2)
+    except OSError:
+        db_size_kb = 0
+
+    # Conteo de registros por tabla
+    conn = get_db()
+    tablas_conteo = {}
+    for tabla in ('clientes', 'reparaciones', 'usuarios', 'audit_log'):
+        try:
+            c = conn.execute(f"SELECT COUNT(*) FROM {tabla}").fetchone()
+            tablas_conteo[tabla] = c[0] if c else 0
+        except Exception:
+            tablas_conteo[tabla] = None
+
+    # Ultimo evento del audit_log
+    ultimo_evento = None
+    try:
+        row = conn.execute(
+            "SELECT event_type, timestamp FROM audit_log ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        if row:
+            ultimo_evento = {
+                'event_type': row['event_type'],
+                'timestamp': row['timestamp'],
+            }
+    except Exception:
+        ultimo_evento = None
+    conn.close()
+
+    # Fecha y hora actual del servidor
+    ahora = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    # Memoria del proceso (psutil opcional)
+    memoria_mb = None
+    psutil_disponible = False
+    try:
+        import psutil  # type: ignore
+        proc = psutil.Process(os.getpid())
+        memoria_mb = round(proc.memory_info().rss / (1024 * 1024), 2)
+        psutil_disponible = True
+    except Exception:
+        psutil_disponible = False
+
+    return render_template(
+        'admin_sistema.html',
+        python_version=python_version,
+        flask_version=flask_version,
+        total_rutas=total_rutas,
+        db_size_kb=db_size_kb,
+        tablas_conteo=tablas_conteo,
+        ultimo_evento=ultimo_evento,
+        ahora=ahora,
+        memoria_mb=memoria_mb,
+        psutil_disponible=psutil_disponible,
+    )
+
+
+# =========================================
 # ADMIN: GESTIONAR SOLICITUDES
 # =========================================
 
@@ -3496,5 +3843,6 @@ def internal_error(error):
 # crear_admin_inicial()
 
 #  EJECUCIÓN
-if __name__ == "__main__":
-    app.run(debug=True)
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
