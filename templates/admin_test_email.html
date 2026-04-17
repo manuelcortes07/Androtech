@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Prueba de Email - AndroTech{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- HEADER -->
+    <div class="d-flex flex-wrap justify-content-between align-items-start mb-4">
+        <div>
+            <span class="at-pill"><i class="bi bi-envelope-check-fill me-1"></i>Email</span>
+            <h1 class="at-section-title mt-2 mb-1">Prueba de envio de Email</h1>
+            <p class="at-section-sub">Verifica que la configuracion SMTP de Gmail esta operativa</p>
+        </div>
+        <a href="{{ url_for('admin_sistema') }}" class="btn at-btn-secondary mt-2 mt-md-0">
+            <i class="bi bi-arrow-left me-1"></i>Volver al estado del sistema
+        </a>
+    </div>
+
+    <!-- Diagnostico de la configuracion -->
+    <div class="card shadow-sm mb-4" style="border-left: 5px solid {% if diagnostico.configured %}#198754{% else %}#dc3545{% endif %};">
+        <div class="card-body">
+            <h5 class="fw-bold mb-3">
+                <i class="bi bi-{% if diagnostico.configured %}check-circle-fill text-success{% else %}x-circle-fill text-danger{% endif %} me-2"></i>
+                Diagnostico de la configuracion
+            </h5>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                            <tr><td class="fw-semibold">Servidor</td><td><code>{{ diagnostico.server }}</code></td></tr>
+                            <tr><td class="fw-semibold">Puerto</td><td><code>{{ diagnostico.port }}</code></td></tr>
+                            <tr><td class="fw-semibold">TLS</td><td>{% if diagnostico.tls %}<span class="badge bg-success">ON</span>{% else %}<span class="badge bg-secondary">OFF</span>{% endif %}</td></tr>
+                            <tr><td class="fw-semibold">SSL</td><td>{% if diagnostico.ssl %}<span class="badge bg-success">ON</span>{% else %}<span class="badge bg-secondary">OFF</span>{% endif %}</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                            <tr><td class="fw-semibold">Usuario</td><td><code>{{ diagnostico.username }}</code></td></tr>
+                            <tr><td class="fw-semibold">Remitente (From)</td><td><code>{{ diagnostico.sender }}</code></td></tr>
+                            <tr>
+                                <td class="fw-semibold">Longitud password</td>
+                                <td>
+                                    {% if diagnostico.pwd_length == 16 %}
+                                        <span class="badge bg-success">{{ diagnostico.pwd_length }} chars (App Password OK)</span>
+                                    {% elif diagnostico.pwd_length >= 12 %}
+                                        <span class="badge bg-warning text-dark">{{ diagnostico.pwd_length }} chars (verificar)</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">{{ diagnostico.pwd_length }} chars (invalido)</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="fw-semibold">Estado global</td>
+                                <td>
+                                    {% if diagnostico.configured %}
+                                        <span class="badge bg-success">Configurado</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Incompleto</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario de envio -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="fw-bold mb-3"><i class="bi bi-send-fill me-2 text-primary"></i>Enviar email de prueba</h5>
+            <form method="POST" action="{{ url_for('admin_test_email') }}" class="row g-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="col-md-8">
+                    <label for="destinatario" class="form-label fw-semibold">Destinatario</label>
+                    <input type="email" class="form-control" id="destinatario" name="destinatario"
+                           placeholder="{{ diagnostico.username }}"
+                           value="{{ diagnostico.username if '@' in diagnostico.username else '' }}">
+                    <div class="form-text">Si lo dejas vacio, se envia al propio usuario SMTP.</div>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn at-btn-primary w-100" {% if not diagnostico.configured %}disabled{% endif %}>
+                        <i class="bi bi-envelope-arrow-up me-1"></i>Enviar prueba
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Ayuda -->
+    <div class="card shadow-sm border-0" style="background: #f8f9fb;">
+        <div class="card-body">
+            <h6 class="fw-bold mb-2"><i class="bi bi-info-circle me-1 text-primary"></i>Como configurar Gmail</h6>
+            <ol class="mb-0 small">
+                <li>Activa la verificacion en 2 pasos en <a href="https://myaccount.google.com/security" target="_blank" rel="noopener">https://myaccount.google.com/security</a></li>
+                <li>Genera una App Password en <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">https://myaccount.google.com/apppasswords</a> (selecciona "Correo" + "Otro" → nombre "AndroTech")</li>
+                <li>Copia los 16 caracteres (con o sin espacios, la app los normaliza) en el <code>.env</code>:
+                    <pre class="mt-2 p-2 small bg-dark text-light rounded">MAIL_USERNAME=tuemail@gmail.com
+MAIL_PASSWORD=xxxx xxxx xxxx xxxx
+MAIL_DEFAULT_SENDER=tuemail@gmail.com</pre>
+                </li>
+                <li>Reinicia la aplicacion y pulsa "Enviar prueba".</li>
+            </ol>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
