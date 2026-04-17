@@ -191,6 +191,39 @@
                 </div>
             </div>
         </div>
+
+        <!-- Estado SMTP -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center"
+                             style="width: 40px; height: 40px; background: rgba({% if mail_configured %}40,167,69{% else %}220,53,69{% endif %},.1);">
+                            <i class="bi bi-envelope-check-fill" style="color: {% if mail_configured %}#28a745{% else %}#dc3545{% endif %};"></i>
+                        </div>
+                        <h6 class="fw-bold mb-0">Email SMTP</h6>
+                    </div>
+                    {% if mail_configured %}
+                        <p class="mb-0 mt-3 fw-semibold" style="font-size: 1.05rem; color: #28a745;">
+                            <i class="bi bi-check-circle-fill me-1"></i>Configurado
+                        </p>
+                        <p class="text-muted small mb-0 mt-1" style="word-break: break-all;">
+                            {{ mail_username }}
+                        </p>
+                    {% else %}
+                        <p class="mb-0 mt-3 fw-semibold" style="font-size: 1.05rem; color: #dc3545;">
+                            <i class="bi bi-x-circle-fill me-1"></i>No configurado
+                        </p>
+                        <p class="text-muted small mb-0 mt-1">
+                            Falta MAIL_USERNAME o MAIL_PASSWORD (App Password 16 chars).
+                        </p>
+                    {% endif %}
+                    <a href="{{ url_for('admin_test_email') }}" class="btn btn-sm btn-outline-primary mt-2">
+                        <i class="bi bi-send me-1"></i>Probar envio
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 
 </div>

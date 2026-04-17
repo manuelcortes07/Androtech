@@ -241,17 +241,42 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB total por request
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# ──────────────────────────────────────────────────────────────────────────────
 # Flask-Mail configuration
-app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
-app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
-app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true'
-app.config['MAIL_USE_SSL'] = os.environ.get('MAIL_USE_SSL', 'False').lower() == 'true'
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', '')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', '')
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@androtech.com')
-app.config['MAIL_DEFAULT_CHARSET'] = 'utf-8'
+# ──────────────────────────────────────────────────────────────────────────────
+# IMPORTANTE: Para Gmail es OBLIGATORIO usar una "App Password" (contraseña de
+# aplicación) de 16 caracteres, NO la contraseña normal de la cuenta.
+# Se genera en: https://myaccount.google.com/apppasswords (requiere 2FA activo).
+# Ademas, Gmail exige que el remitente (From) coincida con el usuario autenticado;
+# por eso el default sender cae a MAIL_USERNAME si no se especifica otro.
+# ──────────────────────────────────────────────────────────────────────────────
+app.config['MAIL_SERVER']    = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT']      = int(os.environ.get('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS']   = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true'
+app.config['MAIL_USE_SSL']   = os.environ.get('MAIL_USE_SSL', 'False').lower() == 'true'
+app.config['MAIL_USERNAME']  = os.environ.get('MAIL_USERNAME', '')
+# Normalizamos la password: Google muestra la App Password con espacios cada 4
+# caracteres por legibilidad, pero SMTP exige los 16 chars sin espacios.
+_raw_mail_pwd = os.environ.get('MAIL_PASSWORD', '') or ''
+app.config['MAIL_PASSWORD']  = _raw_mail_pwd.replace(' ', '').strip()
+# Si no se define MAIL_DEFAULT_SENDER, usamos el propio MAIL_USERNAME (único
+# remitente que Gmail acepta sin rebote).
+app.config['MAIL_DEFAULT_SENDER'] = (
+    os.environ.get('MAIL_DEFAULT_SENDER')
+    or app.config['MAIL_USERNAME']
+    or 'noreply@androtech.local'
+)
+app.config['MAIL_DEFAULT_CHARSET']      = 'utf-8'
 app.config['MAIL_DEFAULT_CONTENT_TYPE'] = 'text/html'
-app.config['MAIL_SUPPRESS_SEND'] = False
+app.config['MAIL_SUPPRESS_SEND']        = False
+
+# Flag interno: indica si el email está correctamente configurado.
+# Lo consume /admin/sistema y /admin/test-email.
+MAIL_CONFIGURED = bool(
+    app.config['MAIL_USERNAME']
+    and app.config['MAIL_PASSWORD']
+    and len(app.config['MAIL_PASSWORD']) >= 12  # App Passwords = 16 chars
+)
 
 mail = Mail(app)
 email_service = EmailService(mail)
@@ -3425,7 +3450,92 @@ def admin_sistema():
         ahora=ahora,
         memoria_mb=memoria_mb,
         psutil_disponible=psutil_disponible,
+        mail_configured=MAIL_CONFIGURED,
+        mail_username=app.config.get('MAIL_USERNAME') or '(no configurado)',
     )
+
+
+# =========================================
+# ADMIN: PROBAR ENVIO DE EMAIL
+# =========================================
+
+@app.route('/admin/test-email', methods=['GET', 'POST'])
+@login_required
+def admin_test_email():
+    """Enviar un email de prueba al admin para validar la config SMTP en caliente.
+
+    - GET: muestra diagnostico de la configuracion (sin revelar la password).
+    - POST: envia un email de prueba al destinatario indicado (por defecto, al
+      MAIL_USERNAME configurado) y reporta el resultado via flash.
+    """
+    if session.get('rol') != 'admin':
+        flash('Acceso restringido al administrador.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Diagnostico (siempre visible)
+    pwd_len = len(app.config.get('MAIL_PASSWORD') or '')
+    diagnostico = {
+        'server':      app.config.get('MAIL_SERVER'),
+        'port':        app.config.get('MAIL_PORT'),
+        'tls':         app.config.get('MAIL_USE_TLS'),
+        'ssl':         app.config.get('MAIL_USE_SSL'),
+        'username':    app.config.get('MAIL_USERNAME') or '(vacio)',
+        'sender':      app.config.get('MAIL_DEFAULT_SENDER') or '(vacio)',
+        'pwd_length':  pwd_len,
+        'configured':  MAIL_CONFIGURED,
+    }
+
+    if request.method == 'POST':
+        # CSRF
+        if request.form.get('csrf_token') != session.get('csrf_token'):
+            flash('Token CSRF invalido.', 'danger')
+            return redirect(url_for('admin_test_email'))
+
+        destinatario = (request.form.get('destinatario') or '').strip() \
+                       or app.config.get('MAIL_USERNAME')
+
+        if not destinatario or '@' not in destinatario:
+            flash('Introduce un email de destino valido.', 'warning')
+            return redirect(url_for('admin_test_email'))
+
+        if not MAIL_CONFIGURED:
+            flash(
+                'SMTP no configurado: revisa MAIL_USERNAME y MAIL_PASSWORD (16 caracteres, App Password de Google).',
+                'danger',
+            )
+            return redirect(url_for('admin_test_email'))
+
+        try:
+            from flask_mail import Message
+            msg = Message(
+                subject='AndroTech — Prueba de envio de email',
+                recipients=[destinatario],
+                charset='utf-8',
+            )
+            msg.html = render_template(
+                'emails/bienvenida_cliente.html',
+                cliente_nombre=session.get('usuario', 'administrador'),
+                year=datetime.now().year,
+            )
+            mail.send(msg)
+            logger.info(f'[TEST-EMAIL] Enviado a {destinatario} por {session.get("usuario")}')
+            flash(f'Email de prueba enviado correctamente a {destinatario}. Revisa la bandeja de entrada (y spam).', 'success')
+        except Exception as e:
+            # Traducimos los errores mas frecuentes de Gmail a mensajes utiles
+            err_type = type(e).__name__
+            err_msg  = str(e)
+            ayuda = ''
+            if '534' in err_msg or 'Application-specific password' in err_msg:
+                ayuda = ' → Genera una App Password en https://myaccount.google.com/apppasswords (requiere 2FA).'
+            elif '535' in err_msg or 'Username and Password not accepted' in err_msg:
+                ayuda = ' → La App Password es incorrecta o la cuenta esta bloqueada.'
+            elif 'timed out' in err_msg.lower() or 'timeout' in err_msg.lower():
+                ayuda = ' → El servidor no responde. Comprueba firewall/antivirus o si smtp.gmail.com esta accesible.'
+            logger.error(f'[TEST-EMAIL] Fallo: {err_type}: {err_msg}')
+            flash(f'Error enviando email: {err_type} — {err_msg[:160]}{ayuda}', 'danger')
+        return redirect(url_for('admin_test_email'))
+
+    return render_template('admin_test_email.html', diagnostico=diagnostico)
 
 
 # =========================================
