@@ -3529,18 +3529,10 @@ def admin_test_email():
             return redirect(url_for('admin_test_email'))
 
         try:
-            from flask_mail import Message
-            msg = Message(
-                subject='AndroTech — Prueba de envio de email',
-                recipients=[destinatario],
-                charset='utf-8',
-            )
-            msg.html = render_template(
-                'emails/bienvenida_cliente.html',
+            email_service.send_test(
+                to_email=destinatario,
                 cliente_nombre=session.get('usuario', 'administrador'),
-                year=datetime.now().year,
             )
-            mail.send(msg)
             logger.info(f'[TEST-EMAIL] Enviado a {destinatario} por {session.get("usuario")}')
             flash(f'Email de prueba enviado correctamente a {destinatario}. Revisa la bandeja de entrada (y spam).', 'success')
         except socket.timeout:
