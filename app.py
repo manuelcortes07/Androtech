@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify
 import os
+import socket
 from datetime import datetime, timedelta
 import secrets
 import logging
@@ -9,6 +10,16 @@ from dotenv import load_dotenv
 
 # Cargar variables de entorno desde .env
 load_dotenv()
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Timeout global de sockets — CRITICO para Railway.
+# Sin esto, smtplib (y cualquier otra libreria de red que use sockets por defecto)
+# puede quedarse colgada indefinidamente si el servidor remoto no responde.
+# Esto provoca que el worker de gunicorn se cuelgue -> Railway devuelve 502 Bad
+# Gateway. 20s es suficiente para Gmail SMTP, Stripe API y cualquier request
+# razonable; si algo tarda mas, algo va muy mal.
+# ──────────────────────────────────────────────────────────────────────────────
+socket.setdefaulttimeout(20)
 
 try:
     import stripe
@@ -568,6 +579,18 @@ def logout():
 # =========================================
 # 🔸 PÁGINAS PROTEGIDAS
 # =========================================
+
+# HEALTHCHECK — endpoint ligero para diagnosticar deploys en Railway.
+# No toca BD, no toca SMTP, no depende de sesion. Si esto devuelve 200, el
+# worker esta vivo; si devuelve 502, gunicorn no arranca.
+@app.route("/health")
+def healthcheck():
+    return jsonify({
+        "status": "ok",
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "mail_configured": bool(MAIL_CONFIGURED),
+        "python": f"{os.sys.version_info.major}.{os.sys.version_info.minor}",
+    }), 200
 
 # PÁGINA PRINCIPAL
 @app.route("/")
@@ -3520,6 +3543,13 @@ def admin_test_email():
             mail.send(msg)
             logger.info(f'[TEST-EMAIL] Enviado a {destinatario} por {session.get("usuario")}')
             flash(f'Email de prueba enviado correctamente a {destinatario}. Revisa la bandeja de entrada (y spam).', 'success')
+        except socket.timeout:
+            logger.error('[TEST-EMAIL] Timeout conectando a SMTP (20s)')
+            flash(
+                'Timeout: el servidor SMTP no respondio en 20s. '
+                'Verifica que MAIL_SERVER/MAIL_PORT son correctos y que el host alcance a smtp.gmail.com.',
+                'danger',
+            )
         except Exception as e:
             # Traducimos los errores mas frecuentes de Gmail a mensajes utiles
             err_type = type(e).__name__
