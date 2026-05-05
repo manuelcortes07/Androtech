@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify, send_from_directory
 import os
 import socket
 from datetime import datetime, timedelta
@@ -3141,6 +3141,35 @@ def admin_defensa():
         flash('Acceso restringido al administrador.', 'danger')
         return redirect(url_for('dashboard'))
     return render_template('admin_defensa.html')
+
+
+# Rutas para servir documentacion del TFG desde docs/. Restringidas a admin.
+# /docs/<sub>/<file>     -> descarga el fichero (Content-Disposition: attachment)
+# /docs-view/<sub>/<file> -> abre el fichero en el navegador (presentacion HTML, etc.)
+_DOCS_SUBFOLDERS = ('memoria', 'defensa', 'tecnico')
+
+
+def _serve_doc(subpath, filename, as_attachment):
+    """Helper compartido por las dos rutas de documentos."""
+    if session.get('rol') != 'admin':
+        flash('Acceso restringido al administrador.', 'danger')
+        return redirect(url_for('dashboard'))
+    if subpath not in _DOCS_SUBFOLDERS:
+        return "Carpeta no permitida", 403
+    directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'docs', subpath)
+    return send_from_directory(directory, filename, as_attachment=as_attachment)
+
+
+@app.route('/docs/<path:subpath>/<filename>')
+@login_required
+def docs_download(subpath, filename):
+    return _serve_doc(subpath, filename, as_attachment=True)
+
+
+@app.route('/docs-view/<path:subpath>/<filename>')
+@login_required
+def docs_view(subpath, filename):
+    return _serve_doc(subpath, filename, as_attachment=False)
 
 
 # =========================================
