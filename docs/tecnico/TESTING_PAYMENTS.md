@@ -125,7 +125,7 @@ Para los técnicos/admin, verifique que se guardó:
 4. **Si necesitas resetear**, ejecuta:
    ```powershell
    rm database/andro_tech.db
-   python create_db.py
+   python scripts/create_db.py
    ```
 
 ---

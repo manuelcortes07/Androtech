@@ -30,7 +30,7 @@
                     </p>
                 </div>
                 <div class="col-md-4 text-md-end">
-                    <a href="{{ url_for('static', filename='defensa/AndroTech_Presentacion_Final.html') }}"
+                    <a href="{{ url_for('docs_view', subpath='defensa', filename='AndroTech_Presentacion_Final.html') }}"
                        target="_blank" rel="noopener"
                        class="btn btn-light btn-lg fw-semibold px-4">
                         <i class="bi bi-play-circle-fill me-2"></i>Abrir presentacion
@@ -59,8 +59,8 @@
                     </div>
                     <h6 class="fw-bold mb-1">Documento completo</h6>
                     <p class="text-muted small mb-3">Memoria tecnica completa del Proyecto Intermodular (9 capitulos).</p>
-                    <a href="{{ url_for('static', filename='defensa/AndroTech_Documento_Proyecto.docx') }}"
-                       download class="btn at-btn-primary btn-sm w-100">
+                    <a href="{{ url_for('docs_download', subpath='memoria', filename='AndroTech_Documento_Proyecto.docx') }}"
+                       class="btn at-btn-primary btn-sm w-100">
                         <i class="bi bi-download me-1"></i>Descargar
                     </a>
                 </div>
@@ -80,8 +80,8 @@
                     </div>
                     <h6 class="fw-bold mb-1">Cap. 1: Presentacion</h6>
                     <p class="text-muted small mb-3">Introduccion, objetivos y motivaciones del proyecto.</p>
-                    <a href="{{ url_for('static', filename='defensa/AndroTech_Documento_Proyecto_Cap1.md') }}"
-                       download class="btn btn-outline-secondary btn-sm w-100">
+                    <a href="{{ url_for('docs_download', subpath='memoria', filename='AndroTech_Documento_Proyecto_Cap1.md') }}"
+                       class="btn btn-outline-secondary btn-sm w-100">
                         <i class="bi bi-download me-1"></i>Descargar
                     </a>
                 </div>
@@ -100,8 +100,8 @@
                     </div>
                     <h6 class="fw-bold mb-1">Cap. 2: Viabilidad</h6>
                     <p class="text-muted small mb-3">Estudio de viabilidad tecnica y economica.</p>
-                    <a href="{{ url_for('static', filename='defensa/AndroTech_Documento_Proyecto_Cap2.md') }}"
-                       download class="btn btn-outline-secondary btn-sm w-100">
+                    <a href="{{ url_for('docs_download', subpath='memoria', filename='AndroTech_Documento_Proyecto_Cap2.md') }}"
+                       class="btn btn-outline-secondary btn-sm w-100">
                         <i class="bi bi-download me-1"></i>Descargar
                     </a>
                 </div>
@@ -120,8 +120,8 @@
                     </div>
                     <h6 class="fw-bold mb-1">Cap. 3 y 4: Analisis y Diseno</h6>
                     <p class="text-muted small mb-3">Analisis de requisitos y diseno tecnico del sistema.</p>
-                    <a href="{{ url_for('static', filename='defensa/AndroTech_Documento_Proyecto_Cap3_Cap4.md') }}"
-                       download class="btn btn-outline-secondary btn-sm w-100">
+                    <a href="{{ url_for('docs_download', subpath='memoria', filename='AndroTech_Documento_Proyecto_Cap3_Cap4.md') }}"
+                       class="btn btn-outline-secondary btn-sm w-100">
                         <i class="bi bi-download me-1"></i>Descargar
                     </a>
                 </div>
@@ -140,8 +140,8 @@
                     </div>
                     <h6 class="fw-bold mb-1">Cap. 5, 6 y 7: Implementacion y Conclusiones</h6>
                     <p class="text-muted small mb-3">Implementacion, pruebas y conclusiones finales.</p>
-                    <a href="{{ url_for('static', filename='defensa/AndroTech_Documento_Proyecto_Cap5_Cap6_Cap7_Final.md') }}"
-                       download class="btn btn-outline-secondary btn-sm w-100">
+                    <a href="{{ url_for('docs_download', subpath='memoria', filename='AndroTech_Documento_Proyecto_Cap5_Cap6_Cap7_Final.md') }}"
+                       class="btn btn-outline-secondary btn-sm w-100">
                         <i class="bi bi-download me-1"></i>Descargar
                     </a>
                 </div>
@@ -156,12 +156,12 @@
                              style="width: 44px; height: 44px; background: rgba(40,167,69,.1);">
                             <i class="bi bi-book-fill" style="color: #28a745; font-size: 1.4rem;"></i>
                         </div>
-                        <span class="badge bg-light text-dark border">README</span>
+                        <span class="badge bg-light text-dark border">Guia tecnica</span>
                     </div>
-                    <h6 class="fw-bold mb-1">README del proyecto</h6>
-                    <p class="text-muted small mb-3">Guia rapida, instalacion y funcionalidades principales.</p>
-                    <a href="{{ url_for('static', filename='defensa/README.md') }}"
-                       download class="btn btn-outline-secondary btn-sm w-100">
+                    <h6 class="fw-bold mb-1">Guia del codigo</h6>
+                    <p class="text-muted small mb-3">Mapa del proyecto, funciones clave y flujo de pago end-to-end.</p>
+                    <a href="{{ url_for('docs_download', subpath='defensa', filename='GUIA_CODIGO.md') }}"
+                       class="btn btn-outline-secondary btn-sm w-100">
                         <i class="bi bi-download me-1"></i>Descargar
                     </a>
                 </div>
@@ -187,8 +187,8 @@
                     </div>
                     <h6 class="fw-bold mb-1">Manual de instalacion</h6>
                     <p class="text-muted small mb-3">Pasos para desplegar AndroTech en local o en Railway.</p>
-                    <a href="{{ url_for('static', filename='defensa/AndroTech_Manual_Instalacion.md') }}"
-                       download class="btn btn-outline-secondary btn-sm w-100">
+                    <a href="{{ url_for('docs_download', subpath='memoria', filename='AndroTech_Manual_Instalacion.md') }}"
+                       class="btn btn-outline-secondary btn-sm w-100">
                         <i class="bi bi-download me-1"></i>Descargar
                     </a>
                 </div>
@@ -207,8 +207,8 @@
                     </div>
                     <h6 class="fw-bold mb-1">Manual de usuario</h6>
                     <p class="text-muted small mb-3">Guia de uso para tecnicos y administradores.</p>
-                    <a href="{{ url_for('static', filename='defensa/AndroTech_Manual_Usuario.md') }}"
-                       download class="btn btn-outline-secondary btn-sm w-100">
+                    <a href="{{ url_for('docs_download', subpath='memoria', filename='AndroTech_Manual_Usuario.md') }}"
+                       class="btn btn-outline-secondary btn-sm w-100">
                         <i class="bi bi-download me-1"></i>Descargar
                     </a>
                 </div>
@@ -227,8 +227,8 @@
                     </div>
                     <h6 class="fw-bold mb-1">Preguntas del tribunal</h6>
                     <p class="text-muted small mb-3">Posibles preguntas del tribunal con respuestas preparadas.</p>
-                    <a href="{{ url_for('static', filename='defensa/AndroTech_Preguntas_Tribunal.md') }}"
-                       download class="btn btn-outline-secondary btn-sm w-100">
+                    <a href="{{ url_for('docs_download', subpath='defensa', filename='AndroTech_Preguntas_Tribunal.md') }}"
+                       class="btn btn-outline-secondary btn-sm w-100">
                         <i class="bi bi-download me-1"></i>Descargar
                     </a>
                 </div>

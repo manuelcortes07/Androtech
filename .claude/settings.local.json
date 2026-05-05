@@ -1,7 +1,36 @@
 {
   "permissions": {
     "allow": [
-      "Bash(gh pr:*)"
+      "Bash(gh pr:*)",
+      "Bash(python -c \"import qrcode; print\\(''qrcode disponible, version:'', qrcode.__version__\\)\")",
+      "Bash(python -c \"from reportlab.graphics.barcode.qr import QrCodeWidget; print\\(''QR de ReportLab disponible''\\)\")",
+      "Bash(done)",
+      "Bash(PYTHONIOENCODING=utf-8 python scripts/create_db.py)",
+      "Bash(ls *.html *.docx *.md)",
+      "Bash(mkdir -p static/defensa)",
+      "Bash(cp AndroTech_Presentacion_Final.html static/defensa/)",
+      "Bash(cp AndroTech_Documento_Proyecto.docx static/defensa/)",
+      "Bash(cp README.md static/defensa/)",
+      "Bash(cp AndroTech_Documento_Proyecto_Cap1.md static/defensa/)",
+      "Bash(python -c ':*)",
+      "Bash(taskkill //F //IM python.exe)",
+      "Bash(python -c \"import psutil; print\\(psutil.__version__\\)\")",
+      "Bash(python -c \"import flask; print\\(flask.__version__\\)\")",
+      "Bash(python app.py)",
+      "Read(//c/tmp/**)",
+      "Bash(cp /tmp/sistema.png /c/Users/manue/AppData/Local/Temp/sistema.png)",
+      "Bash(PYTHONIOENCODING=utf-8 python seed_demo.py)",
+      "Bash(rm -f seed_demo.py)",
+      "Bash(python -c ' *)",
+      "Read(//c/Users/manue/OneDrive/Escritorio/AndroTech/**)",
+      "Bash(findstr /I \"MAIL\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('app.py', encoding='utf-8'\\).read\\(\\)\\); print\\('SYNTAX_OK'\\)\")",
+      "Bash(powershell -Command \"\\(Get-Item 'AndroTech_Presentacion_Final.html'\\).Length; Write-Host '---'; \\(Get-Item 'static\\\\defensa\\\\AndroTech_Presentacion_Final.html'\\).Length\")",
+      "Bash(powershell -Command \"\\(Get-Item 'static\\\\defensa\\\\AndroTech_Presentacion_Final.html'\\).Length\")",
+      "Bash(.\\\\venv\\\\Scripts\\\\python.exe -m pip install -r requirements.txt)",
+      "Bash(\"venv/Scripts/python.exe\" -m pip install -r requirements.txt)",
+      "Bash(venv/Scripts/python.exe -c ' *)",
+      "Bash(C:/Users/manue/OneDrive/Escritorio/AndroTech/venv/Scripts/python.exe -c ' *)"
     ]
   }
 }

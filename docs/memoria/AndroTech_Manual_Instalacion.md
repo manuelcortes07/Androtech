@@ -120,7 +120,7 @@ MAIL_PASSWORD=tu_contraseña_de_aplicacion
 Ejecuta el script de creación de la base de datos:
 
 ```bash
-python create_db.py
+python scripts/create_db.py
 ```
 
 Esto crea el fichero `database/andro_tech.db` con todas las tablas y los datos iniciales, incluyendo los usuarios de prueba.
@@ -245,7 +245,7 @@ Railway desplegará automáticamente la aplicación cuando se hace push al repos
 Una vez desplegado, hay que ejecutar el script de creación de la base de datos. Desde el panel de Railway, ir a **Deploy → Console** y ejecutar:
 
 ```bash
-python create_db.py
+python scripts/create_db.py
 ```
 
 ### Paso 7 — Actualizar el webhook de Stripe
@@ -279,7 +279,7 @@ python app.py
 Significa que alguna dependencia no está instalada. Asegúrate de que el entorno virtual está activado y ejecuta `pip install -r requirements.txt` de nuevo.
 
 **Error: `No such file or directory: database/andro_tech.db`**
-La base de datos no se ha creado todavía. Ejecuta `python create_db.py`.
+La base de datos no se ha creado todavía. Ejecuta `python scripts/create_db.py`.
 
 **La aplicación arranca pero los pagos no funcionan**
 Comprueba que las claves de Stripe en el fichero `.env` son correctas y que el servidor de webhook está escuchando. Revisa los logs de la consola para ver si hay mensajes de error relacionados con Stripe.

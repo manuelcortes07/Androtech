@@ -154,7 +154,7 @@ binario con datos reales). Tienes dos opciones:
 Si no te importa empezar de cero, con el venv activado:
 
 ```powershell
-python create_db.py
+python scripts/create_db.py
 ```
 
 Esto crea las tablas pero no hay usuarios. Para crear el admin:
