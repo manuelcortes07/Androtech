@@ -36,7 +36,7 @@ AndroTech es una aplicación web completa que digitaliza la gestión integral de
 
 El sistema está desarrollado íntegramente con Python y Flask, sobre SQLite, con una arquitectura modular MVC y desplegado en producción con redespliegue automático conectado a GitHub.
 
-> **Métricas del proyecto:** 58 rutas Flask · 12 tablas relacionadas · 39 templates · 31 permisos granulares · ~3.500 líneas de código backend · ~3.200 líneas de CSS propio · 6 meses de desarrollo · ~180 horas de dedicación.
+> **Métricas del proyecto:** 65 rutas Flask · 11 tablas relacionadas · 40 templates Jinja2 · 31 permisos granulares · ~4.100 líneas en `app.py` · ~3.200 líneas de CSS propio · 6 meses de desarrollo · ~180 horas de dedicación.
 
 ---
 
@@ -120,8 +120,8 @@ Configuración y guías para desarrolladores:
 | Capa | Tecnologías |
 |------|-------------|
 | **Backend** | Python 3.12 · Flask 3.1 · Werkzeug · Flask-Limiter |
-| **Base de datos** | SQLite3 con 12 tablas relacionadas (sin ORM, SQL parametrizado) |
-| **Servicios externos** | Stripe API (pagos online con webhook validado) · Gmail SMTP |
+| **Base de datos** | SQLite3 con 11 tablas relacionadas (sin ORM, SQL parametrizado) |
+| **Servicios externos** | Stripe API (pagos online con webhook validado) · SMTP para email transaccional |
 | **Documentos** | ReportLab (PDF con QR e IVA al 21%) · Pillow |
 | **Frontend** | Bootstrap 5.3 · Jinja2 · Chart.js · FullCalendar · Signature Pad |
 | **Producción** | Gunicorn (WSGI) en Railway.app con HTTPS automático |
@@ -133,8 +133,8 @@ Configuración y guías para desarrolladores:
 El proyecto sigue un patrón **MVC** adaptado a Flask con tres capas claramente separadas:
 
 - **Modelo:** SQL directo con `sqlite3` y parámetros enlazados para prevenir inyección SQL.
-- **Vista:** 39 templates Jinja2 que heredan de `base.html`, con CSS propio y modo oscuro persistente.
-- **Controlador:** 58 rutas en `app.py` apoyadas en módulos auxiliares con responsabilidades específicas (`auth.py`, `audit.py`, `alerts.py`, `historial.py` y la carpeta `utils/`).
+- **Vista:** 40 templates Jinja2 que heredan de `base.html`, con CSS propio y modo oscuro persistente.
+- **Controlador:** 65 rutas en `app.py` apoyadas en módulos auxiliares con responsabilidades específicas (`auth.py`, `audit.py`, `alerts.py`, `historial.py` y la carpeta `utils/`).
 
 ### Seguridad multicapa
 
@@ -153,7 +153,7 @@ Seis capas de protección independientes:
 
 ```
 Androtech/
-├── app.py                      Aplicación Flask principal (58 rutas)
+├── app.py                      Aplicación Flask principal (65 rutas)
 ├── auth.py                     Sistema de permisos y decoradores
 ├── audit.py                    Registro de auditoría
 ├── alerts.py                   Cálculo de alertas inteligentes
@@ -165,12 +165,12 @@ Androtech/
 │   ├── pdf_generator.py        Generación de PDF con ReportLab
 │   └── security.py             Validaciones CSRF
 │
-├── templates/                  Plantillas HTML (Jinja2)
+├── templates/                  Plantillas HTML (Jinja2) — 40 ficheros
 ├── static/                     CSS, imágenes, PWA
 ├── database/                   Base de datos SQLite
 │
 ├── docs/                       Documentación del proyecto
-│   ├── memoria/                Memoria del TFG y manuales
+│   ├── memoria/                Memoria del proyecto y manuales
 │   ├── defensa/                Materiales para la defensa oral
 │   └── tecnico/                Guías de configuración
 │
@@ -223,7 +223,7 @@ python app.py
 
 La aplicación estará disponible en `http://127.0.0.1:5000`.
 
-> **Nota:** las claves de Stripe y la App Password de Gmail deben configurarse en el fichero `.env` antes de probar las funcionalidades de pago online y notificación por email.
+> **Nota:** las claves de Stripe y la App Password de Gmail deben configurarse en el fichero `.env` antes de probar las funcionalidades de pago online y notificación por email. El envío de emails por SMTP funciona correctamente en entorno local; en el despliegue de Railway está limitado por la política de la plataforma respecto al tráfico SMTP saliente.
 
 ---
 
@@ -250,7 +250,7 @@ La aplicación estará disponible en `http://127.0.0.1:5000`.
 
 ### Panel administrativo (rol Admin — 31 permisos)
 
-- Dashboard con 15 KPIs en tiempo real y 4 gráficos Chart.js
+- Dashboard con KPIs en tiempo real y gráficos Chart.js
 - Cálculo de ingresos, IVA desglosado, tasa de cobro y tiempo medio de reparación
 - Sistema de alertas inteligentes (sin presupuesto, atrasada, pago pendiente)
 - Gestión completa de usuarios con asignación de roles
@@ -263,7 +263,7 @@ La aplicación estará disponible en `http://127.0.0.1:5000`.
 ### Integraciones externas
 
 - **Stripe**: pagos online con validación criptográfica del webhook
-- **Gmail SMTP**: notificaciones automáticas al cliente con plantillas HTML y PDF adjuntos
+- **Email transaccional (SMTP)**: notificaciones automáticas al cliente con plantillas HTML y PDF adjuntos
 - **Railway**: despliegue continuo con HTTPS automático
 
 ---
