@@ -811,7 +811,7 @@ p.lead{
       <p class="card-sub">31 permisos completos</p>
       <div class="cd mb12">El administrador tiene control total:</div>
       <ul class="cl-small">
-        <li>15 métricas en tiempo real + 4 gráficos</li>
+        <li>múltiples métricas en tiempo real + 4 gráficos</li>
         <li>Alertas inteligentes automáticas</li>
         <li>Gestión de usuarios y roles granulares</li>
         <li>Log de auditoría completo</li>
@@ -833,9 +833,9 @@ p.lead{
   <div class="div"></div>
   <p class="lead mb24">El proyecto supera ampliamente la complejidad habitual de un Proyecto Intermodular de 2º SMR. Estas son las métricas reales del sistema entregado:</p>
   <div class="g4 mb14">
-    <div class="stat"><div class="sn">58</div><div class="sl">Rutas Flask</div></div>
-    <div class="stat"><div class="sn">12</div><div class="sl">Tablas SQLite</div></div>
-    <div class="stat"><div class="sn">39</div><div class="sl">Templates HTML</div></div>
+    <div class="stat"><div class="sn">65</div><div class="sl">Rutas Flask</div></div>
+    <div class="stat"><div class="sn">11</div><div class="sl">Tablas SQLite</div></div>
+    <div class="stat"><div class="sn">40</div><div class="sl">Templates HTML</div></div>
     <div class="stat"><div class="sn">31</div><div class="sl">Permisos</div></div>
   </div>
   <div class="g4 mb24">
@@ -917,7 +917,7 @@ p.lead{
     <div class="card card-feat" style="border-top:4px solid var(--blue);">
       <div class="ci ci-lg">🖼️</div>
       <div class="ct ct-lg">Vista</div>
-      <p class="card-sub">39 templates Jinja2</p>
+      <p class="card-sub">40 templates Jinja2</p>
       <div class="cd mb10">Todos heredan de base.html que define el layout común. Bootstrap 5.3 + 3.184 líneas de CSS propio.</div>
       <ul class="cl-small">
         <li>Modo oscuro con data-theme</li>
@@ -929,7 +929,7 @@ p.lead{
     <div class="card card-feat" style="border-top:4px solid #22C55E;">
       <div class="ci ci-lg">⚙️</div>
       <div class="ct ct-lg">Controlador</div>
-      <p class="card-sub">58 rutas en app.py</p>
+      <p class="card-sub">65 rutas en app.py</p>
       <div class="cd mb10">Rutas agrupadas funcionalmente. Módulos auxiliares con responsabilidades claras:</div>
       <ul class="cl-small">
         <li>auth.py — decoradores y permisos</li>
@@ -946,7 +946,7 @@ p.lead{
       <div class="cd mb10">SQL directo con sqlite3. Parámetros enlazados para prevenir inyección SQL. sqlite3.Row como factory.</div>
       <ul class="cl-small">
         <li>PRAGMA foreign_keys = ON</li>
-        <li>12 tablas relacionadas</li>
+        <li>11 tablas relacionadas</li>
         <li>2 índices en audit_log</li>
         <li>ON DELETE CASCADE en fotos</li>
       </ul>
@@ -1041,9 +1041,9 @@ p.lead{
   <div class="col-div"></div>
   <div class="col">
     <div class="ey">Panel de administración</div>
-    <h2 class="ttl" style="font-size:clamp(28px,3vw,40px);">15 métricas en <span>tiempo real</span></h2>
+    <h2 class="ttl" style="font-size:clamp(28px,3vw,40px);">múltiples métricas en <span>tiempo real</span></h2>
     <div class="div"></div>
-    <p class="lead mb16">La ruta /dashboard ejecuta 15 queries SQL independientes con funciones de agregación nativas de SQLite. Los datos se pasan como JSON a los 4 gráficos Chart.js.</p>
+    <p class="lead mb16">La ruta /dashboard ejecuta queries SQL independientes con funciones de agregación nativas de SQLite. Los datos se pasan como JSON a los 4 gráficos Chart.js.</p>
     <ul class="cl mb16">
       <li><span class="ck ok">✓</span><span>Total clientes, reparaciones activas y completadas</span></li>
       <li><span class="ck ok">✓</span><span>Ingresos totales y del mes con IVA 21% desglosado</span></li>
@@ -1149,7 +1149,7 @@ p.lead{
 <div class="sb row">
   <div class="col">
     <div class="ey">Base de datos</div>
-    <h2 class="ttl">12 tablas <span>relacionadas</span></h2>
+    <h2 class="ttl">11 tablas <span>relacionadas</span></h2>
     <div class="div"></div>
     <p class="lead mb18">El esquema evoluciona incrementalmente: 3 tablas en create_db.py inicial, el resto se crean en app.py, auth.py y audit.py. El campo firma se añadió via ALTER TABLE durante el desarrollo.</p>
     <table class="t">
@@ -1382,7 +1382,7 @@ p.lead{
     <tr><td>CRUD básico de clientes y reparaciones</td><td class="ok-t">CRUD completo + fotos drag&drop + firma digital + notas internas por reparación</td></tr>
     <tr><td>Sistema de estados (4 estados)</td><td class="ok-t">Transiciones validadas por rol + historial inmutable con timestamp y usuario</td></tr>
     <tr><td>Facturas PDF con FPDF básico</td><td class="ok-t">ReportLab profesional: logo, IVA 21% desglosado, QR, diseño corporativo</td></tr>
-    <tr><td>Panel interno con autenticación básica</td><td class="ok-t">Dashboard con 15 métricas, 4 gráficos Chart.js, alertas inteligentes en tiempo real</td></tr>
+    <tr><td>Panel interno con autenticación básica</td><td class="ok-t">Dashboard con múltiples métricas, 4 gráficos Chart.js, alertas inteligentes en tiempo real</td></tr>
     <tr><td>Consulta pública sin login</td><td class="ok-t">Portal público completo: solicitud, pago Stripe, mis reparaciones, WhatsApp</td></tr>
     <tr><td class="muted-cell">No mencionado</td><td class="ok-t">Stripe + webhook validado criptográficamente + email con PDF adjunto automático</td></tr>
     <tr><td class="muted-cell">No mencionado</td><td class="ok-t">31 permisos granulares + auditoría JSON + CSRF propio + rate limiting</td></tr>
