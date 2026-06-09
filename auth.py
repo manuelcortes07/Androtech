@@ -3,12 +3,20 @@
 This module contains decorators for login, role enforcement and
 granular permission checks. It also defines the default permissions
 for the built-in roles ('admin' and 'tecnico').
+
+Fase 1.1 de la migración SaaS: las consultas a BD usan SQLAlchemy
+(módulos `database` y `models`). El parámetro `conn` que `app.py` sigue
+pasando a `init_permisos_db()` se mantiene por compatibilidad pero se
+ignora internamente — cada función abre su propia `Session`.
 """
 
 from functools import wraps
 from flask import session, redirect, url_for, flash
+from sqlalchemy import select
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
-from db import get_db
+from database import get_engine, get_session, Base
+from models import Rol, PermisoRol
 
 # ─── Definicion de permisos disponibles ──────────────────────────────
 # Cada permiso tiene: clave interna, nombre visible, categoria
@@ -68,57 +76,59 @@ PERMISOS_TECNICO = [
 ]
 
 
-def init_permisos_db(conn):
-    """Create permissions tables and seed default roles."""
-    # Tabla de roles
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS roles (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre TEXT UNIQUE NOT NULL,
-            descripcion TEXT,
-            es_sistema INTEGER DEFAULT 0,
-            color TEXT DEFAULT '#6c757d'
-        )
-    """)
+def init_permisos_db(conn=None):
+    """Create permissions tables and seed default roles.
 
-    # Tabla de permisos por rol
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS permisos_rol (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            rol_nombre TEXT NOT NULL,
-            permiso TEXT NOT NULL,
-            UNIQUE(rol_nombre, permiso)
-        )
-    """)
-    conn.commit()
+    El parámetro `conn` (sqlite3.Connection) se mantiene por compatibilidad
+    con el llamador de `app.py` pero se ignora — internamente usamos
+    SQLAlchemy. Eliminar el parámetro requeriría tocar `app.py`, lo que
+    queda fuera del alcance de la Fase 1.1.
+    """
+    engine = get_engine()
 
-    # Insertar roles base si no existen
-    existing = conn.execute("SELECT nombre FROM roles").fetchall()
-    existing_names = [r['nombre'] if isinstance(r, dict) or hasattr(r, 'keys') else r[0] for r in existing]
+    # Crear las tablas si no existen. SQLAlchemy genera el DDL equivalente
+    # al CREATE TABLE IF NOT EXISTS original.
+    Base.metadata.create_all(
+        engine, tables=[Rol.__table__, PermisoRol.__table__]
+    )
 
-    if 'admin' not in existing_names:
-        conn.execute(
-            "INSERT INTO roles (nombre, descripcion, es_sistema, color) VALUES (?, ?, 1, ?)",
-            ('admin', 'Acceso completo al sistema. No se puede eliminar.', '#dc3545')
-        )
-        for p in PERMISOS_ADMIN:
-            conn.execute(
-                "INSERT OR IGNORE INTO permisos_rol (rol_nombre, permiso) VALUES (?, ?)",
-                ('admin', p)
-            )
+    with get_session() as s:
+        existing_names = set(s.scalars(select(Rol.nombre)).all())
 
-    if 'tecnico' not in existing_names:
-        conn.execute(
-            "INSERT INTO roles (nombre, descripcion, es_sistema, color) VALUES (?, ?, 1, ?)",
-            ('tecnico', 'Acceso a reparaciones, clientes y herramientas basicas.', '#2B8AC4')
-        )
-        for p in PERMISOS_TECNICO:
-            conn.execute(
-                "INSERT OR IGNORE INTO permisos_rol (rol_nombre, permiso) VALUES (?, ?)",
-                ('tecnico', p)
-            )
+        if 'admin' not in existing_names:
+            s.add(Rol(
+                nombre='admin',
+                descripcion='Acceso completo al sistema. No se puede eliminar.',
+                es_sistema=1,
+                color='#dc3545',
+            ))
+            # Equivalente a INSERT OR IGNORE: con la dialect-specific de SQLite
+            # mantenemos la semántica original (no romper si algún permiso ya
+            # existiera por alguna razón).
+            for p in PERMISOS_ADMIN:
+                stmt = (
+                    sqlite_insert(PermisoRol)
+                    .values(rol_nombre='admin', permiso=p)
+                    .on_conflict_do_nothing()
+                )
+                s.execute(stmt)
 
-    conn.commit()
+        if 'tecnico' not in existing_names:
+            s.add(Rol(
+                nombre='tecnico',
+                descripcion='Acceso a reparaciones, clientes y herramientas basicas.',
+                es_sistema=1,
+                color='#2B8AC4',
+            ))
+            for p in PERMISOS_TECNICO:
+                stmt = (
+                    sqlite_insert(PermisoRol)
+                    .values(rol_nombre='tecnico', permiso=p)
+                    .on_conflict_do_nothing()
+                )
+                s.execute(stmt)
+
+        s.commit()
 
 
 def obtener_permisos_usuario(usuario_rol):
@@ -127,13 +137,11 @@ def obtener_permisos_usuario(usuario_rol):
     if usuario_rol == 'admin':
         return PERMISOS_ADMIN
 
-    conn = get_db()
-    rows = conn.execute(
-        "SELECT permiso FROM permisos_rol WHERE rol_nombre = ?",
-        (usuario_rol,)
-    ).fetchall()
-    conn.close()
-    return [r['permiso'] if hasattr(r, 'keys') else r[0] for r in rows]
+    with get_session() as s:
+        rows = s.scalars(
+            select(PermisoRol.permiso).where(PermisoRol.rol_nombre == usuario_rol)
+        ).all()
+        return list(rows)
 
 
 def tiene_permiso(permiso):
