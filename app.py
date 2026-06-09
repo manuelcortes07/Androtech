@@ -4082,11 +4082,10 @@ def stripe_webhook():
     return jsonify({'status': 'received'}), 200
 
 
-# Health endpoint
-@app.route('/health')
-def health():
-    return jsonify(status='OK'), 200
-
+# Nota: la ruta /health la define `healthcheck()` en L586 (más rica: timestamp,
+# MAIL_CONFIGURED, versión Python). Aquí había un duplicado pobre eliminado en
+# pre-fase 0 del SaaS — Flask permitía el doble binding pero solo respondía
+# el primero registrado, así que esto era código muerto.
 
 # Global error handlers
 @app.errorhandler(404)
