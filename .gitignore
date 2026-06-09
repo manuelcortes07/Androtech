@@ -4,4 +4,4 @@ __pycache__/
 *.db
 .env
 logs/
-.env
+.pytest_cache/
