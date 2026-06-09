@@ -168,12 +168,26 @@ class TestReparaciones:
         # Debe terminar en éxito (302 a edición o listado)
         assert r.status_code in (200, 302, 303)
 
-        # Verificación en BD
+        # Verificación en BD: estado actualizado
         row = db_conn.execute(
             "SELECT estado FROM reparaciones WHERE id=?",
             (seed_reparacion,),
         ).fetchone()
         assert row["estado"] == "En proceso"
+
+        # Verificación BD: historial registró el cambio (regression test
+        # de un bug detectado durante la migración Fase 1.2 — un FK mal
+        # declarado en RepairHistorial hacía que el INSERT fallara
+        # silenciosamente sin que ningún test lo detectara).
+        hist = db_conn.execute(
+            "SELECT estado_anterior, estado_nuevo, usuario "
+            "FROM reparaciones_historial WHERE reparacion_id=? "
+            "ORDER BY id DESC LIMIT 1",
+            (seed_reparacion,),
+        ).fetchone()
+        assert hist is not None, "historial.registrar_cambio_estado no insertó nada"
+        assert hist["estado_anterior"] == "Pendiente"
+        assert hist["estado_nuevo"] == "En proceso"
 
 
 # ════════════════════════════════════════════════════════════════════
