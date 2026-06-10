@@ -35,6 +35,12 @@ from flask_limiter.util import get_remote_address
 # local modules (split responsibilities)
 from utils.pdf_generator import generar_presupuesto_pdf
 from db import get_db
+# Capa ORM (Fase 1 SaaS). Convive con db.get_db() durante la migración:
+# los bloques ya migrados usan get_session()/select(); el resto sigue
+# con sqlite3 crudo hasta su sub-fase correspondiente.
+from sqlalchemy import select
+from database import get_session
+from models import Usuario
 from auth import (
     login_required, role_required, permiso_requerido, tiene_permiso,
     init_permisos_db, obtener_permisos_usuario,
@@ -520,41 +526,46 @@ def login():
         usuario = request.form["usuario"]
         contraseña = request.form["contraseña"]
 
-        conn = get_db()
-        user = conn.execute("SELECT * FROM usuarios WHERE usuario = ?", (usuario,)).fetchone()
+        # Fase 1.3: lookup de usuario vía SQLAlchemy (modelo Usuario).
+        # El atributo Python `password` mapea a la columna SQL `contraseña`.
+        with get_session() as s:
+            user = s.scalars(
+                select(Usuario).where(Usuario.usuario == usuario)
+            ).first()
 
-        if user and check_password_hash(user["contraseña"], contraseña):
-            session["usuario"] = user["usuario"]
-            session["rol"] = user["rol"]
-            session["permisos"] = obtener_permisos_usuario(user["rol"])
-            flash(f"Bienvenido, {user['usuario']}!", "success")
-            
+        # registrar_auditoria ignora `conn` desde Fase 1.1 (abre su propia
+        # Session); pasamos None hasta la limpieza de firmas en Fase 1.9.
+        if user and check_password_hash(user.password, contraseña):
+            session["usuario"] = user.usuario
+            session["rol"] = user.rol
+            session["permisos"] = obtener_permisos_usuario(user.rol)
+            flash(f"Bienvenido, {user.usuario}!", "success")
+
             # Registrar auditoría
-            registrar_auditoria(conn, 'login', user['usuario'], {
-                'rol': user['rol'],
+            registrar_auditoria(None, 'login', user.usuario, {
+                'rol': user.rol,
                 'ip': request.remote_addr
             }, ip_address=request.remote_addr)
-            
+
             try:
                 logger.info(json.dumps({
                     "event": "login_success",
-                    "user": user['usuario'],
-                    "role": user['rol'],
+                    "user": user.usuario,
+                    "role": user.rol,
                     "ip": request.remote_addr
                 }, ensure_ascii=False))
             except Exception:
-                logger.info(f"login_success user={user['usuario']}")
-            
-            conn.close()
+                logger.info(f"login_success user={user.usuario}")
+
             return redirect(url_for("dashboard"))
         else:
             flash("Usuario o contraseña incorrectos.", "danger")
-            
+
             # Registrar intento fallido
-            registrar_auditoria(conn, 'login_failed', usuario or 'unknown', {
+            registrar_auditoria(None, 'login_failed', usuario or 'unknown', {
                 'ip': request.remote_addr
             }, ip_address=request.remote_addr)
-            
+
             try:
                 logger.warning(json.dumps({
                     "event": "login_failed",
@@ -563,8 +574,6 @@ def login():
                 }, ensure_ascii=False))
             except Exception:
                 logger.warning(f"login_failed user={usuario}")
-            
-            conn.close()
 
     return render_template("login.html")
 

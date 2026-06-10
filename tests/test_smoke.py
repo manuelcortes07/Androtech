@@ -56,7 +56,7 @@ class TestLogin:
         assert r.status_code == 200
         assert b"contrase" in r.data  # forma parcial para evitar ñ encoding
 
-    def test_login_with_valid_credentials(self, client, seed_admin):
+    def test_login_with_valid_credentials(self, client, seed_admin, db_conn):
         r = client.post(
             "/login",
             data={
@@ -70,12 +70,47 @@ class TestLogin:
         assert r.status_code == 302
         assert "/dashboard" in r.headers.get("Location", "")
 
-        # Y la sesión debe estar marcada
+        # Y la sesión debe estar marcada COMPLETA: usuario, rol y permisos
+        # (ampliado en Fase 1.3: antes no se verificaban los permisos, y el
+        # camino obtener_permisos_usuario() es parte de lo migrado a ORM).
+        from auth import PERMISOS_ADMIN
         with client.session_transaction() as sess:
             assert sess.get("usuario") == "admin"
             assert sess.get("rol") == "admin"
+            assert sess.get("permisos") == PERMISOS_ADMIN
 
-    def test_login_with_invalid_credentials_is_rejected(self, client, seed_admin):
+        # La auditoría debe haber registrado el evento 'login' (efecto real
+        # del flujo migrado, no solo el redirect).
+        row = db_conn.execute(
+            "SELECT usuario FROM audit_log WHERE event_type='login' "
+            "AND usuario='admin' ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        assert row is not None, "login no registró evento de auditoría"
+
+    def test_login_tecnico_loads_permisos_from_db(self, client, seed_tecnico):
+        """El login de un técnico carga sus permisos desde permisos_rol.
+
+        A diferencia del admin (short-circuit en memoria), el técnico ejerce
+        la consulta real a BD vía SQLAlchemy en obtener_permisos_usuario().
+        Añadido en Fase 1.3.
+        """
+        from auth import PERMISOS_TECNICO
+        r = client.post(
+            "/login",
+            data={
+                "usuario": "tecni",
+                "contraseña": "tecnico123",
+                "csrf_token": "test-csrf-token",
+            },
+            follow_redirects=False,
+        )
+        assert r.status_code == 302
+        with client.session_transaction() as sess:
+            assert sess.get("rol") == "tecnico"
+            assert sorted(sess.get("permisos", [])) == sorted(PERMISOS_TECNICO)
+
+    def test_login_with_invalid_credentials_is_rejected(self, client, seed_admin,
+                                                        db_conn):
         r = client.post(
             "/login",
             data={
@@ -92,6 +127,13 @@ class TestLogin:
         with client.session_transaction() as sess:
             assert sess.get("usuario") is None
 
+        # El intento fallido queda en auditoría (ampliado en Fase 1.3).
+        row = db_conn.execute(
+            "SELECT usuario FROM audit_log WHERE event_type='login_failed' "
+            "ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        assert row is not None, "login fallido no registró auditoría"
+
 
 # ════════════════════════════════════════════════════════════════════
 # 3. Dashboard
@@ -100,6 +142,19 @@ class TestDashboard:
     def test_dashboard_loads_for_authenticated_user(self, logged_admin):
         r = logged_admin.get("/dashboard")
         assert r.status_code == 200
+
+    def test_dashboard_renders_real_data(self, logged_admin, seed_reparacion):
+        """El dashboard muestra datos reales de BD, no solo carga (Fase 1.3).
+
+        Con la reparación sembrada (iPhone 12, 120 €, cliente 'Cliente Test'),
+        las últimas reparaciones y los KPIs deben reflejarla en el HTML.
+        """
+        r = logged_admin.get("/dashboard")
+        assert r.status_code == 200
+        html = r.data.decode("utf-8", errors="replace")
+        assert "iPhone 12" in html, "últimas reparaciones no muestran la sembrada"
+        assert "Cliente Test" in html, "nombre del cliente no aparece"
+        assert "120" in html, "el precio/ingresos no aparece en los KPIs"
 
     def test_dashboard_redirects_anonymous_user_to_login(self, client):
         r = client.get("/dashboard", follow_redirects=False)
