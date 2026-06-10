@@ -2079,28 +2079,29 @@ def eliminar_nota_reparacion(nota_id):
 @login_required
 @permiso_requerido('inventario_ver')
 def inventario():
-    conn = get_db()
+    # Fase 1.6: listado con filtros vía ORM
     buscar = request.args.get('q', '').strip()
     categoria = request.args.get('categoria', '').strip()
 
-    query = "SELECT * FROM inventario_piezas WHERE 1=1"
-    params = []
+    stmt = select(InventarioPieza.__table__)
     if buscar:
-        query += " AND (nombre LIKE ? OR proveedor LIKE ?)"
-        params += [f"%{buscar}%", f"%{buscar}%"]
+        like = f"%{buscar}%"
+        stmt = stmt.where(
+            InventarioPieza.__table__.c.nombre.like(like)
+            | InventarioPieza.__table__.c.proveedor.like(like)
+        )
     if categoria:
-        query += " AND categoria = ?"
-        params.append(categoria)
-    query += " ORDER BY nombre ASC"
+        stmt = stmt.where(InventarioPieza.__table__.c.categoria == categoria)
+    stmt = stmt.order_by(InventarioPieza.__table__.c.nombre.asc())
 
-    piezas = conn.execute(query, params).fetchall()
+    with get_session() as s:
+        piezas = s.execute(stmt).mappings().all()
 
     # KPIs
     total = len(piezas)
     stock_bajo = sum(1 for p in piezas if p['cantidad'] <= p['cantidad_minima'])
     valor_total = sum((p['precio_coste'] or 0) * (p['cantidad'] or 0) for p in piezas)
 
-    conn.close()
     return render_template("inventario.html", piezas=piezas, total=total,
                            stock_bajo=stock_bajo, valor_total=valor_total,
                            buscar=buscar, categoria=categoria)
@@ -2112,25 +2113,20 @@ def inventario():
 @csrf_protect
 def nueva_pieza():
     if request.method == "POST":
-        conn = get_db()
-        conn.execute("""
-            INSERT INTO inventario_piezas (nombre, categoria, descripcion, cantidad, cantidad_minima,
-                                           precio_coste, precio_venta, proveedor, ubicacion, fecha_actualizacion)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            request.form['nombre'],
-            request.form.get('categoria', 'General'),
-            request.form.get('descripcion', ''),
-            int(request.form.get('cantidad', 0)),
-            int(request.form.get('cantidad_minima', 5)),
-            float(request.form.get('precio_coste', 0) or 0),
-            float(request.form.get('precio_venta', 0) or 0),
-            request.form.get('proveedor', ''),
-            request.form.get('ubicacion', ''),
-            datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        ))
-        conn.commit()
-        conn.close()
+        with get_session() as s:
+            s.add(InventarioPieza(
+                nombre=request.form['nombre'],
+                categoria=request.form.get('categoria', 'General'),
+                descripcion=request.form.get('descripcion', ''),
+                cantidad=int(request.form.get('cantidad', 0)),
+                cantidad_minima=int(request.form.get('cantidad_minima', 5)),
+                precio_coste=float(request.form.get('precio_coste', 0) or 0),
+                precio_venta=float(request.form.get('precio_venta', 0) or 0),
+                proveedor=request.form.get('proveedor', ''),
+                ubicacion=request.form.get('ubicacion', ''),
+                fecha_actualizacion=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            ))
+            s.commit()
         flash('Pieza añadida al inventario.', 'success')
         return redirect(url_for('inventario'))
     return render_template("nueva_pieza.html")
@@ -2141,33 +2137,26 @@ def nueva_pieza():
 @permiso_requerido('inventario_editar')
 @csrf_protect
 def editar_pieza(id):
-    conn = get_db()
     if request.method == "POST":
-        conn.execute("""
-            UPDATE inventario_piezas
-            SET nombre=?, categoria=?, descripcion=?, cantidad=?, cantidad_minima=?,
-                precio_coste=?, precio_venta=?, proveedor=?, ubicacion=?, fecha_actualizacion=?
-            WHERE id=?
-        """, (
-            request.form['nombre'],
-            request.form.get('categoria', 'General'),
-            request.form.get('descripcion', ''),
-            int(request.form.get('cantidad', 0)),
-            int(request.form.get('cantidad_minima', 5)),
-            float(request.form.get('precio_coste', 0) or 0),
-            float(request.form.get('precio_venta', 0) or 0),
-            request.form.get('proveedor', ''),
-            request.form.get('ubicacion', ''),
-            datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            id
-        ))
-        conn.commit()
-        conn.close()
+        with get_session() as s:
+            pieza = s.get(InventarioPieza, id)
+            if pieza:
+                pieza.nombre = request.form['nombre']
+                pieza.categoria = request.form.get('categoria', 'General')
+                pieza.descripcion = request.form.get('descripcion', '')
+                pieza.cantidad = int(request.form.get('cantidad', 0))
+                pieza.cantidad_minima = int(request.form.get('cantidad_minima', 5))
+                pieza.precio_coste = float(request.form.get('precio_coste', 0) or 0)
+                pieza.precio_venta = float(request.form.get('precio_venta', 0) or 0)
+                pieza.proveedor = request.form.get('proveedor', '')
+                pieza.ubicacion = request.form.get('ubicacion', '')
+                pieza.fecha_actualizacion = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                s.commit()
         flash('Pieza actualizada.', 'success')
         return redirect(url_for('inventario'))
 
-    pieza = conn.execute("SELECT * FROM inventario_piezas WHERE id=?", (id,)).fetchone()
-    conn.close()
+    with get_session() as s:
+        pieza = s.get(InventarioPieza, id)
     if not pieza:
         flash('Pieza no encontrada.', 'danger')
         return redirect(url_for('inventario'))
@@ -2178,15 +2167,19 @@ def editar_pieza(id):
 @login_required
 @permiso_requerido('inventario_borrar')
 def eliminar_pieza(id):
-    conn = get_db()
-    en_uso = conn.execute("SELECT COUNT(*) as c FROM piezas_reparacion WHERE pieza_id=?", (id,)).fetchone()['c']
-    if en_uso > 0:
-        conn.close()
-        flash(f'No se puede eliminar: esta pieza está asociada a {en_uso} reparación(es).', 'danger')
-        return redirect(url_for('inventario'))
-    conn.execute("DELETE FROM inventario_piezas WHERE id=?", (id,))
-    conn.commit()
-    conn.close()
+    from sqlalchemy import func as _func
+    with get_session() as s:
+        en_uso = s.scalar(
+            select(_func.count()).select_from(PiezaReparacion)
+            .where(PiezaReparacion.pieza_id == id)
+        )
+        if en_uso > 0:
+            flash(f'No se puede eliminar: esta pieza está asociada a {en_uso} reparación(es).', 'danger')
+            return redirect(url_for('inventario'))
+        pieza = s.get(InventarioPieza, id)
+        if pieza:
+            s.delete(pieza)
+            s.commit()
     flash('Pieza eliminada del inventario.', 'success')
     return redirect(url_for('inventario'))
 
@@ -2197,12 +2190,13 @@ def api_buscar_piezas():
     q = request.args.get('q', '').strip()
     if len(q) < 1:
         return jsonify([])
-    conn = get_db()
-    rows = conn.execute(
-        "SELECT id, nombre, cantidad, precio_venta FROM inventario_piezas WHERE nombre LIKE ? LIMIT 10",
-        (f"%{q}%",)
-    ).fetchall()
-    conn.close()
+    with get_session() as s:
+        rows = s.execute(
+            select(
+                InventarioPieza.id, InventarioPieza.nombre,
+                InventarioPieza.cantidad, InventarioPieza.precio_venta,
+            ).where(InventarioPieza.nombre.like(f"%{q}%")).limit(10)
+        ).mappings().all()
     return jsonify([dict(r) for r in rows])
 
 
