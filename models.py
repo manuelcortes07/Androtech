@@ -19,6 +19,8 @@ from __future__ import annotations
 
 from sqlalchemy import (
     Column,
+    Float,
+    ForeignKey,
     Index,
     Integer,
     Text,
@@ -137,6 +139,109 @@ class Cliente(Base):
         return f"<Cliente(id={self.id}, nombre={self.nombre!r})>"
 
 
+class Reparacion(Base):
+    """Documento central del negocio: una reparación de un dispositivo.
+
+    Tabla `reparaciones` — 13 columnas. La firma digital vive en la columna
+    `firma` (base64/filename), NO en una tabla aparte. En Fase 2 recibirá
+    `taller_id` NOT NULL y la FK compuesta con clientes del mismo taller.
+    """
+
+    __tablename__ = "reparaciones"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    cliente_id = Column(Integer, ForeignKey("clientes.id"))
+    dispositivo = Column(Text, nullable=False)
+    descripcion = Column(Text)
+    estado = Column(Text, default="Pendiente")
+    fecha_entrada = Column(Text)
+    fecha_salida = Column(Text)
+    precio = Column(Float)
+    tipo_documento = Column(Text, default="presupuesto")
+    estado_pago = Column(Text, default="Pendiente")
+    fecha_pago = Column(Text)
+    metodo_pago = Column(Text)
+    firma = Column(Text)
+
+    def __repr__(self) -> str:
+        return (f"<Reparacion(id={self.id}, dispositivo={self.dispositivo!r}, "
+                f"estado={self.estado!r})>")
+
+
+class FotoReparacion(Base):
+    """Imágenes subidas (drag&drop) asociadas a una reparación."""
+
+    __tablename__ = "fotos_reparacion"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    reparacion_id = Column(Integer, ForeignKey("reparaciones.id"), nullable=False)
+    filename = Column(Text, nullable=False)
+    descripcion = Column(Text)
+    fecha_subida = Column(Text, nullable=False)
+    subido_por = Column(Text)
+
+    def __repr__(self) -> str:
+        return f"<FotoReparacion(id={self.id}, reparacion_id={self.reparacion_id})>"
+
+
+class NotaReparacion(Base):
+    """Notas internas de los técnicos sobre una reparación."""
+
+    __tablename__ = "notas_reparacion"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    reparacion_id = Column(Integer, ForeignKey("reparaciones.id"), nullable=False)
+    usuario = Column(Text, nullable=False)
+    contenido = Column(Text, nullable=False)
+    fecha_creacion = Column(Text, nullable=False)
+    es_importante = Column(Integer, default=0)
+
+    def __repr__(self) -> str:
+        return f"<NotaReparacion(id={self.id}, reparacion_id={self.reparacion_id})>"
+
+
+class InventarioPieza(Base):
+    """Stock de piezas del taller.
+
+    El modelo se declara en Fase 1.5 (lo necesita la FK de PiezaReparacion)
+    pero sus handlers (/inventario/*) se migran en Fase 1.6.
+    """
+
+    __tablename__ = "inventario_piezas"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    nombre = Column(Text, nullable=False)
+    categoria = Column(Text, default="General")
+    descripcion = Column(Text)
+    cantidad = Column(Integer, default=0)
+    cantidad_minima = Column(Integer, default=5)
+    precio_coste = Column(Float, default=0)
+    precio_venta = Column(Float, default=0)
+    proveedor = Column(Text)
+    ubicacion = Column(Text)
+    fecha_actualizacion = Column(Text)
+
+    def __repr__(self) -> str:
+        return f"<InventarioPieza(id={self.id}, nombre={self.nombre!r}, cantidad={self.cantidad})>"
+
+
+class PiezaReparacion(Base):
+    """Piezas del inventario consumidas en una reparación concreta."""
+
+    __tablename__ = "piezas_reparacion"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    reparacion_id = Column(Integer, ForeignKey("reparaciones.id"), nullable=False)
+    pieza_id = Column(Integer, ForeignKey("inventario_piezas.id"), nullable=False)
+    cantidad = Column(Integer, default=1)
+    fecha_uso = Column(Text, nullable=False)
+    usuario = Column(Text)
+
+    def __repr__(self) -> str:
+        return (f"<PiezaReparacion(id={self.id}, reparacion_id={self.reparacion_id}, "
+                f"pieza_id={self.pieza_id})>")
+
+
 class RepairHistorial(Base):
     """Trazabilidad de cambios de estado de una reparación.
 
@@ -149,20 +254,16 @@ class RepairHistorial(Base):
     Fase 2 multi-tenant: esta tabla recibirá `taller_id` desnormalizado para
     evitar JOIN con `reparaciones` en cada consulta del filtro automático.
 
-    Nota: la FK SQL hacia `reparaciones(id)` ya existe a nivel del schema
-    SQLite (la define el CREATE TABLE original) y se mantiene intacta.
-    En este modelo Python NO la declaramos con `ForeignKey(...)` porque
-    SQLAlchemy intenta resolverla al hacer flush y el modelo `Reparacion`
-    aún no existe — lo que rompe el INSERT con
-    "could not find table 'reparaciones'". Cuando se cree `Reparacion`
-    en una fase posterior, añadiremos aquí
-    `ForeignKey("reparaciones.id")` y la relación ORM correspondiente.
+    FK restaurada en Fase 1.5: en la Fase 1.2 se quitó temporalmente
+    porque el modelo `Reparacion` no existía y SQLAlchemy fallaba al
+    resolverla en el flush. Ahora `Reparacion` está declarado arriba y
+    la FK vuelve a su sitio.
     """
 
     __tablename__ = "reparaciones_historial"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    reparacion_id = Column(Integer, nullable=False)
+    reparacion_id = Column(Integer, ForeignKey("reparaciones.id"), nullable=False)
     estado_anterior = Column(Text)
     estado_nuevo = Column(Text, nullable=False)
     fecha_cambio = Column(Text, nullable=False)

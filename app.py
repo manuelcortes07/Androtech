@@ -40,7 +40,10 @@ from db import get_db
 # con sqlite3 crudo hasta su sub-fase correspondiente.
 from sqlalchemy import select
 from database import get_session
-from models import Usuario, Cliente
+from models import (
+    Usuario, Cliente, Reparacion, FotoReparacion, NotaReparacion,
+    InventarioPieza, PiezaReparacion, RepairHistorial,
+)
 from auth import (
     login_required, role_required, permiso_requerido, tiene_permiso,
     init_permisos_db, obtener_permisos_usuario,
@@ -1443,8 +1446,6 @@ def exportar_clientes_csv():
 @app.route("/reparaciones")
 @login_required
 def reparaciones():
-    conn = get_db()
-
     # Recoger filtros desde query string
     cliente_id = request.args.get('cliente_id', '').strip()
     estado = request.args.get('estado', '').strip()
@@ -1465,87 +1466,92 @@ def reparaciones():
     per_page = 10
     offset = (page - 1) * per_page
 
+    # Fase 1.5: SQL dinámico con binds con nombre, ejecutado vía Session.
+    # ⚠️ Fase 2: raw SQL — necesitará AND reparaciones.taller_id=? manual.
+    from sqlalchemy import text as _text
+
     sql_base = "FROM reparaciones LEFT JOIN clientes ON clientes.id = reparaciones.cliente_id"
 
     where_clauses = []
-    params = []
+    params = {}
 
     if cliente_id:
-        where_clauses.append("reparaciones.cliente_id = ?")
-        params.append(cliente_id)
+        where_clauses.append("reparaciones.cliente_id = :cliente_id")
+        params['cliente_id'] = cliente_id
 
     if estado:
-        where_clauses.append("reparaciones.estado = ?")
-        params.append(estado)
+        where_clauses.append("reparaciones.estado = :estado")
+        params['estado'] = estado
 
     if q:
         q_clauses = []
         # buscar por ID exacta si es numérico
         try:
-            q_id = int(q)
-            q_clauses.append("reparaciones.id = ?")
-            params.append(q_id)
+            params['q_id'] = int(q)
+            q_clauses.append("reparaciones.id = :q_id")
         except ValueError:
             pass
-        q_clauses.append("clientes.nombre LIKE ?")
-        params.append(f"%{q}%")
-        q_clauses.append("clientes.telefono LIKE ?")
-        params.append(f"%{q}%")
+        q_clauses.append("clientes.nombre LIKE :q_like")
+        q_clauses.append("clientes.telefono LIKE :q_like")
+        params['q_like'] = f"%{q}%"
         where_clauses.append("(" + " OR ".join(q_clauses) + ")")
 
     if desde:
-        where_clauses.append("reparaciones.fecha_entrada >= ?")
-        params.append(desde)
+        where_clauses.append("reparaciones.fecha_entrada >= :desde")
+        params['desde'] = desde
 
     if hasta:
-        where_clauses.append("reparaciones.fecha_entrada <= ?")
-        params.append(hasta)
+        where_clauses.append("reparaciones.fecha_entrada <= :hasta")
+        params['hasta'] = hasta
 
     if precio_min:
         try:
-            params.append(float(precio_min))
-            where_clauses.append("reparaciones.precio >= ?")
+            params['precio_min'] = float(precio_min)
+            where_clauses.append("reparaciones.precio >= :precio_min")
         except ValueError:
             pass
 
     if precio_max:
         try:
-            params.append(float(precio_max))
-            where_clauses.append("reparaciones.precio <= ?")
+            params['precio_max'] = float(precio_max)
+            where_clauses.append("reparaciones.precio <= :precio_max")
         except ValueError:
             pass
 
     where_sql = (" WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
-    # Total para paginación
-    total_sql = "SELECT COUNT(*) " + sql_base + where_sql
-    total = conn.execute(total_sql, tuple(params)).fetchone()[0]
+    with get_session() as s:
+        # Total para paginación
+        total = s.execute(
+            _text("SELECT COUNT(*) " + sql_base + where_sql), params
+        ).scalar()
 
-    # Consulta principal con orden y límite
-    select_sql = "SELECT reparaciones.*, clientes.nombre AS cliente " + sql_base + where_sql + " ORDER BY fecha_entrada DESC LIMIT ? OFFSET ?"
-    final_params = params + [per_page, offset]
-    datos = conn.execute(select_sql, tuple(final_params)).fetchall()
+        # Consulta principal con orden y límite
+        select_sql = ("SELECT reparaciones.*, clientes.nombre AS cliente " + sql_base
+                      + where_sql + " ORDER BY fecha_entrada DESC LIMIT :limit OFFSET :offset")
+        datos = s.execute(
+            _text(select_sql), {**params, 'limit': per_page, 'offset': offset}
+        ).mappings().all()
 
-    # Enriquecer datos con última actualización de cada reparación
-    datos_enriquecidos = []
-    for r in datos:
-        r_dict = dict(r)
-        # Obtener última actualización del historial
-        ultima_actualizacion = conn.execute(
-            "SELECT fecha_cambio FROM reparaciones_historial WHERE reparacion_id = ? ORDER BY fecha_cambio DESC LIMIT 1",
-            (r_dict['id'],)
-        ).fetchone()
-        r_dict['ultima_actualizacion'] = ultima_actualizacion['fecha_cambio'] if ultima_actualizacion else None
-        
-        # Calcular alertas inteligentes
-        r_dict['alertas_info'] = calcular_alertas_reparacion(r_dict, r_dict['ultima_actualizacion'])
-        
-        datos_enriquecidos.append(r_dict)
+        # Enriquecer datos con última actualización de cada reparación (ORM)
+        datos_enriquecidos = []
+        for r in datos:
+            r_dict = dict(r)
+            ultima = s.scalars(
+                select(RepairHistorial.fecha_cambio)
+                .where(RepairHistorial.reparacion_id == r_dict['id'])
+                .order_by(RepairHistorial.fecha_cambio.desc())
+                .limit(1)
+            ).first()
+            r_dict['ultima_actualizacion'] = ultima
 
-    # Lista de clientes para filtro
-    clientes = conn.execute("SELECT id, nombre FROM clientes ORDER BY nombre").fetchall()
+            # Calcular alertas inteligentes
+            r_dict['alertas_info'] = calcular_alertas_reparacion(r_dict, r_dict['ultima_actualizacion'])
 
-    conn.close()
+            datos_enriquecidos.append(r_dict)
+
+        # Lista de clientes para filtro (ORM)
+        clientes = s.scalars(select(Cliente).order_by(Cliente.nombre)).all()
 
     # Construir query string de filtros (sin page)
     filters = {}
@@ -1579,8 +1585,6 @@ def reparaciones():
 @login_required
 @csrf_protect
 def nueva_reparacion():
-    conn = get_db()
-
     if request.method == "POST":
         cliente_id = request.form["cliente_id"]
         dispositivo = request.form["dispositivo"]
@@ -1594,7 +1598,6 @@ def nueva_reparacion():
         if precio:
             if not validar_precio(precio):
                 flash('Precio inválido', 'danger')
-                conn.close()
                 return redirect(url_for('nueva_reparacion'))
             if session.get('rol') != 'admin':
                 precio = None
@@ -1603,25 +1606,35 @@ def nueva_reparacion():
         else:
             precio = None
 
-        cur = conn.execute("""
-            INSERT INTO reparaciones (cliente_id, dispositivo, descripcion, estado, fecha_entrada, precio)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (cliente_id, dispositivo, descripcion, estado, fecha_entrada, precio))
-        conn.commit()
-        new_id = getattr(cur, 'lastrowid', None)
+        with get_session() as s:
+            rep = Reparacion(
+                cliente_id=cliente_id, dispositivo=dispositivo,
+                descripcion=descripcion, estado=estado,
+                fecha_entrada=fecha_entrada, precio=precio,
+            )
+            s.add(rep)
+            s.commit()
+            new_id = rep.id
 
-        # Guardar fotos subidas
-        fotos = request.files.getlist('fotos')
-        for foto in fotos:
-            if foto and foto.filename and allowed_file(foto.filename):
-                ext = foto.filename.rsplit('.', 1)[1].lower()
-                unique_name = f"{new_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{secrets.token_hex(4)}.{ext}"
-                foto.save(os.path.join(UPLOAD_FOLDER, unique_name))
-                conn.execute(
-                    "INSERT INTO fotos_reparacion (reparacion_id, filename, descripcion, fecha_subida, subido_por) VALUES (?, ?, ?, ?, ?)",
-                    (new_id, unique_name, '', datetime.now().strftime('%Y-%m-%d %H:%M:%S'), session.get('usuario'))
-                )
-        conn.commit()
+            # Guardar fotos subidas
+            fotos = request.files.getlist('fotos')
+            for foto in fotos:
+                if foto and foto.filename and allowed_file(foto.filename):
+                    ext = foto.filename.rsplit('.', 1)[1].lower()
+                    unique_name = f"{new_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{secrets.token_hex(4)}.{ext}"
+                    foto.save(os.path.join(UPLOAD_FOLDER, unique_name))
+                    s.add(FotoReparacion(
+                        reparacion_id=new_id, filename=unique_name,
+                        descripcion='',
+                        fecha_subida=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        subido_por=session.get('usuario'),
+                    ))
+            s.commit()
+
+            # Datos del cliente para el email (antes de cerrar la sesión)
+            cliente = s.get(Cliente, cliente_id)
+            cliente_nombre = cliente.nombre if cliente else None
+            cliente_email = cliente.email if cliente else None
 
         try:
             logger.info(json.dumps({
@@ -1636,11 +1649,10 @@ def nueva_reparacion():
 
         # Enviar email de nueva reparación al cliente
         try:
-            cliente = conn.execute("SELECT nombre, email FROM clientes WHERE id=?", (cliente_id,)).fetchone()
-            if cliente and cliente['email']:
+            if cliente_email:
                 email_service.send_nueva_reparacion(
-                    to_email=cliente['email'],
-                    cliente_nombre=cliente['nombre'],
+                    to_email=cliente_email,
+                    cliente_nombre=cliente_nombre,
                     reparacion_id=new_id,
                     dispositivo=dispositivo,
                     descripcion=descripcion,
@@ -1650,11 +1662,10 @@ def nueva_reparacion():
         except Exception as e:
             logger.error(f"Error enviando email de nueva reparacion: {type(e).__name__}: {str(e)}")
 
-        conn.close()
         return redirect(url_for("reparaciones"))
 
-    clientes = conn.execute("SELECT * FROM clientes").fetchall()
-    conn.close()
+    with get_session() as s:
+        clientes = s.scalars(select(Cliente)).all()
 
     return render_template("nueva_reparacion.html", clientes=clientes)
 
@@ -1664,8 +1675,6 @@ def nueva_reparacion():
 @login_required
 @csrf_protect
 def editar_reparacion(id):
-    conn = get_db()
-
     if request.method == "POST":
         cliente_id = request.form["cliente_id"]
         dispositivo = request.form["dispositivo"]
@@ -1673,66 +1682,67 @@ def editar_reparacion(id):
         estado = request.form["estado"]
         precio = request.form["precio"]
 
-        # Validar transición de estado
-        estado_anterior = conn.execute("SELECT estado FROM reparaciones WHERE id=?", (id,)).fetchone()['estado']
-        transicion_valida, error_transicion = validar_transicion(
-            estado_anterior, estado, rol=session.get('rol', 'tecnico')
-        )
-        if not transicion_valida:
-            flash(error_transicion, 'danger')
-            conn.close()
-            return redirect(url_for('editar_reparacion', id=id))
+        with get_session() as s:
+            rep = s.get(Reparacion, id)
 
-        # precio validación: solo admin puede cambiar precio
-        if precio:
-            if not validar_precio(precio):
-                flash('Precio inválido', 'danger')
-                conn.close()
+            # Validar transición de estado
+            estado_anterior = rep.estado
+            transicion_valida, error_transicion = validar_transicion(
+                estado_anterior, estado, rol=session.get('rol', 'tecnico')
+            )
+            if not transicion_valida:
+                flash(error_transicion, 'danger')
                 return redirect(url_for('editar_reparacion', id=id))
-            precio_val = float(precio)
-            if session.get('rol') != 'admin':
-                # si no es admin, no permitimos alterar precio
-                original = conn.execute("SELECT precio FROM reparaciones WHERE id=?", (id,)).fetchone()['precio']
-                precio = original
+
+            # precio validación: solo admin puede cambiar precio
+            if precio:
+                if not validar_precio(precio):
+                    flash('Precio inválido', 'danger')
+                    return redirect(url_for('editar_reparacion', id=id))
+                precio_val = float(precio)
+                if session.get('rol') != 'admin':
+                    # si no es admin, no permitimos alterar precio
+                    precio = rep.precio
+                else:
+                    precio = precio_val
             else:
-                precio = precio_val
-        else:
-            precio = None
+                precio = None
 
-        # Registrar cambio de estado en historial (ANTES de actualizar)
-        registrar_cambio_estado(conn, id, estado, usuario=session.get('usuario'))
+            # Registrar cambio de estado en historial (ANTES de actualizar:
+            # registrar_cambio_estado lee el estado vigente de BD en su
+            # propia sesión, así que el orden sigue siendo contrato).
+            registrar_cambio_estado(None, id, estado, usuario=session.get('usuario'))
 
-        conn.execute("""
-            UPDATE reparaciones
-            SET cliente_id=?, dispositivo=?, descripcion=?, estado=?, precio=?
-            WHERE id=?
-        """, (cliente_id, dispositivo, descripcion, estado, precio, id))
+            rep.cliente_id = cliente_id
+            rep.dispositivo = dispositivo
+            rep.descripcion = descripcion
+            rep.estado = estado
+            rep.precio = precio
+            s.commit()
 
-        conn.commit()
+            # Datos del cliente para el email (tras el update, igual que antes)
+            cliente_email = None
+            cliente_nombre = None
+            cliente_obj = s.get(Cliente, cliente_id)
+            if cliente_obj:
+                cliente_email = cliente_obj.email
+                cliente_nombre = cliente_obj.nombre
 
         # Enviar email de actualización de estado si cambió
         if estado_anterior != estado:
             try:
-                # Obtener datos del cliente para el email
-                cliente_data = conn.execute('''
-                    SELECT c.nombre, c.email
-                    FROM reparaciones r
-                    JOIN clientes c ON r.cliente_id = c.id
-                    WHERE r.id = ?
-                ''', (id,)).fetchone()
-
-                if cliente_data and cliente_data['email']:
+                if cliente_email:
                     # Enviar email de actualización de estado
                     email_service.send_repair_status_update(
-                        to_email=cliente_data['email'],
-                        cliente_nombre=cliente_data['nombre'],
+                        to_email=cliente_email,
+                        cliente_nombre=cliente_nombre,
                         reparacion_id=id,
                         estado_anterior=estado_anterior,
                         estado_nuevo=estado,
                         dispositivo=dispositivo,
                         descripcion=descripcion
                     )
-                    logger.info(f'[EMAIL] Email de actualizacion de estado enviado a {cliente_data["email"]} para reparacion {id}')
+                    logger.info(f'[EMAIL] Email de actualizacion de estado enviado a {cliente_email} para reparacion {id}')
                 else:
                     logger.warning(f'[EMAIL] ⚠️ No se pudo enviar email de actualización: cliente sin email para reparación {id}')
 
@@ -1749,53 +1759,64 @@ def editar_reparacion(id):
             }, ensure_ascii=False))
         except Exception:
             logger.info(f"reparacion_updated id={id} cliente={cliente_id} device={dispositivo}")
-        conn.close()
         return redirect(url_for("reparaciones"))
 
-    reparacion = conn.execute("SELECT * FROM reparaciones WHERE id=?", (id,)).fetchone()
-    clientes = conn.execute("SELECT * FROM clientes").fetchall()
+    # ── GET: cargar la reparación y sus datos asociados vía ORM ──────────
+    with get_session() as s:
+        # mappings() devuelve filas dict-like: compatible con la plantilla y
+        # con calcular_alertas_reparacion (que hace dict(reparacion)).
+        reparacion = s.execute(
+            select(Reparacion.__table__).where(Reparacion.__table__.c.id == id)
+        ).mappings().first()
+        clientes = s.scalars(select(Cliente)).all()
 
-    # Historial completo de estados para timeline
-    historial_rows = conn.execute(
-        "SELECT estado_anterior, estado_nuevo, fecha_cambio, usuario "
-        "FROM reparaciones_historial WHERE reparacion_id = ? "
-        "ORDER BY fecha_cambio ASC",
-        (id,)
-    ).fetchall()
-    historial = [dict(h) for h in historial_rows] if historial_rows else []
+        # Historial completo de estados para timeline
+        historial_objs = s.scalars(
+            select(RepairHistorial)
+            .where(RepairHistorial.reparacion_id == id)
+            .order_by(RepairHistorial.fecha_cambio.asc())
+        ).all()
+        historial = [{
+            'estado_anterior': h.estado_anterior,
+            'estado_nuevo': h.estado_nuevo,
+            'fecha_cambio': h.fecha_cambio,
+            'usuario': h.usuario,
+        } for h in historial_objs]
 
-    # Obtener fotos de la reparación
-    fotos_rows = conn.execute(
-        "SELECT * FROM fotos_reparacion WHERE reparacion_id = ? ORDER BY fecha_subida DESC",
-        (id,)
-    ).fetchall()
-    fotos = [dict(f) for f in fotos_rows] if fotos_rows else []
+        # Obtener fotos de la reparación
+        fotos = s.scalars(
+            select(FotoReparacion)
+            .where(FotoReparacion.reparacion_id == id)
+            .order_by(FotoReparacion.fecha_subida.desc())
+        ).all()
 
-    # Obtener notas internas
-    notas_rows = conn.execute(
-        "SELECT * FROM notas_reparacion WHERE reparacion_id = ? ORDER BY fecha_creacion DESC",
-        (id,)
-    ).fetchall()
-    notas = [dict(n) for n in notas_rows] if notas_rows else []
+        # Obtener notas internas
+        notas = s.scalars(
+            select(NotaReparacion)
+            .where(NotaReparacion.reparacion_id == id)
+            .order_by(NotaReparacion.fecha_creacion.desc())
+        ).all()
 
-    # Obtener piezas usadas en esta reparación
-    piezas_rows = conn.execute("""
-        SELECT pr.*, ip.nombre as pieza_nombre, ip.precio_venta
-        FROM piezas_reparacion pr
-        JOIN inventario_piezas ip ON pr.pieza_id = ip.id
-        WHERE pr.reparacion_id = ?
-        ORDER BY pr.fecha_uso DESC
-    """, (id,)).fetchall()
-    piezas_usadas = [dict(p) for p in piezas_rows] if piezas_rows else []
+        # Obtener piezas usadas en esta reparación (JOIN con inventario)
+        piezas_rows = s.execute(
+            select(
+                PiezaReparacion.__table__,
+                InventarioPieza.nombre.label('pieza_nombre'),
+                InventarioPieza.precio_venta,
+            )
+            .join(InventarioPieza, PiezaReparacion.pieza_id == InventarioPieza.id)
+            .where(PiezaReparacion.reparacion_id == id)
+            .order_by(PiezaReparacion.fecha_uso.desc())
+        ).mappings().all()
+        piezas_usadas = [dict(p) for p in piezas_rows]
 
-    # Obtener última actualización para calcular alertas
-    ultima_actualizacion = conn.execute(
-        "SELECT fecha_cambio FROM reparaciones_historial WHERE reparacion_id = ? ORDER BY fecha_cambio DESC LIMIT 1",
-        (id,)
-    ).fetchone()
-    ultima_act = ultima_actualizacion['fecha_cambio'] if ultima_actualizacion else None
-
-    conn.close()
+        # Obtener última actualización para calcular alertas
+        ultima_act = s.scalars(
+            select(RepairHistorial.fecha_cambio)
+            .where(RepairHistorial.reparacion_id == id)
+            .order_by(RepairHistorial.fecha_cambio.desc())
+            .limit(1)
+        ).first()
 
     # Determinar si puede editar precio según rol
     puede_editar_precio = session.get('rol') == 'admin'
@@ -1832,25 +1853,27 @@ def editar_reparacion(id):
 @login_required
 @permiso_requerido('reparaciones_borrar')
 def borrar_reparacion(id):
-    conn = get_db()
-    
-    # Validar que no esté pagada
-    reparacion = conn.execute("SELECT estado_pago FROM reparaciones WHERE id=?", (id,)).fetchone()
-    if reparacion and reparacion['estado_pago'] == 'Pagado':
-        conn.close()
-        flash('❌ No se puede eliminar: esta reparación ya está pagada.', 'danger')
-        return redirect(url_for("reparaciones"))
-    
-    # Eliminar fotos asociadas
-    fotos = conn.execute("SELECT filename FROM fotos_reparacion WHERE reparacion_id=?", (id,)).fetchall()
-    for foto in fotos:
-        filepath = os.path.join(UPLOAD_FOLDER, foto['filename'])
-        if os.path.exists(filepath):
-            os.remove(filepath)
-    conn.execute("DELETE FROM fotos_reparacion WHERE reparacion_id=?", (id,))
+    with get_session() as s:
+        rep = s.get(Reparacion, id)
 
-    conn.execute("DELETE FROM reparaciones WHERE id=?", (id,))
-    conn.commit()
+        # Validar que no esté pagada
+        if rep and rep.estado_pago == 'Pagado':
+            flash('❌ No se puede eliminar: esta reparación ya está pagada.', 'danger')
+            return redirect(url_for("reparaciones"))
+
+        # Eliminar fotos asociadas (ficheros físicos + filas)
+        fotos = s.scalars(
+            select(FotoReparacion).where(FotoReparacion.reparacion_id == id)
+        ).all()
+        for foto in fotos:
+            filepath = os.path.join(UPLOAD_FOLDER, foto.filename)
+            if os.path.exists(filepath):
+                os.remove(filepath)
+            s.delete(foto)
+
+        if rep:
+            s.delete(rep)
+        s.commit()
     try:
         logger.info(json.dumps({
             "event": "reparacion_deleted",
@@ -1859,7 +1882,6 @@ def borrar_reparacion(id):
         }, ensure_ascii=False))
     except Exception:
         logger.info(f"reparacion_deleted id={id}")
-    conn.close()
     flash('✅ Reparación eliminada correctamente.', 'success')
     return redirect(url_for("reparaciones"))
 
@@ -1868,28 +1890,27 @@ def borrar_reparacion(id):
 @app.route("/reparaciones/<int:id>/fotos", methods=["POST"])
 @login_required
 def subir_fotos_reparacion(id):
-    conn = get_db()
-    reparacion = conn.execute("SELECT id FROM reparaciones WHERE id=?", (id,)).fetchone()
-    if not reparacion:
-        conn.close()
-        flash('Reparación no encontrada.', 'danger')
-        return redirect(url_for('reparaciones'))
+    with get_session() as s:
+        rep = s.get(Reparacion, id)
+        if not rep:
+            flash('Reparación no encontrada.', 'danger')
+            return redirect(url_for('reparaciones'))
 
-    fotos = request.files.getlist('fotos')
-    count = 0
-    for foto in fotos:
-        if foto and foto.filename and allowed_file(foto.filename):
-            ext = foto.filename.rsplit('.', 1)[1].lower()
-            unique_name = f"{id}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{secrets.token_hex(4)}.{ext}"
-            foto.save(os.path.join(UPLOAD_FOLDER, unique_name))
-            conn.execute(
-                "INSERT INTO fotos_reparacion (reparacion_id, filename, descripcion, fecha_subida, subido_por) VALUES (?, ?, ?, ?, ?)",
-                (id, unique_name, '', datetime.now().strftime('%Y-%m-%d %H:%M:%S'), session.get('usuario'))
-            )
-            count += 1
+        fotos = request.files.getlist('fotos')
+        count = 0
+        for foto in fotos:
+            if foto and foto.filename and allowed_file(foto.filename):
+                ext = foto.filename.rsplit('.', 1)[1].lower()
+                unique_name = f"{id}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{secrets.token_hex(4)}.{ext}"
+                foto.save(os.path.join(UPLOAD_FOLDER, unique_name))
+                s.add(FotoReparacion(
+                    reparacion_id=id, filename=unique_name, descripcion='',
+                    fecha_subida=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    subido_por=session.get('usuario'),
+                ))
+                count += 1
 
-    conn.commit()
-    conn.close()
+        s.commit()
     if count:
         flash(f'Se subieron {count} foto(s) correctamente.', 'success')
     else:
@@ -1901,23 +1922,21 @@ def subir_fotos_reparacion(id):
 @app.route("/reparaciones/fotos/<int:foto_id>/eliminar", methods=["POST"])
 @login_required
 def eliminar_foto_reparacion(foto_id):
-    conn = get_db()
-    foto = conn.execute("SELECT * FROM fotos_reparacion WHERE id=?", (foto_id,)).fetchone()
-    if not foto:
-        conn.close()
-        flash('Foto no encontrada.', 'danger')
-        return redirect(url_for('reparaciones'))
+    with get_session() as s:
+        foto = s.get(FotoReparacion, foto_id)
+        if not foto:
+            flash('Foto no encontrada.', 'danger')
+            return redirect(url_for('reparaciones'))
 
-    reparacion_id = foto['reparacion_id']
+        reparacion_id = foto.reparacion_id
 
-    # Eliminar archivo físico
-    filepath = os.path.join(UPLOAD_FOLDER, foto['filename'])
-    if os.path.exists(filepath):
-        os.remove(filepath)
+        # Eliminar archivo físico
+        filepath = os.path.join(UPLOAD_FOLDER, foto.filename)
+        if os.path.exists(filepath):
+            os.remove(filepath)
 
-    conn.execute("DELETE FROM fotos_reparacion WHERE id=?", (foto_id,))
-    conn.commit()
-    conn.close()
+        s.delete(foto)
+        s.commit()
     flash('Foto eliminada correctamente.', 'success')
     return redirect(url_for('editar_reparacion', id=reparacion_id))
 
@@ -1926,16 +1945,15 @@ def eliminar_foto_reparacion(foto_id):
 @app.route("/reparaciones/<int:id>/firma", methods=["GET"])
 @login_required
 def firmar_reparacion(id):
-    conn = get_db()
-    reparacion = conn.execute(
-        "SELECT r.*, c.nombre as cliente_nombre FROM reparaciones r JOIN clientes c ON r.cliente_id = c.id WHERE r.id=?",
-        (id,)
-    ).fetchone()
+    with get_session() as s:
+        reparacion = s.execute(
+            select(Reparacion.__table__, Cliente.nombre.label('cliente_nombre'))
+            .join(Cliente, Reparacion.cliente_id == Cliente.id)
+            .where(Reparacion.id == id)
+        ).mappings().first()
     if not reparacion:
-        conn.close()
         flash('Reparación no encontrada.', 'danger')
         return redirect(url_for('reparaciones'))
-    conn.close()
     return render_template("firmar_reparacion.html", reparacion=reparacion)
 
 
@@ -1948,43 +1966,39 @@ def guardar_firma_reparacion(id):
     if not csrf_token or csrf_token != session.get('csrf_token'):
         return jsonify({"error": "Token CSRF inválido"}), 403
 
-    conn = get_db()
-    reparacion = conn.execute("SELECT id, firma FROM reparaciones WHERE id=?", (id,)).fetchone()
-    if not reparacion:
-        conn.close()
-        return jsonify({"error": "Reparación no encontrada"}), 404
+    with get_session() as s:
+        rep = s.get(Reparacion, id)
+        if not rep:
+            return jsonify({"error": "Reparación no encontrada"}), 404
 
-    data = request.get_json()
-    if not data or not data.get('firma'):
-        conn.close()
-        return jsonify({"error": "No se recibió la firma"}), 400
+        data = request.get_json()
+        if not data or not data.get('firma'):
+            return jsonify({"error": "No se recibió la firma"}), 400
 
-    # Decodificar base64 PNG
-    firma_data = data['firma']
-    if ',' in firma_data:
-        firma_data = firma_data.split(',')[1]
+        # Decodificar base64 PNG
+        firma_data = data['firma']
+        if ',' in firma_data:
+            firma_data = firma_data.split(',')[1]
 
-    try:
-        img_bytes = base64.b64decode(firma_data)
-    except Exception:
-        conn.close()
-        return jsonify({"error": "Datos de firma inválidos"}), 400
+        try:
+            img_bytes = base64.b64decode(firma_data)
+        except Exception:
+            return jsonify({"error": "Datos de firma inválidos"}), 400
 
-    # Eliminar firma anterior si existe
-    if reparacion['firma']:
-        old_path = os.path.join(SIGNATURES_FOLDER, reparacion['firma'])
-        if os.path.exists(old_path):
-            os.remove(old_path)
+        # Eliminar firma anterior si existe
+        if rep.firma:
+            old_path = os.path.join(SIGNATURES_FOLDER, rep.firma)
+            if os.path.exists(old_path):
+                os.remove(old_path)
 
-    # Guardar nueva firma
-    filename = f"firma_{id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.png"
-    filepath = os.path.join(SIGNATURES_FOLDER, filename)
-    with open(filepath, 'wb') as f:
-        f.write(img_bytes)
+        # Guardar nueva firma
+        filename = f"firma_{id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.png"
+        filepath = os.path.join(SIGNATURES_FOLDER, filename)
+        with open(filepath, 'wb') as f:
+            f.write(img_bytes)
 
-    conn.execute("UPDATE reparaciones SET firma=? WHERE id=?", (filename, id))
-    conn.commit()
-    conn.close()
+        rep.firma = filename
+        s.commit()
 
     logger.info(f"firma_guardada reparacion_id={id} usuario={session.get('usuario')}")
     return jsonify({"success": True, "filename": filename})
@@ -1995,27 +2009,26 @@ def guardar_firma_reparacion(id):
 @login_required
 @csrf_protect
 def agregar_nota_reparacion(id):
-    conn = get_db()
-    reparacion = conn.execute("SELECT id FROM reparaciones WHERE id=?", (id,)).fetchone()
-    if not reparacion:
-        conn.close()
-        flash('Reparación no encontrada.', 'danger')
-        return redirect(url_for('reparaciones'))
+    with get_session() as s:
+        rep = s.get(Reparacion, id)
+        if not rep:
+            flash('Reparación no encontrada.', 'danger')
+            return redirect(url_for('reparaciones'))
 
-    contenido = request.form.get('contenido', '').strip()
-    if not contenido:
-        conn.close()
-        flash('La nota no puede estar vacía.', 'warning')
-        return redirect(url_for('editar_reparacion', id=id))
+        contenido = request.form.get('contenido', '').strip()
+        if not contenido:
+            flash('La nota no puede estar vacía.', 'warning')
+            return redirect(url_for('editar_reparacion', id=id))
 
-    es_importante = 1 if request.form.get('es_importante') else 0
+        es_importante = 1 if request.form.get('es_importante') else 0
 
-    conn.execute(
-        "INSERT INTO notas_reparacion (reparacion_id, usuario, contenido, fecha_creacion, es_importante) VALUES (?, ?, ?, ?, ?)",
-        (id, session.get('usuario'), contenido, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), es_importante)
-    )
-    conn.commit()
-    conn.close()
+        s.add(NotaReparacion(
+            reparacion_id=id, usuario=session.get('usuario'),
+            contenido=contenido,
+            fecha_creacion=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            es_importante=es_importante,
+        ))
+        s.commit()
     flash('Nota agregada correctamente.', 'success')
     return redirect(url_for('editar_reparacion', id=id))
 
@@ -2024,23 +2037,20 @@ def agregar_nota_reparacion(id):
 @login_required
 @csrf_protect
 def eliminar_nota_reparacion(nota_id):
-    conn = get_db()
-    nota = conn.execute("SELECT * FROM notas_reparacion WHERE id=?", (nota_id,)).fetchone()
-    if not nota:
-        conn.close()
-        flash('Nota no encontrada.', 'danger')
-        return redirect(url_for('reparaciones'))
+    with get_session() as s:
+        nota = s.get(NotaReparacion, nota_id)
+        if not nota:
+            flash('Nota no encontrada.', 'danger')
+            return redirect(url_for('reparaciones'))
 
-    reparacion_id = nota['reparacion_id']
-    # Solo el autor o admin pueden eliminar
-    if nota['usuario'] != session.get('usuario') and session.get('rol') != 'admin':
-        conn.close()
-        flash('No tienes permiso para eliminar esta nota.', 'danger')
-        return redirect(url_for('editar_reparacion', id=reparacion_id))
+        reparacion_id = nota.reparacion_id
+        # Solo el autor o admin pueden eliminar
+        if nota.usuario != session.get('usuario') and session.get('rol') != 'admin':
+            flash('No tienes permiso para eliminar esta nota.', 'danger')
+            return redirect(url_for('editar_reparacion', id=reparacion_id))
 
-    conn.execute("DELETE FROM notas_reparacion WHERE id=?", (nota_id,))
-    conn.commit()
-    conn.close()
+        s.delete(nota)
+        s.commit()
     flash('Nota eliminada.', 'success')
     return redirect(url_for('editar_reparacion', id=reparacion_id))
 
@@ -2182,30 +2192,29 @@ def api_buscar_piezas():
 @login_required
 @csrf_protect
 def agregar_pieza_reparacion(id):
-    conn = get_db()
     pieza_id = int(request.form['pieza_id'])
     cantidad = int(request.form.get('cantidad', 1))
 
-    pieza = conn.execute("SELECT * FROM inventario_piezas WHERE id=?", (pieza_id,)).fetchone()
-    if not pieza:
-        conn.close()
-        flash('Pieza no encontrada.', 'danger')
-        return redirect(url_for('editar_reparacion', id=id))
+    with get_session() as s:
+        pieza = s.get(InventarioPieza, pieza_id)
+        if not pieza:
+            flash('Pieza no encontrada.', 'danger')
+            return redirect(url_for('editar_reparacion', id=id))
 
-    if pieza['cantidad'] < cantidad:
-        conn.close()
-        flash(f'Stock insuficiente. Disponible: {pieza["cantidad"]}', 'warning')
-        return redirect(url_for('editar_reparacion', id=id))
+        if pieza.cantidad < cantidad:
+            flash(f'Stock insuficiente. Disponible: {pieza.cantidad}', 'warning')
+            return redirect(url_for('editar_reparacion', id=id))
 
-    conn.execute(
-        "INSERT INTO piezas_reparacion (reparacion_id, pieza_id, cantidad, fecha_uso, usuario) VALUES (?, ?, ?, ?, ?)",
-        (id, pieza_id, cantidad, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), session.get('usuario'))
-    )
-    conn.execute("UPDATE inventario_piezas SET cantidad = cantidad - ?, fecha_actualizacion = ? WHERE id = ?",
-                 (cantidad, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), pieza_id))
-    conn.commit()
-    conn.close()
-    flash(f'Pieza "{pieza["nombre"]}" x{cantidad} añadida a la reparación.', 'success')
+        s.add(PiezaReparacion(
+            reparacion_id=id, pieza_id=pieza_id, cantidad=cantidad,
+            fecha_uso=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            usuario=session.get('usuario'),
+        ))
+        pieza.cantidad = pieza.cantidad - cantidad
+        pieza.fecha_actualizacion = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        pieza_nombre = pieza.nombre
+        s.commit()
+    flash(f'Pieza "{pieza_nombre}" x{cantidad} añadida a la reparación.', 'success')
     return redirect(url_for('editar_reparacion', id=id))
 
 
@@ -2213,20 +2222,20 @@ def agregar_pieza_reparacion(id):
 @login_required
 @csrf_protect
 def eliminar_pieza_reparacion(uso_id):
-    conn = get_db()
-    uso = conn.execute("SELECT * FROM piezas_reparacion WHERE id=?", (uso_id,)).fetchone()
-    if not uso:
-        conn.close()
-        flash('Registro no encontrado.', 'danger')
-        return redirect(url_for('reparaciones'))
+    with get_session() as s:
+        uso = s.get(PiezaReparacion, uso_id)
+        if not uso:
+            flash('Registro no encontrado.', 'danger')
+            return redirect(url_for('reparaciones'))
 
-    reparacion_id = uso['reparacion_id']
-    # Restaurar stock
-    conn.execute("UPDATE inventario_piezas SET cantidad = cantidad + ?, fecha_actualizacion = ? WHERE id = ?",
-                 (uso['cantidad'], datetime.now().strftime('%Y-%m-%d %H:%M:%S'), uso['pieza_id']))
-    conn.execute("DELETE FROM piezas_reparacion WHERE id=?", (uso_id,))
-    conn.commit()
-    conn.close()
+        reparacion_id = uso.reparacion_id
+        # Restaurar stock
+        pieza = s.get(InventarioPieza, uso.pieza_id)
+        if pieza:
+            pieza.cantidad = pieza.cantidad + uso.cantidad
+            pieza.fecha_actualizacion = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        s.delete(uso)
+        s.commit()
     flash('Pieza devuelta al inventario.', 'success')
     return redirect(url_for('editar_reparacion', id=reparacion_id))
 
@@ -2242,14 +2251,14 @@ def calendario():
 @app.route("/api/calendario/eventos")
 @login_required
 def api_calendario_eventos():
-    conn = get_db()
-    rows = conn.execute("""
-        SELECT r.id, r.dispositivo, r.estado, r.fecha_entrada, r.fecha_salida,
-               c.nombre as cliente
-        FROM reparaciones r
-        JOIN clientes c ON r.cliente_id = c.id
-    """).fetchall()
-    conn.close()
+    with get_session() as s:
+        rows = s.execute(
+            select(
+                Reparacion.id, Reparacion.dispositivo, Reparacion.estado,
+                Reparacion.fecha_entrada, Reparacion.fecha_salida,
+                Cliente.nombre.label('cliente'),
+            ).join(Cliente, Reparacion.cliente_id == Cliente.id)
+        ).mappings().all()
 
     colores = {
         'Pendiente': '#ffc107',
@@ -2290,14 +2299,16 @@ def ticket_recogida(id):
     from reportlab.graphics.barcode.qr import QrCodeWidget
     from io import BytesIO
 
-    conn = get_db()
-    reparacion = conn.execute("""
-        SELECT r.*, c.nombre as cliente_nombre, c.telefono as cliente_telefono, c.email as cliente_email
-        FROM reparaciones r
-        JOIN clientes c ON r.cliente_id = c.id
-        WHERE r.id = ?
-    """, (id,)).fetchone()
-    conn.close()
+    with get_session() as s:
+        reparacion = s.execute(
+            select(
+                Reparacion.__table__,
+                Cliente.nombre.label('cliente_nombre'),
+                Cliente.telefono.label('cliente_telefono'),
+                Cliente.email.label('cliente_email'),
+            ).join(Cliente, Reparacion.cliente_id == Cliente.id)
+            .where(Reparacion.id == id)
+        ).mappings().first()
 
     if not reparacion:
         flash('Reparación no encontrada.', 'danger')
@@ -2395,44 +2406,35 @@ def marcar_reparacion_pagada(id):
     Marca una reparación como pagada.
     Solo accesible por admin y técnicos.
     """
-    conn = get_db()
-    
-    # Obtener reparación
-    reparacion = conn.execute("SELECT * FROM reparaciones WHERE id=?", (id,)).fetchone()
-    
-    if not reparacion:
-        conn.close()
-        flash('❌ Reparación no encontrada.', 'danger')
-        return redirect(url_for("reparaciones"))
-    
-    # Validar que NO esté ya pagada
-    if reparacion['estado_pago'] == 'Pagado':
-        conn.close()
-        flash('❌ Esta reparación ya está marcada como pagada.', 'warning')
-        return redirect(url_for("editar_reparacion", id=id))
-    
-    # Validar que tenga precio
-    if not reparacion['precio'] or reparacion['precio'] <= 0:
-        conn.close()
-        flash('❌ No se puede marcar como pagada: sin presupuesto asignado.', 'danger')
-        return redirect(url_for("editar_reparacion", id=id))
-    
-    # Obtener datos del formulario
-    metodo_pago = request.form.get("metodo_pago", "").strip()
-    
-    if not metodo_pago:
-        conn.close()
-        flash('❌ Debe seleccionar un método de pago.', 'danger')
-        return redirect(url_for("editar_reparacion", id=id))
-    
-    # Actualizar BD
-    fecha_pago = datetime.now().strftime("%Y-%m-%d")
-    conn.execute("""
-        UPDATE reparaciones 
-        SET estado_pago='Pagado', fecha_pago=?, metodo_pago=?
-        WHERE id=?
-    """, (fecha_pago, metodo_pago, id))
-    conn.commit()
+    with get_session() as s:
+        rep = s.get(Reparacion, id)
+
+        if not rep:
+            flash('❌ Reparación no encontrada.', 'danger')
+            return redirect(url_for("reparaciones"))
+
+        # Validar que NO esté ya pagada
+        if rep.estado_pago == 'Pagado':
+            flash('❌ Esta reparación ya está marcada como pagada.', 'warning')
+            return redirect(url_for("editar_reparacion", id=id))
+
+        # Validar que tenga precio
+        if not rep.precio or rep.precio <= 0:
+            flash('❌ No se puede marcar como pagada: sin presupuesto asignado.', 'danger')
+            return redirect(url_for("editar_reparacion", id=id))
+
+        # Obtener datos del formulario
+        metodo_pago = request.form.get("metodo_pago", "").strip()
+
+        if not metodo_pago:
+            flash('❌ Debe seleccionar un método de pago.', 'danger')
+            return redirect(url_for("editar_reparacion", id=id))
+
+        # Actualizar BD
+        rep.estado_pago = 'Pagado'
+        rep.fecha_pago = datetime.now().strftime("%Y-%m-%d")
+        rep.metodo_pago = metodo_pago
+        s.commit()
     try:
         logger.info(json.dumps({
             "event": "reparacion_pagada",
@@ -2442,8 +2444,7 @@ def marcar_reparacion_pagada(id):
         }, ensure_ascii=False))
     except Exception:
         logger.info(f"reparacion_pagada id={id} metodo={metodo_pago}")
-    conn.close()
-    
+
     flash(f'✅ Pago registrado correctamente ({metodo_pago}).', 'success')
     return redirect(url_for("editar_reparacion", id=id))
 
@@ -2461,32 +2462,34 @@ def generar_pdf_presupuesto(id):
     if tipo_documento not in ["presupuesto", "factura"]:
         tipo_documento = "presupuesto"
     
-    conn = get_db()
-    
-    # Obtener reparación y cliente
-    reparacion = conn.execute("""
-        SELECT r.*, c.nombre AS cliente_nombre, c.telefono AS cliente_telefono,
-               c.email AS cliente_email, c.direccion AS cliente_direccion
-        FROM reparaciones r
-        LEFT JOIN clientes c ON c.id = r.cliente_id
-        WHERE r.id = ?
-    """, (id,)).fetchone()
+    with get_session() as s:
+        # Obtener reparación y cliente
+        reparacion = s.execute(
+            select(
+                Reparacion.__table__,
+                Cliente.nombre.label('cliente_nombre'),
+                Cliente.telefono.label('cliente_telefono'),
+                Cliente.email.label('cliente_email'),
+                Cliente.direccion.label('cliente_direccion'),
+            ).outerjoin(Cliente, Cliente.id == Reparacion.cliente_id)
+            .where(Reparacion.id == id)
+        ).mappings().first()
 
-    if not reparacion:
-        conn.close()
-        flash('Reparación no encontrada.', 'danger')
-        return redirect(url_for('reparaciones'))
+        if not reparacion:
+            flash('Reparación no encontrada.', 'danger')
+            return redirect(url_for('reparaciones'))
 
-    # Obtener piezas utilizadas
-    piezas = conn.execute("""
-        SELECT pr.cantidad, ip.nombre, ip.precio_venta
-        FROM piezas_reparacion pr
-        JOIN inventario_piezas ip ON ip.id = pr.pieza_id
-        WHERE pr.reparacion_id = ?
-    """, (id,)).fetchall()
-    conn.close()
+        # Obtener piezas utilizadas
+        piezas = s.execute(
+            select(
+                PiezaReparacion.cantidad,
+                InventarioPieza.nombre,
+                InventarioPieza.precio_venta,
+            ).join(InventarioPieza, InventarioPieza.id == PiezaReparacion.pieza_id)
+            .where(PiezaReparacion.reparacion_id == id)
+        ).mappings().all()
 
-    # Convertir Row de sqlite3 a dict
+    # Convertir fila mapping a dict
     reparacion_data = {
         'id': reparacion['id'],
         'dispositivo': reparacion['dispositivo'],
