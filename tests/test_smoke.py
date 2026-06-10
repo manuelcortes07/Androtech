@@ -246,6 +246,65 @@ class TestReparaciones:
 
 
 # ════════════════════════════════════════════════════════════════════
+# 4b. Fotos y firma de reparación (añadidos en Fase 1.5 — huecos conocidos)
+# ════════════════════════════════════════════════════════════════════
+class TestFotosFirma:
+    # PNG 1x1 transparente válido
+    _PNG_1PX = (
+        b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+        b"\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\xfa\xcf"
+        b"\xf0\xbf\x1e\x00\x06\x83\x02\x7f\x94\xad\xd0\xeb\x00\x00\x00\x00IEND"
+        b"\xaeB`\x82"
+    )
+
+    def test_subir_foto_persists_in_db(self, logged_admin, seed_reparacion,
+                                       db_conn):
+        """Subir una foto crea la fila en fotos_reparacion (Fase 1.5)."""
+        data = {
+            "fotos": (io.BytesIO(self._PNG_1PX), "prueba.png"),
+            "csrf_token": "test-csrf-token",
+        }
+        r = logged_admin.post(
+            f"/reparaciones/{seed_reparacion}/fotos",
+            data=data,
+            content_type="multipart/form-data",
+            follow_redirects=False,
+        )
+        assert r.status_code in (302, 303)
+
+        row = db_conn.execute(
+            "SELECT filename, subido_por FROM fotos_reparacion "
+            "WHERE reparacion_id=? ORDER BY id DESC LIMIT 1",
+            (seed_reparacion,),
+        ).fetchone()
+        assert row is not None, "la foto no se registró en BD"
+        assert row["filename"].endswith(".png")
+        assert row["subido_por"] == "admin"
+
+    def test_guardar_firma_persists(self, logged_admin, seed_reparacion,
+                                    db_conn):
+        """Guardar la firma actualiza reparaciones.firma (Fase 1.5)."""
+        import base64
+        firma_b64 = "data:image/png;base64," + base64.b64encode(
+            self._PNG_1PX).decode()
+
+        r = logged_admin.post(
+            f"/reparaciones/{seed_reparacion}/firma",
+            json={"firma": firma_b64},
+            headers={"X-CSRFToken": "test-csrf-token"},
+        )
+        assert r.status_code == 200
+        assert r.get_json().get("success") is True
+
+        row = db_conn.execute(
+            "SELECT firma FROM reparaciones WHERE id=?",
+            (seed_reparacion,),
+        ).fetchone()
+        assert row["firma"], "la columna firma quedó vacía"
+        assert row["firma"].startswith(f"firma_{seed_reparacion}_")
+
+
+# ════════════════════════════════════════════════════════════════════
 # 5. CRUD de clientes
 # ════════════════════════════════════════════════════════════════════
 class TestClientes:

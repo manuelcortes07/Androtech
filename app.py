@@ -331,33 +331,34 @@ def build_reparaciones_filters(args):
     args: objeto parecido a dict (p. ej. request.args)
     Devuelve (where_clause, params_list)
     """
+    # Fase 1.5b: binds con nombre (dict) para ejecutarse vía SQLAlchemy text().
     clauses = []
-    params = []
+    params = {}
 
     cliente = args.get('cliente')
     if cliente:
-        clauses.append("clientes.nombre LIKE ?")
-        params.append(f"%{cliente}%")
+        clauses.append("clientes.nombre LIKE :f_cliente")
+        params['f_cliente'] = f"%{cliente}%"
 
     estado = args.get('estado')
     if estado:
-        clauses.append("reparaciones.estado = ?")
-        params.append(estado)
+        clauses.append("reparaciones.estado = :f_estado")
+        params['f_estado'] = estado
 
     pago = args.get('pago')
     if pago:
-        clauses.append("reparaciones.estado_pago = ?")
-        params.append(pago)
+        clauses.append("reparaciones.estado_pago = :f_pago")
+        params['f_pago'] = pago
 
     fecha_desde = args.get('fecha_desde')
     if fecha_desde:
-        clauses.append("reparaciones.fecha_entrada >= ?")
-        params.append(fecha_desde)
+        clauses.append("reparaciones.fecha_entrada >= :f_desde")
+        params['f_desde'] = fecha_desde
 
     fecha_hasta = args.get('fecha_hasta')
     if fecha_hasta:
-        clauses.append("reparaciones.fecha_entrada <= ?")
-        params.append(fecha_hasta)
+        clauses.append("reparaciones.fecha_entrada <= :f_hasta")
+        params['f_hasta'] = fecha_hasta
 
     where = " AND ".join(clauses) if clauses else "1=1"
     return where, params
@@ -377,7 +378,8 @@ def export_reparaciones():
 
     where, params = build_reparaciones_filters(request.args)
 
-    conn = get_db()
+    # ⚠️ Fase 2: raw SQL — necesitará AND reparaciones.taller_id=? manual.
+    from sqlalchemy import text as _text
     query = (
         "SELECT reparaciones.id, clientes.nombre as cliente, clientes.telefono, "
         "reparaciones.dispositivo, reparaciones.estado, reparaciones.estado_pago, "
@@ -385,8 +387,8 @@ def export_reparaciones():
         "FROM reparaciones JOIN clientes ON clientes.id = reparaciones.cliente_id "
         f"WHERE {where} ORDER BY reparaciones.id DESC"
     )
-    rows = conn.execute(query, params).fetchall()
-    conn.close()
+    with get_session() as s:
+        rows = s.execute(_text(query), params).mappings().all()
 
     # ── Estadísticas ─────────────────────────────────────────────────────────
     total            = len(rows)
@@ -607,16 +609,16 @@ def healthcheck():
 # PÁGINA PRINCIPAL
 @app.route("/")
 def index():
-    conn = get_db()
-    total_clientes = conn.execute("SELECT COUNT(*) FROM clientes").fetchone()[0]
-    activas = conn.execute("SELECT COUNT(*) FROM reparaciones WHERE estado != 'Terminado' AND estado != 'Entregado'").fetchone()[0]
-    terminadas = conn.execute("SELECT COUNT(*) FROM reparaciones WHERE estado = 'Terminado' OR estado = 'Entregado'").fetchone()[0]
-    ingresos = conn.execute("SELECT COALESCE(SUM(precio), 0) FROM reparaciones WHERE estado = 'Terminado' OR estado = 'Entregado'").fetchone()[0]
-    # Desglose por estado para mini-panel del hero
-    estados_count = {}
-    for row in conn.execute("SELECT estado, COUNT(*) as c FROM reparaciones GROUP BY estado").fetchall():
-        estados_count[row['estado']] = row['c']
-    conn.close()
+    from sqlalchemy import text as _text
+    with get_session() as s:
+        total_clientes = s.execute(_text("SELECT COUNT(*) FROM clientes")).scalar()
+        activas = s.execute(_text("SELECT COUNT(*) FROM reparaciones WHERE estado != 'Terminado' AND estado != 'Entregado'")).scalar()
+        terminadas = s.execute(_text("SELECT COUNT(*) FROM reparaciones WHERE estado = 'Terminado' OR estado = 'Entregado'")).scalar()
+        ingresos = s.execute(_text("SELECT COALESCE(SUM(precio), 0) FROM reparaciones WHERE estado = 'Terminado' OR estado = 'Entregado'")).scalar()
+        # Desglose por estado para mini-panel del hero
+        estados_count = {}
+        for row in s.execute(_text("SELECT estado, COUNT(*) as c FROM reparaciones GROUP BY estado")).all():
+            estados_count[row[0]] = row[1]
     return render_template("index.html",
         total_clientes=total_clientes,
         activas=activas,
@@ -632,65 +634,69 @@ def index():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    conn = get_db()
-    
+    # Fase 1.5b: las ~20 queries del dashboard van por la capa SQLAlchemy
+    # (text() con SQL idéntico). ⚠️ Fase 2: raw SQL — cada una necesitará
+    # AND taller_id=? manual o migración a ORM con filtro automático.
+    from sqlalchemy import text as _text
+    s = get_session()
+
     # ========== ESTADÍSTICAS GENERALES ==========
-    total_clientes = conn.execute("SELECT COUNT(*) FROM clientes").fetchone()[0]
-    total_reparaciones = conn.execute("SELECT COUNT(*) FROM reparaciones").fetchone()[0]
-    
-    reparaciones_activas = conn.execute("""
+    total_clientes = s.execute(_text("SELECT COUNT(*) FROM clientes")).scalar()
+    total_reparaciones = s.execute(_text("SELECT COUNT(*) FROM reparaciones")).scalar()
+
+    reparaciones_activas = s.execute(_text("""
         SELECT COUNT(*) FROM reparaciones
         WHERE estado != 'Terminado' AND estado != 'Entregado'
-    """).fetchone()[0]
-    
-    reparaciones_terminadas = conn.execute("""
+    """)).scalar()
+
+    reparaciones_terminadas = s.execute(_text("""
         SELECT COUNT(*) FROM reparaciones
         WHERE estado = 'Terminado' OR estado = 'Entregado'
-    """).fetchone()[0]
-    
+    """)).scalar()
+
     # Ingresos totales
-    ingresos_total = conn.execute("""
+    ingresos_total = s.execute(_text("""
         SELECT IFNULL(SUM(precio), 0) FROM reparaciones
         WHERE precio IS NOT NULL
-    """).fetchone()[0]
-    
+    """)).scalar()
+
     # ========== ESTADÍSTICAS DE ESTE MES ==========
     hoy = datetime.now()
     inicio_mes = datetime(hoy.year, hoy.month, 1)
-    
-    ingresos_mes = conn.execute("""
+
+    ingresos_mes = s.execute(_text("""
         SELECT IFNULL(SUM(precio), 0) FROM reparaciones
-        WHERE fecha_entrada >= ? AND precio IS NOT NULL
-    """, (inicio_mes.strftime("%Y-%m-%d"),)).fetchone()[0]
-    
-    reparaciones_mes = conn.execute("""
+        WHERE fecha_entrada >= :inicio AND precio IS NOT NULL
+    """), {"inicio": inicio_mes.strftime("%Y-%m-%d")}).scalar()
+
+    reparaciones_mes = s.execute(_text("""
         SELECT COUNT(*) FROM reparaciones
-        WHERE fecha_entrada >= ?
-    """, (inicio_mes.strftime("%Y-%m-%d"),)).fetchone()[0]
-    
-    reparaciones_completadas_mes = conn.execute("""
+        WHERE fecha_entrada >= :inicio
+    """), {"inicio": inicio_mes.strftime("%Y-%m-%d")}).scalar()
+
+    reparaciones_completadas_mes = s.execute(_text("""
         SELECT COUNT(*) FROM reparaciones
         WHERE (estado = 'Terminado' OR estado = 'Entregado')
-        AND fecha_entrada >= ?
-    """, (inicio_mes.strftime("%Y-%m-%d"),)).fetchone()[0]
-    
+        AND fecha_entrada >= :inicio
+    """), {"inicio": inicio_mes.strftime("%Y-%m-%d")}).scalar()
+
     # ========== ESTADÍSTICAS DE PAGOS ==========
-    dinero_cobrado = conn.execute("""
+    dinero_cobrado = s.execute(_text("""
         SELECT IFNULL(SUM(precio), 0) FROM reparaciones
         WHERE estado_pago = 'Pagado' AND precio IS NOT NULL
-    """).fetchone()[0]
-    
+    """)).scalar()
+
     dinero_por_cobrar = ingresos_total - dinero_cobrado
-    
-    reparaciones_pendiente_pago = conn.execute("""
+
+    reparaciones_pendiente_pago = s.execute(_text("""
         SELECT COUNT(*) FROM reparaciones
         WHERE estado_pago = 'Pendiente' AND precio IS NOT NULL AND precio > 0
-    """).fetchone()[0]
-    
-    reparaciones_pagadas = conn.execute("""
+    """)).scalar()
+
+    reparaciones_pagadas = s.execute(_text("""
         SELECT COUNT(*) FROM reparaciones
         WHERE estado_pago = 'Pagado'
-    """).fetchone()[0]
+    """)).scalar()
     
     # Calcular tasa de cobro (porcentaje)
     tasa_cobro = 0
@@ -698,34 +704,34 @@ def dashboard():
         tasa_cobro = round((dinero_cobrado / ingresos_total * 100), 1)
     
     # Obtener reparaciones pendientes de pago (últimas 5)
-    reparaciones_sin_pagar = conn.execute("""
+    reparaciones_sin_pagar = s.execute(_text("""
         SELECT reparaciones.*, clientes.nombre AS cliente
         FROM reparaciones
         LEFT JOIN clientes ON clientes.id = reparaciones.cliente_id
-        WHERE reparaciones.estado_pago = 'Pendiente' 
+        WHERE reparaciones.estado_pago = 'Pendiente'
         AND reparaciones.precio IS NOT NULL AND reparaciones.precio > 0
         ORDER BY reparaciones.id DESC
         LIMIT 5
-    """).fetchall()
+    """)).mappings().all()
     reparaciones_sin_pagar_list = [dict(r) for r in reparaciones_sin_pagar] if reparaciones_sin_pagar else []
-    
+
     # ========== DISPOSITIVOS MÁS REPARADOS ==========
-    dispositivos_top = conn.execute("""
+    dispositivos_top = s.execute(_text("""
         SELECT dispositivo, COUNT(*) as cantidad
         FROM reparaciones
         WHERE dispositivo IS NOT NULL AND dispositivo != ''
         GROUP BY dispositivo
         ORDER BY cantidad DESC
         LIMIT 5
-    """).fetchall()
-    
+    """)).all()
+
     # ========== ESTADOS MÁS COMUNES ==========
-    estados_distribucion = conn.execute("""
+    estados_distribucion = s.execute(_text("""
         SELECT estado, COUNT(*) as cantidad
         FROM reparaciones
         GROUP BY estado
         ORDER BY cantidad DESC
-    """).fetchall()
+    """)).all()
     
     # Convertir a dict para template
     dispositivos_dict = [{"nombre": d[0], "cantidad": d[1]} for d in dispositivos_top] if dispositivos_top else []
@@ -737,36 +743,36 @@ def dashboard():
     porcentaje_terminadas = round((reparaciones_terminadas / total_rep * 100), 1) if total_rep > 0 else 0
     
     # Últimas 5 reparaciones
-    ultimas_reparaciones = conn.execute("""
+    ultimas_reparaciones = s.execute(_text("""
         SELECT reparaciones.*, clientes.nombre AS cliente
         FROM reparaciones
         LEFT JOIN clientes ON clientes.id = reparaciones.cliente_id
         ORDER BY reparaciones.id DESC
         LIMIT 5
-    """).fetchall()
-    
+    """)).mappings().all()
+
     # ========== REPARACIONES ATRASADAS (sin actualización hace > 7 días) ==========
     hace_7_dias = (hoy - __import__('datetime').timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
-    
-    reparaciones_atrasadas = conn.execute("""
+
+    reparaciones_atrasadas = s.execute(_text("""
         SELECT reparaciones.*, clientes.nombre AS cliente,
-               (SELECT fecha_cambio FROM reparaciones_historial 
-                WHERE reparacion_id = reparaciones.id 
+               (SELECT fecha_cambio FROM reparaciones_historial
+                WHERE reparacion_id = reparaciones.id
                 ORDER BY fecha_cambio DESC LIMIT 1) AS ultima_actualizacion
         FROM reparaciones
         LEFT JOIN clientes ON clientes.id = reparaciones.cliente_id
         WHERE reparaciones.estado IN ('En proceso', 'Pendiente')
         AND (
-            SELECT fecha_cambio FROM reparaciones_historial 
-            WHERE reparacion_id = reparaciones.id 
+            SELECT fecha_cambio FROM reparaciones_historial
+            WHERE reparacion_id = reparaciones.id
             ORDER BY fecha_cambio DESC LIMIT 1
-        ) < ? 
+        ) < :hace7
         OR (
-            SELECT COUNT(*) FROM reparaciones_historial 
+            SELECT COUNT(*) FROM reparaciones_historial
             WHERE reparacion_id = reparaciones.id
         ) = 0
         ORDER BY reparaciones.id DESC
-    """, (hace_7_dias,)).fetchall()
+    """), {"hace7": hace_7_dias}).mappings().all()
     
     reparaciones_atrasadas_list = [dict(r) for r in reparaciones_atrasadas] if reparaciones_atrasadas else []
     
@@ -791,10 +797,10 @@ def dashboard():
             else:
                 fin = datetime(fecha.year, fecha.month + 1, 1) - __import__('datetime').timedelta(seconds=1)
         
-        ingreso_mes_i = conn.execute("""
+        ingreso_mes_i = s.execute(_text("""
             SELECT IFNULL(SUM(precio), 0) FROM reparaciones
-            WHERE fecha_entrada >= ? AND fecha_entrada <= ? AND precio IS NOT NULL
-        """, (inicio.strftime("%Y-%m-%d"), fin.strftime("%Y-%m-%d"))).fetchone()[0]
+            WHERE fecha_entrada >= :ini AND fecha_entrada <= :fin AND precio IS NOT NULL
+        """), {"ini": inicio.strftime("%Y-%m-%d"), "fin": fin.strftime("%Y-%m-%d")}).scalar()
         
         ingresos_por_mes.append({
             "mes": inicio.strftime("%b %Y"),
@@ -803,44 +809,44 @@ def dashboard():
     
     # ========== MÉTRICA 2: TIEMPO MEDIO DE REPARACIÓN ==========
     tiempo_medio_dias = 0
-    reparaciones_completadas = conn.execute("""
+    reparaciones_completadas = s.execute(_text("""
         SELECT COUNT(*) FROM reparaciones
         WHERE estado = 'Terminado' OR estado = 'Entregado'
-    """).fetchone()[0]
-    
+    """)).scalar()
+
     if reparaciones_completadas > 0:
         # Calcular promedio de días entre entrada y última actualización
-        tiempo_promedio = conn.execute("""
+        tiempo_promedio = s.execute(_text("""
             SELECT AVG(
                 CAST((julianday(COALESCE(
-                    (SELECT fecha_cambio FROM reparaciones_historial 
-                     WHERE reparacion_id = reparaciones.id 
+                    (SELECT fecha_cambio FROM reparaciones_historial
+                     WHERE reparacion_id = reparaciones.id
                      ORDER BY fecha_cambio DESC LIMIT 1),
                     reparaciones.fecha_entrada
                 )) - julianday(reparaciones.fecha_entrada)) AS REAL)
             )
             FROM reparaciones
             WHERE estado = 'Terminado' OR estado = 'Entregado'
-        """).fetchone()[0]
-        
+        """)).scalar()
+
         if tiempo_promedio:
             tiempo_medio_dias = round(float(tiempo_promedio), 1)
-    
+
     # ========== MÉTRICA 3: REPARACIONES POR TÉCNICO ==========
-    reparaciones_por_tecnico = conn.execute("""
+    reparaciones_por_tecnico = s.execute(_text("""
         SELECT usuario, COUNT(*) as cantidad
         FROM reparaciones_historial
         WHERE usuario IS NOT NULL AND usuario != ''
         GROUP BY usuario
         ORDER BY cantidad DESC
-    """).fetchall()
-    
+    """)).all()
+
     tecnico_dict = [{"nombre": t[0], "cantidad": t[1]} for t in reparaciones_por_tecnico] if reparaciones_por_tecnico else []
-    
+
     # ========== AUDITORÍA RECIENTE (últimos 10 eventos) ==========
-    eventos_auditoria = obtener_auditoria_reciente(conn, limite=10)
-    
-    conn.close()
+    eventos_auditoria = obtener_auditoria_reciente(None, limite=10)
+
+    s.close()
     
     # Calcular IVA en ingresos
     iva_total = round(ingresos_total * 0.21, 2)
@@ -960,15 +966,18 @@ def editar_cliente(id):
 @login_required
 @permiso_requerido('clientes_historial')
 def historial_cliente():
-    conn = get_db()
+    # Fase 1.5b: queries vía capa SQLAlchemy.
+    # ⚠️ Fase 2: raw SQL — necesitará filtro taller_id manual.
+    from sqlalchemy import text as _text
+    s = get_session()
 
     # Estadísticas generales
-    total_reparaciones = conn.execute("SELECT COUNT(*) FROM reparaciones").fetchone()[0]
-    pagadas = conn.execute("SELECT COUNT(*) FROM reparaciones WHERE estado_pago = 'Pagado'").fetchone()[0]
-    pendientes = conn.execute("SELECT COUNT(*) FROM reparaciones WHERE estado_pago != 'Pagado'").fetchone()[0]
-    total_invertido = conn.execute("SELECT IFNULL(SUM(precio), 0) FROM reparaciones WHERE precio IS NOT NULL").fetchone()[0]
-    promedio_precio = conn.execute("SELECT IFNULL(AVG(precio), 0) FROM reparaciones WHERE precio IS NOT NULL").fetchone()[0]
-    total_completadas = conn.execute("SELECT COUNT(*) FROM reparaciones WHERE estado = 'Terminado' OR estado = 'Entregado'").fetchone()[0]
+    total_reparaciones = s.execute(_text("SELECT COUNT(*) FROM reparaciones")).scalar()
+    pagadas = s.execute(_text("SELECT COUNT(*) FROM reparaciones WHERE estado_pago = 'Pagado'")).scalar()
+    pendientes = s.execute(_text("SELECT COUNT(*) FROM reparaciones WHERE estado_pago != 'Pagado'")).scalar()
+    total_invertido = s.execute(_text("SELECT IFNULL(SUM(precio), 0) FROM reparaciones WHERE precio IS NOT NULL")).scalar()
+    promedio_precio = s.execute(_text("SELECT IFNULL(AVG(precio), 0) FROM reparaciones WHERE precio IS NOT NULL")).scalar()
+    total_completadas = s.execute(_text("SELECT COUNT(*) FROM reparaciones WHERE estado = 'Terminado' OR estado = 'Entregado'")).scalar()
 
     # Filtro por estado y cliente
     estado_filtro = request.args.get('estado', '').strip()
@@ -986,39 +995,43 @@ def historial_cliente():
 
     base_sql = "SELECT reparaciones.*, clientes.nombre AS cliente FROM reparaciones LEFT JOIN clientes ON clientes.id = reparaciones.cliente_id"
     where = []
-    params = []
+    params = {}
     if estado_filtro:
-        where.append("reparaciones.estado = ?")
-        params.append(estado_filtro)
+        where.append("reparaciones.estado = :estado")
+        params['estado'] = estado_filtro
     if cliente_filtro:
-        where.append("reparaciones.cliente_id = ?")
-        params.append(cliente_filtro)
+        where.append("reparaciones.cliente_id = :cliente_id")
+        params['cliente_id'] = cliente_filtro
 
     where_clause = (" WHERE " + " AND ".join(where)) if where else ""
 
-    total_count = conn.execute("SELECT COUNT(*) FROM reparaciones" + where_clause, params).fetchone()[0]
+    total_count = s.execute(
+        _text("SELECT COUNT(*) FROM reparaciones" + where_clause), params
+    ).scalar()
     total_pages = (total_count + per_page - 1) // per_page if total_count > 0 else 1
 
-    reparaciones_rows = conn.execute(base_sql + where_clause + " ORDER BY reparaciones.id DESC LIMIT ? OFFSET ?", params + [per_page, offset]).fetchall()
+    reparaciones_rows = s.execute(
+        _text(base_sql + where_clause + " ORDER BY reparaciones.id DESC LIMIT :limit OFFSET :offset"),
+        {**params, 'limit': per_page, 'offset': offset},
+    ).mappings().all()
     reparaciones = [dict(r) for r in reparaciones_rows]
 
-    # Enriquecer datos con última actualización de cada reparación
+    # Enriquecer datos con última actualización de cada reparación (ORM)
     reparaciones_enriquecidas = []
     for r in reparaciones:
-        # Obtener última actualización del historial
-        ultima_actualizacion = conn.execute(
-            "SELECT fecha_cambio FROM reparaciones_historial WHERE reparacion_id = ? ORDER BY fecha_cambio DESC LIMIT 1",
-            (r['id'],)
-        ).fetchone()
-        r['ultima_actualizacion'] = ultima_actualizacion['fecha_cambio'] if ultima_actualizacion else None
+        ultima = s.scalars(
+            select(RepairHistorial.fecha_cambio)
+            .where(RepairHistorial.reparacion_id == r['id'])
+            .order_by(RepairHistorial.fecha_cambio.desc())
+            .limit(1)
+        ).first()
+        r['ultima_actualizacion'] = ultima
         reparaciones_enriquecidas.append(r)
 
-    estados = conn.execute("SELECT DISTINCT estado FROM reparaciones ORDER BY estado").fetchall()
-    # Fase 1.4: lista de clientes para el filtro vía ORM
-    with get_session() as s:
-        clientes = s.scalars(select(Cliente).order_by(Cliente.nombre)).all()
+    estados = s.execute(_text("SELECT DISTINCT estado FROM reparaciones ORDER BY estado")).all()
+    clientes = s.scalars(select(Cliente).order_by(Cliente.nombre)).all()
 
-    conn.close()
+    s.close()
 
     stats = {
         'total_reparaciones': total_reparaciones,
@@ -1052,11 +1065,12 @@ def exportar_historial_cliente_pdf(id):
         flash('Cliente no encontrado.', 'danger')
         return redirect(url_for('clientes'))
 
-    conn = get_db()
-    reparaciones = conn.execute("""
-        SELECT * FROM reparaciones WHERE cliente_id=? ORDER BY fecha_entrada DESC
-    """, (id,)).fetchall()
-    conn.close()
+    with get_session() as s:
+        reparaciones = s.execute(
+            select(Reparacion.__table__)
+            .where(Reparacion.__table__.c.cliente_id == id)
+            .order_by(Reparacion.__table__.c.fecha_entrada.desc())
+        ).mappings().all()
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=2*cm, leftMargin=2*cm,
@@ -1187,11 +1201,8 @@ def buscar():
         flash('Introduce al menos 2 caracteres para buscar.', 'warning')
         return redirect(url_for('dashboard'))
 
-    conn = get_db()
     like = f'%{q}%'
 
-    # Fase 1.4: búsqueda de clientes vía ORM (la de reparaciones sigue en
-    # sqlite3 crudo hasta la Fase 1.5).
     with get_session() as s:
         clientes_result = s.scalars(
             select(Cliente).where(
@@ -1201,18 +1212,24 @@ def buscar():
             ).limit(20)
         ).all()
 
-    reparaciones_result = conn.execute('''
-        SELECT r.id, r.dispositivo, r.estado, r.estado_pago, r.precio,
-               r.fecha_entrada, c.nombre as cliente
-        FROM reparaciones r
-        JOIN clientes c ON r.cliente_id = c.id
-        WHERE r.dispositivo LIKE ? OR r.descripcion LIKE ?
-              OR c.nombre LIKE ? OR CAST(r.id AS TEXT) = ?
-        ORDER BY r.id DESC
-        LIMIT 20
-    ''', (like, like, like, q)).fetchall()
-
-    conn.close()
+        # Fase 1.5b: búsqueda de reparaciones vía ORM con JOIN y cast
+        from sqlalchemy import cast as _cast, String as _String
+        reparaciones_result = s.execute(
+            select(
+                Reparacion.id, Reparacion.dispositivo, Reparacion.estado,
+                Reparacion.estado_pago, Reparacion.precio,
+                Reparacion.fecha_entrada, Cliente.nombre.label('cliente'),
+            )
+            .join(Cliente, Reparacion.cliente_id == Cliente.id)
+            .where(
+                Reparacion.dispositivo.like(like)
+                | Reparacion.descripcion.like(like)
+                | Cliente.nombre.like(like)
+                | (_cast(Reparacion.id, _String) == q)
+            )
+            .order_by(Reparacion.id.desc())
+            .limit(20)
+        ).mappings().all()
 
     return render_template("buscar.html",
         q=q,
@@ -1267,19 +1284,21 @@ def _csv_empresa_header(writer, titulo):
 @login_required
 @permiso_requerido('reparaciones_exportar')
 def exportar_reparaciones_csv():
-    conn = get_db()
-    rows = conn.execute('''
-        SELECT r.id, c.nombre as cliente, c.email, c.telefono, c.direccion,
-               r.dispositivo, r.descripcion, r.estado, r.estado_pago,
-               r.precio, r.fecha_entrada, r.fecha_salida, r.fecha_pago, r.metodo_pago,
-               r.tipo_documento,
-               (SELECT COUNT(*) FROM fotos_reparacion WHERE reparacion_id = r.id) as num_fotos,
-               (SELECT COUNT(*) FROM notas_reparacion WHERE reparacion_id = r.id) as num_notas,
-               CASE WHEN r.firma IS NOT NULL AND r.firma != '' THEN 'Si' ELSE 'No' END as firmado
-        FROM reparaciones r
-        LEFT JOIN clientes c ON r.cliente_id = c.id
-        ORDER BY r.id DESC
-    ''').fetchall()
+    # ⚠️ Fase 2: raw SQL — necesitará AND r.taller_id=? manual.
+    from sqlalchemy import text as _text
+    with get_session() as s:
+        rows = s.execute(_text('''
+            SELECT r.id, c.nombre as cliente, c.email, c.telefono, c.direccion,
+                   r.dispositivo, r.descripcion, r.estado, r.estado_pago,
+                   r.precio, r.fecha_entrada, r.fecha_salida, r.fecha_pago, r.metodo_pago,
+                   r.tipo_documento,
+                   (SELECT COUNT(*) FROM fotos_reparacion WHERE reparacion_id = r.id) as num_fotos,
+                   (SELECT COUNT(*) FROM notas_reparacion WHERE reparacion_id = r.id) as num_notas,
+                   CASE WHEN r.firma IS NOT NULL AND r.firma != '' THEN 'Si' ELSE 'No' END as firmado
+            FROM reparaciones r
+            LEFT JOIN clientes c ON r.cliente_id = c.id
+            ORDER BY r.id DESC
+        ''')).mappings().all()
 
     total = len(rows)
     total_facturado  = sum(r['precio'] or 0 for r in rows)
@@ -1289,7 +1308,6 @@ def exportar_reparaciones_csv():
     n_en_proceso     = sum(1 for r in rows if r['estado'] == 'En proceso')
     n_terminado      = sum(1 for r in rows if r['estado'] == 'Terminado')
     n_entregado      = sum(1 for r in rows if r['estado'] == 'Entregado')
-    conn.close()
 
     si = StringIO()
     w  = csv.writer(si, delimiter=';')
