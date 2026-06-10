@@ -118,6 +118,25 @@ class AuditLog(Base):
         )
 
 
+class Cliente(Base):
+    """Clientes finales del taller.
+
+    Tabla `clientes` — el modelo más simple del dominio: 5 columnas, sin
+    FKs salientes. En Fase 2 recibirá `taller_id` NOT NULL.
+    """
+
+    __tablename__ = "clientes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    nombre = Column(Text, nullable=False)
+    telefono = Column(Text)
+    email = Column(Text)
+    direccion = Column(Text)
+
+    def __repr__(self) -> str:
+        return f"<Cliente(id={self.id}, nombre={self.nombre!r})>"
+
+
 class RepairHistorial(Base):
     """Trazabilidad de cambios de estado de una reparación.
 

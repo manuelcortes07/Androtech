@@ -277,6 +277,57 @@ class TestClientes:
         assert row["nombre"] == "Maria Lopez"
         assert row["telefono"] == "699112233"
 
+    def test_edit_cliente_persists(self, logged_admin, seed_cliente, db_conn):
+        """Editar un cliente persiste los cambios en BD (añadido Fase 1.4)."""
+        r = logged_admin.post(
+            f"/clientes/editar/{seed_cliente}",
+            data={
+                "nombre": "Cliente Renombrado",
+                "telefono": "611223344",
+                "email": "nuevo@email.com",
+                "direccion": "Calle Nueva 9",
+                "csrf_token": "test-csrf-token",
+            },
+            follow_redirects=False,
+        )
+        assert r.status_code in (302, 303)
+
+        row = db_conn.execute(
+            "SELECT nombre, telefono, email, direccion FROM clientes WHERE id=?",
+            (seed_cliente,),
+        ).fetchone()
+        assert row["nombre"] == "Cliente Renombrado"
+        assert row["telefono"] == "611223344"
+        assert row["email"] == "nuevo@email.com"
+        assert row["direccion"] == "Calle Nueva 9"
+
+    def test_delete_cliente_removes_row(self, logged_admin, seed_cliente,
+                                        db_conn):
+        """Borrar un cliente elimina la fila (añadido Fase 1.4)."""
+        r = logged_admin.get(f"/clientes/borrar/{seed_cliente}",
+                             follow_redirects=False)
+        assert r.status_code in (302, 303)
+
+        row = db_conn.execute(
+            "SELECT id FROM clientes WHERE id=?", (seed_cliente,)
+        ).fetchone()
+        assert row is None, "el cliente sigue en BD tras borrarlo"
+
+    def test_export_clientes_csv_content(self, logged_admin, seed_cliente,
+                                         seed_reparacion):
+        """El CSV de clientes contiene datos reales, no solo responde 200
+        (añadido Fase 1.4 — las exportaciones eran hueco conocido)."""
+        r = logged_admin.get("/exportar/clientes.csv")
+        assert r.status_code == 200
+        assert "text/csv" in r.headers.get("Content-Type", "")
+
+        body = r.data.decode("utf-8-sig", errors="replace")
+        assert "Cliente Test" in body, "el cliente sembrado no está en el CSV"
+        assert "test@cliente.com" in body
+        # La reparación sembrada (120 €) debe reflejarse en el facturado
+        assert "120,00" in body, "el total facturado no aparece formateado"
+        assert "INFORME COMPLETO DE CLIENTES" in body
+
 
 # ════════════════════════════════════════════════════════════════════
 # 6. Inventario de piezas

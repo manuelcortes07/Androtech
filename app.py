@@ -40,7 +40,7 @@ from db import get_db
 # con sqlite3 crudo hasta su sub-fase correspondiente.
 from sqlalchemy import select
 from database import get_session
-from models import Usuario
+from models import Usuario, Cliente
 from auth import (
     login_required, role_required, permiso_requerido, tiene_permiso,
     init_permisos_db, obtener_permisos_usuario,
@@ -886,9 +886,9 @@ def dashboard():
 @app.route("/clientes")
 @login_required
 def clientes():
-    conn = get_db()
-    clientes = conn.execute("SELECT * FROM clientes").fetchall()
-    conn.close()
+    # Fase 1.4: listado vía ORM
+    with get_session() as s:
+        clientes = s.scalars(select(Cliente)).all()
     return render_template("clientes.html", clientes=clientes)
 
 
@@ -903,13 +903,10 @@ def nuevo_cliente():
         email = request.form["email"]
         direccion = request.form["direccion"]
 
-        conn = get_db()
-        conn.execute("""
-            INSERT INTO clientes (nombre, telefono, email, direccion)
-            VALUES (?, ?, ?, ?)
-        """, (nombre, telefono, email, direccion))
-        conn.commit()
-        conn.close()
+        with get_session() as s:
+            s.add(Cliente(nombre=nombre, telefono=telefono,
+                          email=email, direccion=direccion))
+            s.commit()
 
         # Enviar email de bienvenida al nuevo cliente
         if email:
@@ -932,26 +929,25 @@ def nuevo_cliente():
 @login_required
 @csrf_protect
 def editar_cliente(id):
-    conn = get_db()
-
     if request.method == "POST":
         nombre = request.form["nombre"]
         telefono = request.form["telefono"]
         email = request.form["email"]
         direccion = request.form["direccion"]
 
-        conn.execute("""
-            UPDATE clientes
-            SET nombre=?, telefono=?, email=?, direccion=?
-            WHERE id=?
-        """, (nombre, telefono, email, direccion, id))
-        conn.commit()
-        conn.close()
+        with get_session() as s:
+            cliente = s.get(Cliente, id)
+            if cliente:
+                cliente.nombre = nombre
+                cliente.telefono = telefono
+                cliente.email = email
+                cliente.direccion = direccion
+                s.commit()
 
         return redirect(url_for("clientes"))
 
-    cliente = conn.execute("SELECT * FROM clientes WHERE id=?", (id,)).fetchone()
-    conn.close()
+    with get_session() as s:
+        cliente = s.get(Cliente, id)
 
     return render_template("editar_cliente.html", cliente=cliente)
 
@@ -1015,7 +1011,9 @@ def historial_cliente():
         reparaciones_enriquecidas.append(r)
 
     estados = conn.execute("SELECT DISTINCT estado FROM reparaciones ORDER BY estado").fetchall()
-    clientes = conn.execute("SELECT id, nombre FROM clientes ORDER BY nombre").fetchall()
+    # Fase 1.4: lista de clientes para el filtro vía ORM
+    with get_session() as s:
+        clientes = s.scalars(select(Cliente).order_by(Cliente.nombre)).all()
 
     conn.close()
 
@@ -1043,13 +1041,15 @@ def exportar_historial_cliente_pdf(id):
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from io import BytesIO
 
-    conn = get_db()
-    cliente = conn.execute("SELECT * FROM clientes WHERE id=?", (id,)).fetchone()
+    # Fase 1.4: lookup de cliente vía ORM. Las reparaciones siguen en crudo
+    # hasta la Fase 1.5.
+    with get_session() as s:
+        cliente = s.get(Cliente, id)
     if not cliente:
-        conn.close()
         flash('Cliente no encontrado.', 'danger')
         return redirect(url_for('clientes'))
 
+    conn = get_db()
     reparaciones = conn.execute("""
         SELECT * FROM reparaciones WHERE cliente_id=? ORDER BY fecha_entrada DESC
     """, (id,)).fetchall()
@@ -1075,10 +1075,10 @@ def exportar_historial_cliente_pdf(id):
     # Client info
     elements.append(Paragraph("Datos del Cliente", styles['ATSection']))
     info_data = [
-        ['Nombre:', cliente['nombre']],
-        ['Email:', cliente['email'] or '—'],
-        ['Teléfono:', cliente['telefono'] or '—'],
-        ['Dirección:', cliente['direccion'] or '—'],
+        ['Nombre:', cliente.nombre],
+        ['Email:', cliente.email or '—'],
+        ['Teléfono:', cliente.telefono or '—'],
+        ['Dirección:', cliente.direccion or '—'],
     ]
     info_table = Table(info_data, colWidths=[3.5*cm, 13*cm])
     info_table.setStyle(TableStyle([
@@ -1156,7 +1156,7 @@ def exportar_historial_cliente_pdf(id):
     buffer.seek(0)
 
     return send_file(buffer, mimetype='application/pdf', as_attachment=True,
-                     download_name=f'historial_{cliente["nombre"].replace(" ", "_")}_{datetime.now().strftime("%Y%m%d")}.pdf')
+                     download_name=f'historial_{cliente.nombre.replace(" ", "_")}_{datetime.now().strftime("%Y%m%d")}.pdf')
 
 
 # BORRAR CLIENTE
@@ -1164,10 +1164,11 @@ def exportar_historial_cliente_pdf(id):
 @login_required
 @permiso_requerido('clientes_borrar')
 def borrar_cliente(id):
-    conn = get_db()
-    conn.execute("DELETE FROM clientes WHERE id=?", (id,))
-    conn.commit()
-    conn.close()
+    with get_session() as s:
+        cliente = s.get(Cliente, id)
+        if cliente:
+            s.delete(cliente)
+            s.commit()
     return redirect(url_for("clientes"))
 
 
@@ -1186,12 +1187,16 @@ def buscar():
     conn = get_db()
     like = f'%{q}%'
 
-    clientes_result = conn.execute('''
-        SELECT id, nombre, email, telefono
-        FROM clientes
-        WHERE nombre LIKE ? OR email LIKE ? OR telefono LIKE ?
-        LIMIT 20
-    ''', (like, like, like)).fetchall()
+    # Fase 1.4: búsqueda de clientes vía ORM (la de reparaciones sigue en
+    # sqlite3 crudo hasta la Fase 1.5).
+    with get_session() as s:
+        clientes_result = s.scalars(
+            select(Cliente).where(
+                Cliente.nombre.like(like)
+                | Cliente.email.like(like)
+                | Cliente.telefono.like(like)
+            ).limit(20)
+        ).all()
 
     reparaciones_result = conn.execute('''
         SELECT r.id, r.dispositivo, r.estado, r.estado_pago, r.precio,
@@ -1351,28 +1356,31 @@ def exportar_reparaciones_csv():
 @login_required
 @permiso_requerido('clientes_exportar')
 def exportar_clientes_csv():
-    conn = get_db()
-    rows = conn.execute('''
-        SELECT c.id, c.nombre, c.email, c.telefono, c.direccion,
-               COUNT(r.id) as total_reparaciones,
-               SUM(CASE WHEN r.estado IN ('Pendiente', 'En proceso') THEN 1 ELSE 0 END) as reparaciones_activas,
-               SUM(CASE WHEN r.estado IN ('Terminado', 'Entregado') THEN 1 ELSE 0 END) as reparaciones_completadas,
-               COALESCE(SUM(r.precio), 0) as total_facturado,
-               COALESCE(SUM(CASE WHEN r.estado_pago = 'Pagado' THEN r.precio ELSE 0 END), 0) as total_pagado,
-               COALESCE(SUM(CASE WHEN r.estado_pago = 'Pendiente' THEN r.precio ELSE 0 END), 0) as total_pendiente,
-               MAX(r.fecha_entrada) as ultima_visita
-        FROM clientes c
-        LEFT JOIN reparaciones r ON r.cliente_id = c.id
-        GROUP BY c.id
-        ORDER BY c.nombre
-    ''').fetchall()
+    # Fase 1.4: la agregación con JOIN va por la capa SQLAlchemy (text() +
+    # mappings() para mantener el acceso por clave). SQL idéntico al previo.
+    # ⚠️ Fase 2: esta query es raw SQL — necesitará AND taller_id=? manual.
+    from sqlalchemy import text as _text
+    with get_session() as s:
+        rows = s.execute(_text('''
+            SELECT c.id, c.nombre, c.email, c.telefono, c.direccion,
+                   COUNT(r.id) as total_reparaciones,
+                   SUM(CASE WHEN r.estado IN ('Pendiente', 'En proceso') THEN 1 ELSE 0 END) as reparaciones_activas,
+                   SUM(CASE WHEN r.estado IN ('Terminado', 'Entregado') THEN 1 ELSE 0 END) as reparaciones_completadas,
+                   COALESCE(SUM(r.precio), 0) as total_facturado,
+                   COALESCE(SUM(CASE WHEN r.estado_pago = 'Pagado' THEN r.precio ELSE 0 END), 0) as total_pagado,
+                   COALESCE(SUM(CASE WHEN r.estado_pago = 'Pendiente' THEN r.precio ELSE 0 END), 0) as total_pendiente,
+                   MAX(r.fecha_entrada) as ultima_visita
+            FROM clientes c
+            LEFT JOIN reparaciones r ON r.cliente_id = c.id
+            GROUP BY c.id
+            ORDER BY c.nombre
+        ''')).mappings().all()
 
     total_clientes   = len(rows)
     total_facturado  = sum(r['total_facturado'] or 0 for r in rows)
     total_cobrado    = sum(r['total_pagado']    or 0 for r in rows)
     total_pendiente  = total_facturado - total_cobrado
     clientes_activos = sum(1 for r in rows if (r['reparaciones_activas'] or 0) > 0)
-    conn.close()
 
     si = StringIO()
     w  = csv.writer(si, delimiter=';')
