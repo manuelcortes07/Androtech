@@ -242,6 +242,36 @@ class PiezaReparacion(Base):
                 f"pieza_id={self.pieza_id})>")
 
 
+class SolicitudReparacion(Base):
+    """Solicitudes de reparación enviadas desde el portal público.
+
+    En Fase 2 recibirá `taller_id` NOT NULL — la solicitud debe llegar al
+    taller cuyo slug aparece en la URL pública (/t/{slug}/solicitar-reparacion).
+    """
+
+    __tablename__ = "solicitudes_reparacion"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    nombre = Column(Text, nullable=False)
+    telefono = Column(Text, nullable=False)
+    email = Column(Text)
+    dispositivo = Column(Text, nullable=False)
+    marca = Column(Text)
+    modelo = Column(Text)
+    descripcion = Column(Text, nullable=False)
+    urgencia = Column(Text, default="normal")
+    fecha_preferida = Column(Text)
+    horario_preferido = Column(Text)
+    estado = Column(Text, default="pendiente")
+    notas_admin = Column(Text)
+    fecha_solicitud = Column(Text, nullable=False)
+    fecha_gestion = Column(Text)
+
+    def __repr__(self) -> str:
+        return (f"<SolicitudReparacion(id={self.id}, nombre={self.nombre!r}, "
+                f"estado={self.estado!r})>")
+
+
 class RepairHistorial(Base):
     """Trazabilidad de cambios de estado de una reparación.
 

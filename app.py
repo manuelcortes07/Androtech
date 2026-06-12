@@ -43,6 +43,7 @@ from database import get_session
 from models import (
     Usuario, Cliente, Reparacion, FotoReparacion, NotaReparacion,
     InventarioPieza, PiezaReparacion, RepairHistorial, Rol, PermisoRol,
+    SolicitudReparacion,
 )
 from auth import (
     login_required, role_required, permiso_requerido, tiene_permiso,
@@ -3006,17 +3007,19 @@ def consulta():
         else:
             try:
                 id_reparacion = int(id_raw)
-                conn = get_db()
-                reparacion = conn.execute("""
-                    SELECT reparaciones.id, reparaciones.dispositivo, reparaciones.estado,
-                           reparaciones.fecha_entrada, reparaciones.precio, reparaciones.descripcion,
-                           clientes.nombre as cliente, clientes.telefono, clientes.email as cliente_email,
-                           reparaciones.estado_pago, reparaciones.fecha_pago, reparaciones.metodo_pago
-                    FROM reparaciones
-                    JOIN clientes ON clientes.id = reparaciones.cliente_id
-                    WHERE reparaciones.id = ?
-                """, (id_reparacion,)).fetchone()
-                conn.close()
+                with get_session() as s:
+                    reparacion = s.execute(
+                        select(
+                            Reparacion.id, Reparacion.dispositivo,
+                            Reparacion.estado, Reparacion.fecha_entrada,
+                            Reparacion.precio, Reparacion.descripcion,
+                            Cliente.nombre.label('cliente'), Cliente.telefono,
+                            Cliente.email.label('cliente_email'),
+                            Reparacion.estado_pago, Reparacion.fecha_pago,
+                            Reparacion.metodo_pago,
+                        ).join(Cliente, Cliente.id == Reparacion.cliente_id)
+                        .where(Reparacion.id == id_reparacion)
+                    ).mappings().first()
 
                 if not reparacion:
                     error = f"No se encontró ninguna reparación con el número {id_reparacion}."
@@ -3042,30 +3045,30 @@ def mis_reparaciones():
         if not email_buscado or '@' not in email_buscado:
             error = "Por favor, introduce un email valido."
         else:
-            conn = get_db()
-            cliente = conn.execute(
-                "SELECT id, nombre FROM clientes WHERE LOWER(email) = ?",
-                (email_buscado,)
-            ).fetchone()
+            from sqlalchemy import func as _func
+            with get_session() as s:
+                cliente = s.scalars(
+                    select(Cliente).where(_func.lower(Cliente.email) == email_buscado)
+                ).first()
 
-            if not cliente:
-                error = "No se encontro ningun cliente con ese email."
-                conn.close()
-            else:
-                cliente_nombre = cliente['nombre']
-                reparaciones_list = conn.execute('''
-                    SELECT r.id, r.dispositivo, r.descripcion, r.estado,
-                           r.estado_pago, r.precio, r.fecha_entrada,
-                           r.fecha_pago, r.metodo_pago
-                    FROM reparaciones r
-                    WHERE r.cliente_id = ?
-                    ORDER BY r.fecha_entrada DESC
-                ''', (cliente['id'],)).fetchall()
-                conn.close()
+                if not cliente:
+                    error = "No se encontro ningun cliente con ese email."
+                else:
+                    cliente_nombre = cliente.nombre
+                    reparaciones_list = s.execute(
+                        select(
+                            Reparacion.id, Reparacion.dispositivo,
+                            Reparacion.descripcion, Reparacion.estado,
+                            Reparacion.estado_pago, Reparacion.precio,
+                            Reparacion.fecha_entrada, Reparacion.fecha_pago,
+                            Reparacion.metodo_pago,
+                        ).where(Reparacion.cliente_id == cliente.id)
+                        .order_by(Reparacion.fecha_entrada.desc())
+                    ).mappings().all()
 
-                if not reparaciones_list:
-                    error = "No se encontraron reparaciones asociadas a este email."
-                    reparaciones_list = None
+                    if not reparaciones_list:
+                        error = "No se encontraron reparaciones asociadas a este email."
+                        reparaciones_list = None
 
     return render_template("mis_reparaciones.html",
         reparaciones=reparaciones_list,
@@ -3111,17 +3114,17 @@ def solicitar_reparacion():
         if urgencia not in ('normal', 'urgente'):
             urgencia = 'normal'
 
-        conn = get_db()
-        conn.execute("""
-            INSERT INTO solicitudes_reparacion
-            (nombre, telefono, email, dispositivo, marca, modelo, descripcion,
-             urgencia, fecha_preferida, horario_preferido, estado, fecha_solicitud)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente', ?)
-        """, (nombre, telefono, email, dispositivo, marca, modelo, descripcion,
-              urgencia, fecha_preferida, horario_preferido,
-              datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-        conn.commit()
-        conn.close()
+        with get_session() as s:
+            s.add(SolicitudReparacion(
+                nombre=nombre, telefono=telefono, email=email,
+                dispositivo=dispositivo, marca=marca, modelo=modelo,
+                descripcion=descripcion, urgencia=urgencia,
+                fecha_preferida=fecha_preferida,
+                horario_preferido=horario_preferido,
+                estado='pendiente',
+                fecha_solicitud=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            ))
+            s.commit()
 
         flash("Tu solicitud de reparacion ha sido enviada correctamente. Te contactaremos pronto.", "success")
         return redirect(url_for("solicitar_reparacion"))
@@ -3240,16 +3243,19 @@ def admin_seed_demo():
     updated = {"clientes": 0}
     skipped = {"reparaciones": 0, "piezas": 0, "notas": 0}
 
-    conn = get_db()
-    cur = conn.cursor()
+    # Fase 1.8: el seeding usa exec_driver_sql (placeholders ? nativos) sobre
+    # la conexión del engine SQLAlchemy. Ruta one-shot de demo del TFG;
+    # ⚠️ Fase 2: PELIGROSA en multi-tenant — deberá sembrar solo el taller actual.
+    s = get_session()
+    dconn = s.connection()
 
     # ---- CLIENTES ----
     cliente_ids = {}
     for nombre, tel, email, dirc in CLIENTES:
-        existing = cur.execute(
+        existing = dconn.exec_driver_sql(
             "SELECT id, telefono, email, direccion FROM clientes WHERE nombre = ?",
             (nombre,),
-        ).fetchone()
+        ).mappings().first()
         if existing:
             cid = existing["id"]
             needs_update = (
@@ -3259,17 +3265,17 @@ def admin_seed_demo():
                 or not existing["direccion"]
             )
             if needs_update:
-                cur.execute(
+                dconn.exec_driver_sql(
                     "UPDATE clientes SET telefono=?, email=?, direccion=? WHERE id=?",
                     (tel, email, dirc, cid),
                 )
                 updated["clientes"] += 1
         else:
-            cur.execute(
+            res = dconn.exec_driver_sql(
                 "INSERT INTO clientes (nombre, telefono, email, direccion) VALUES (?, ?, ?, ?)",
                 (nombre, tel, email, dirc),
             )
-            cid = cur.lastrowid
+            cid = res.lastrowid
             inserted["clientes"] += 1
         cliente_ids[nombre] = cid
 
@@ -3279,10 +3285,10 @@ def admin_seed_demo():
         cid = cliente_ids.get(cli_nombre)
         if cid is None:
             continue
-        dup = cur.execute(
+        dup = dconn.exec_driver_sql(
             "SELECT id FROM reparaciones WHERE cliente_id=? AND dispositivo=? AND descripcion=?",
             (cid, disp, desc),
-        ).fetchone()
+        ).first()
         if dup:
             skipped["reparaciones"] += 1
             continue
@@ -3291,7 +3297,7 @@ def admin_seed_demo():
         fecha_salida = fmt(now - timedelta(days=dias_s)) if dias_s is not None else None
         fecha_pago = fecha_salida if estado_pago == "Pagado" else None
 
-        cur.execute(
+        res = dconn.exec_driver_sql(
             """INSERT INTO reparaciones
                (cliente_id, dispositivo, descripcion, estado, fecha_entrada, fecha_salida,
                 precio, tipo_documento, estado_pago, fecha_pago, metodo_pago)
@@ -3299,7 +3305,7 @@ def admin_seed_demo():
             (cid, disp, desc, estado, fecha_entrada, fecha_salida,
              precio, "presupuesto", estado_pago, fecha_pago, metodo),
         )
-        rid = cur.lastrowid
+        rid = res.lastrowid
         inserted["reparaciones"] += 1
 
         flujo = ["Pendiente", "En proceso", "Terminado", "Entregado"]
@@ -3315,7 +3321,7 @@ def admin_seed_demo():
         for i in range(idx_final + 1):
             estado_paso = flujo[i]
             fecha_paso = fecha_entrada if i == 0 else fmt(t_inicio + paso * i)
-            cur.execute(
+            dconn.exec_driver_sql(
                 """INSERT INTO reparaciones_historial
                    (reparacion_id, estado_anterior, estado_nuevo, fecha_cambio, usuario)
                    VALUES (?, ?, ?, ?, ?)""",
@@ -3327,13 +3333,13 @@ def admin_seed_demo():
     # ---- INVENTARIO ----
     fecha_act = fmt(now)
     for nombre, cat, cant, cmin, coste, venta, prov in PIEZAS:
-        existing = cur.execute(
+        existing = dconn.exec_driver_sql(
             "SELECT id FROM inventario_piezas WHERE nombre = ?", (nombre,)
-        ).fetchone()
+        ).first()
         if existing:
             skipped["piezas"] += 1
             continue
-        cur.execute(
+        dconn.exec_driver_sql(
             """INSERT INTO inventario_piezas
                (nombre, categoria, cantidad, cantidad_minima, precio_coste,
                 precio_venta, proveedor, fecha_actualizacion)
@@ -3347,21 +3353,21 @@ def admin_seed_demo():
         cid = cliente_ids.get(cli_nombre)
         if cid is None:
             continue
-        rep = cur.execute(
+        rep = dconn.exec_driver_sql(
             "SELECT id FROM reparaciones WHERE cliente_id=? AND dispositivo=? ORDER BY id DESC LIMIT 1",
             (cid, disp),
-        ).fetchone()
+        ).mappings().first()
         if not rep:
             continue
         rid = rep["id"]
-        dup = cur.execute(
+        dup = dconn.exec_driver_sql(
             "SELECT id FROM notas_reparacion WHERE reparacion_id=? AND contenido=?",
             (rid, contenido),
-        ).fetchone()
+        ).first()
         if dup:
             skipped["notas"] += 1
             continue
-        cur.execute(
+        dconn.exec_driver_sql(
             """INSERT INTO notas_reparacion
                (reparacion_id, usuario, contenido, fecha_creacion, es_importante)
                VALUES (?, ?, ?, ?, ?)""",
@@ -3369,8 +3375,8 @@ def admin_seed_demo():
         )
         inserted["notas"] += 1
 
-    conn.commit()
-    conn.close()
+    s.commit()
+    s.close()
 
     html = f"""
     <!doctype html>
@@ -3600,24 +3606,26 @@ def admin_test_email():
 def admin_solicitudes():
     """Panel admin para ver y gestionar solicitudes de reparacion."""
     estado_filtro = request.args.get("estado", "todas")
-    conn = get_db()
+    from sqlalchemy import func as _func
 
-    if estado_filtro and estado_filtro != "todas":
-        solicitudes = conn.execute(
-            "SELECT * FROM solicitudes_reparacion WHERE estado = ? ORDER BY fecha_solicitud DESC",
-            (estado_filtro,)
-        ).fetchall()
-    else:
-        solicitudes = conn.execute(
-            "SELECT * FROM solicitudes_reparacion ORDER BY fecha_solicitud DESC"
-        ).fetchall()
+    with get_session() as s:
+        stmt = select(SolicitudReparacion.__table__)
+        if estado_filtro and estado_filtro != "todas":
+            stmt = stmt.where(SolicitudReparacion.__table__.c.estado == estado_filtro)
+        stmt = stmt.order_by(SolicitudReparacion.__table__.c.fecha_solicitud.desc())
+        solicitudes = s.execute(stmt).mappings().all()
 
-    # Contadores
-    total = conn.execute("SELECT COUNT(*) FROM solicitudes_reparacion").fetchone()[0]
-    pendientes = conn.execute("SELECT COUNT(*) FROM solicitudes_reparacion WHERE estado = 'pendiente'").fetchone()[0]
-    aceptadas = conn.execute("SELECT COUNT(*) FROM solicitudes_reparacion WHERE estado = 'aceptada'").fetchone()[0]
-    rechazadas = conn.execute("SELECT COUNT(*) FROM solicitudes_reparacion WHERE estado = 'rechazada'").fetchone()[0]
-    conn.close()
+        # Contadores
+        def _count(estado=None):
+            q = select(_func.count()).select_from(SolicitudReparacion)
+            if estado:
+                q = q.where(SolicitudReparacion.estado == estado)
+            return s.scalar(q)
+
+        total = _count()
+        pendientes = _count('pendiente')
+        aceptadas = _count('aceptada')
+        rechazadas = _count('rechazada')
 
     return render_template("admin_solicitudes.html",
         solicitudes=solicitudes,
@@ -3635,63 +3643,61 @@ def admin_solicitudes():
 @permiso_requerido('reparaciones_crear')
 def aceptar_solicitud(id):
     """Aceptar una solicitud y crear cliente + reparacion automaticamente."""
-    conn = get_db()
-    solicitud = conn.execute("SELECT * FROM solicitudes_reparacion WHERE id = ?", (id,)).fetchone()
+    from sqlalchemy import func as _func
+    with get_session() as s:
+        solicitud = s.get(SolicitudReparacion, id)
 
-    if not solicitud:
-        flash("Solicitud no encontrada.", "danger")
-        conn.close()
-        return redirect(url_for("admin_solicitudes"))
+        if not solicitud:
+            flash("Solicitud no encontrada.", "danger")
+            return redirect(url_for("admin_solicitudes"))
 
-    # Buscar si ya existe un cliente con ese telefono o email
-    cliente = None
-    if solicitud['email']:
-        cliente = conn.execute(
-            "SELECT id FROM clientes WHERE LOWER(email) = ?",
-            (solicitud['email'].lower(),)
-        ).fetchone()
-    if not cliente and solicitud['telefono']:
-        cliente = conn.execute(
-            "SELECT id FROM clientes WHERE telefono = ?",
-            (solicitud['telefono'],)
-        ).fetchone()
+        # Buscar si ya existe un cliente con ese telefono o email
+        cliente = None
+        if solicitud.email:
+            cliente = s.scalars(
+                select(Cliente).where(_func.lower(Cliente.email) == solicitud.email.lower())
+            ).first()
+        if not cliente and solicitud.telefono:
+            cliente = s.scalars(
+                select(Cliente).where(Cliente.telefono == solicitud.telefono)
+            ).first()
 
-    if cliente:
-        cliente_id = cliente['id']
-    else:
-        # Crear nuevo cliente
-        conn.execute(
-            "INSERT INTO clientes (nombre, telefono, email) VALUES (?, ?, ?)",
-            (solicitud['nombre'], solicitud['telefono'], solicitud['email'])
+        if cliente:
+            cliente_id = cliente.id
+        else:
+            # Crear nuevo cliente
+            nuevo_cli = Cliente(nombre=solicitud.nombre,
+                                telefono=solicitud.telefono,
+                                email=solicitud.email)
+            s.add(nuevo_cli)
+            s.flush()  # asigna el id sin commitear (equivale a last_insert_rowid)
+            cliente_id = nuevo_cli.id
+
+        # Crear reparacion
+        dispositivo_str = solicitud.dispositivo
+        if solicitud.marca:
+            dispositivo_str += f" {solicitud.marca}"
+        if solicitud.modelo:
+            dispositivo_str += f" {solicitud.modelo}"
+
+        nueva_rep = Reparacion(
+            cliente_id=cliente_id, dispositivo=dispositivo_str,
+            descripcion=solicitud.descripcion, estado='Pendiente',
+            fecha_entrada=datetime.now().strftime("%Y-%m-%d"),
         )
-        cliente_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        s.add(nueva_rep)
+        s.flush()
+        reparacion_id = nueva_rep.id
 
-    # Crear reparacion
-    dispositivo_str = solicitud['dispositivo']
-    if solicitud['marca']:
-        dispositivo_str += f" {solicitud['marca']}"
-    if solicitud['modelo']:
-        dispositivo_str += f" {solicitud['modelo']}"
+        # Marcar solicitud como aceptada
+        notas = request.form.get("notas_admin", "").strip()
+        solicitud.estado = 'aceptada'
+        solicitud.notas_admin = notas
+        solicitud.fecha_gestion = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        solicitud_nombre = solicitud.nombre
+        s.commit()
 
-    conn.execute("""
-        INSERT INTO reparaciones (cliente_id, dispositivo, descripcion, estado, fecha_entrada)
-        VALUES (?, ?, ?, 'Pendiente', ?)
-    """, (cliente_id, dispositivo_str, solicitud['descripcion'],
-          datetime.now().strftime("%Y-%m-%d")))
-
-    reparacion_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-
-    # Marcar solicitud como aceptada
-    notas = request.form.get("notas_admin", "").strip()
-    conn.execute("""
-        UPDATE solicitudes_reparacion
-        SET estado = 'aceptada', notas_admin = ?, fecha_gestion = ?
-        WHERE id = ?
-    """, (notas, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), id))
-    conn.commit()
-    conn.close()
-
-    flash(f"Solicitud aceptada. Se creo la reparacion #{reparacion_id} para {solicitud['nombre']}.", "success")
+    flash(f"Solicitud aceptada. Se creo la reparacion #{reparacion_id} para {solicitud_nombre}.", "success")
     return redirect(url_for("admin_solicitudes"))
 
 
@@ -3701,15 +3707,14 @@ def aceptar_solicitud(id):
 @permiso_requerido('reparaciones_ver')
 def rechazar_solicitud(id):
     """Rechazar una solicitud."""
-    conn = get_db()
     notas = request.form.get("notas_admin", "").strip()
-    conn.execute("""
-        UPDATE solicitudes_reparacion
-        SET estado = 'rechazada', notas_admin = ?, fecha_gestion = ?
-        WHERE id = ?
-    """, (notas, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), id))
-    conn.commit()
-    conn.close()
+    with get_session() as s:
+        solicitud = s.get(SolicitudReparacion, id)
+        if solicitud:
+            solicitud.estado = 'rechazada'
+            solicitud.notas_admin = notas
+            solicitud.fecha_gestion = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            s.commit()
 
     flash("Solicitud rechazada.", "warning")
     return redirect(url_for("admin_solicitudes"))
@@ -3721,10 +3726,11 @@ def rechazar_solicitud(id):
 @permiso_requerido('reparaciones_borrar')
 def borrar_solicitud(id):
     """Eliminar una solicitud."""
-    conn = get_db()
-    conn.execute("DELETE FROM solicitudes_reparacion WHERE id = ?", (id,))
-    conn.commit()
-    conn.close()
+    with get_session() as s:
+        solicitud = s.get(SolicitudReparacion, id)
+        if solicitud:
+            s.delete(solicitud)
+            s.commit()
     flash("Solicitud eliminada.", "info")
     return redirect(url_for("admin_solicitudes"))
 
@@ -3739,28 +3745,27 @@ def publico_pagar(id):
         flash('⚠️ Debes proporcionar un correo válido (ej: cliente@ejemplo.com).', 'danger')
         return redirect(url_for('consulta'))
 
-    conn = get_db()
     try:
-        reparacion = conn.execute(
-            """SELECT r.id, r.precio, r.estado_pago, c.email as cliente_email, c.nombre as cliente_nombre
-               FROM reparaciones r
-               JOIN clientes c ON c.id = r.cliente_id
-               WHERE r.id = ?""", (id,)
-        ).fetchone()
+        with get_session() as s:
+            reparacion = s.execute(
+                select(
+                    Reparacion.id, Reparacion.precio, Reparacion.estado_pago,
+                    Cliente.email.label('cliente_email'),
+                    Cliente.nombre.label('cliente_nombre'),
+                ).join(Cliente, Cliente.id == Reparacion.cliente_id)
+                .where(Reparacion.id == id)
+            ).mappings().first()
     except Exception as e:
-        conn.close()
         flash(f'❌ Error al buscar la reparación: {str(e)}', 'danger')
         return redirect(url_for('consulta'))
 
     # 2. Validar que reparación existe
     if not reparacion:
-        conn.close()
         flash(f'❌ Reparación #{id} no encontrada en el sistema.', 'danger')
         return redirect(url_for('consulta'))
 
     # 3. Validar que NO está ya pagada
     if reparacion['estado_pago'] == 'Pagado':
-        conn.close()
         flash('✅ Esta reparación ya está pagada. No se puede procesar otro pago.', 'info')
         return redirect(url_for('consulta'))
 
@@ -3768,34 +3773,28 @@ def publico_pagar(id):
     try:
         precio = float(reparacion['precio']) if reparacion['precio'] else 0
         if precio <= 0:
-            conn.close()
             flash('❌ No hay un importe válido a pagar para esta reparación.', 'danger')
             return redirect(url_for('consulta'))
     except (ValueError, TypeError):
-        conn.close()
         flash('❌ Error: el precio no es válido.', 'danger')
         return redirect(url_for('consulta'))
 
     # 5. Validar email coincide con cliente registrado
     cliente_email_bd = str(reparacion['cliente_email'] or '').strip().lower()
     if not cliente_email_bd:
-        conn.close()
         flash('❌ El cliente no tiene email registrado. Contacta con administración.', 'danger')
         return redirect(url_for('consulta'))
 
     if cliente_email != cliente_email_bd:
-        conn.close()
         flash('❌ El correo no coincide con el cliente registrado para esta reparación.', 'danger')
         return redirect(url_for('consulta'))
 
     # 6. Validar Stripe configurado
     if not STRIPE_SECRET_KEY or stripe is None:
-        conn.close()
         flash('⚠️ El sistema de pagos no está configurado. Contacta con el administrador.', 'danger')
         return redirect(url_for('consulta'))
     # si la clave se ve como pública, advertir al usuario/administrador
     if STRIPE_SECRET_KEY.startswith('pk_'):
-        conn.close()
         logger.warning('Stripe secret key parece una clave pública (pk_...).')
         flash('❌ Clave secreta de Stripe inválida. Verifica las variables de entorno.', 'danger')
         return redirect(url_for('consulta'))
@@ -3835,18 +3834,14 @@ def publico_pagar(id):
             }, ensure_ascii=False))
         except Exception:
             logger.info(f"checkout_session_created reparacion={id} cliente={cliente_email}")
-        conn.close()
         return redirect(checkout_session.url, code=303)
     except stripe.error.CardError as e:
-        conn.close()
         flash(f'❌ Error de tarjeta: {e.user_message}', 'danger')
         return redirect(url_for('consulta'))
     except stripe.error.RateLimitError:
-        conn.close()
         flash('❌ Demasiadas solicitudes. Intenta de nuevo en unos momentos.', 'danger')
         return redirect(url_for('consulta'))
     except stripe.error.InvalidRequestError as e:
-        conn.close()
         flash(f'❌ Error en la solicitud: {e.user_message}', 'danger')
         return redirect(url_for('consulta'))
     except stripe.error.AuthenticationError as e:
@@ -3857,15 +3852,12 @@ def publico_pagar(id):
             _mask_key(stripe.api_key) if stripe and getattr(stripe, 'api_key', None) else None,
             str(e.user_message or e)
         )
-        conn.close()
         flash('❌ Error de autenticación con Stripe. Verifica las claves.', 'danger')
         return redirect(url_for('consulta'))
     except stripe.error.APIConnectionError:
-        conn.close()
         flash('❌ Error de conexión con Stripe. Intenta de nuevo más tarde.', 'danger')
         return redirect(url_for('consulta'))
     except Exception as e:
-        conn.close()
         flash(f'❌ Error inesperado al crear la sesión de pago: {str(e)}', 'danger')
         logger.exception(json.dumps({
             "event": "publico_pagar_error",
@@ -3934,18 +3926,15 @@ def stripe_webhook():
         elif 'amount_subtotal' in session_obj:
             amount_total = session_obj.get('amount_subtotal')
 
-        # Actualizar BD con validaciones adicionales
-        conn = None
+        # Actualizar BD con validaciones adicionales (Fase 1.8: ORM)
+        s = None
         try:
-            conn = get_db()
+            s = get_session()
 
             # Verificar que reparación existe
-            reparacion = conn.execute(
-                'SELECT id, estado_pago, precio FROM reparaciones WHERE id = ?',
-                (reparacion_id,)
-            ).fetchone()
+            rep = s.get(Reparacion, reparacion_id)
 
-            if not reparacion:
+            if not rep:
                 logger.error(json.dumps({
                     "event": "webhook_missing_reparacion",
                     "reparacion_id": reparacion_id,
@@ -3954,7 +3943,7 @@ def stripe_webhook():
                 return jsonify({'error': f'Repair #{reparacion_id} not found'}), 404
 
             # Verificar que NO está ya pagada
-            if reparacion['estado_pago'] == 'Pagado':
+            if rep.estado_pago == 'Pagado':
                 logger.warning(json.dumps({
                     "event": "webhook_already_paid",
                     "reparacion_id": reparacion_id,
@@ -3963,10 +3952,10 @@ def stripe_webhook():
                 return jsonify({'status': 'already_paid'}), 200
 
             # Si Stripe reporta importe, compararlo con precio de la reparación
-            if amount_total is not None and reparacion['precio'] is not None:
+            if amount_total is not None and rep.precio is not None:
                 # convertir a unidades (centavos -> moneda)
                 reported = float(amount_total) / 100.0
-                expected = float(reparacion['precio'])
+                expected = float(rep.precio)
                 # tolerancia pequeña para decimales
                 if abs(reported - expected) > 0.01:
                     logger.warning(json.dumps({
@@ -3990,18 +3979,14 @@ def stripe_webhook():
                 return jsonify({'status': 'payment_not_completed'}), 200
 
             # Marcar como pagada
-            fecha_pago = datetime.now().strftime('%Y-%m-%d')
-            metodo_pago = 'Tarjeta (Stripe)'
-
-            conn.execute(
-                'UPDATE reparaciones SET estado_pago=?, fecha_pago=?, metodo_pago=? WHERE id=?',
-                ('Pagado', fecha_pago, metodo_pago, reparacion_id)
-            )
-            conn.commit()
+            rep.estado_pago = 'Pagado'
+            rep.fecha_pago = datetime.now().strftime('%Y-%m-%d')
+            rep.metodo_pago = 'Tarjeta (Stripe)'
+            s.commit()
 
             # Registrar auditoría y log estructurado
             try:
-                registrar_auditoria(conn, 'pago_registrado', None, {
+                registrar_auditoria(None, 'pago_registrado', None, {
                     'reparacion_id': reparacion_id,
                     'session_id': session_id,
                     'cliente_email': cliente_email,
@@ -4013,12 +3998,13 @@ def stripe_webhook():
             # Enviar email de confirmación de pago
             try:
                 # Obtener datos completos de la reparación y cliente
-                reparacion_data = conn.execute('''
-                    SELECT r.*, c.nombre, c.email, c.telefono
-                    FROM reparaciones r
-                    JOIN clientes c ON r.cliente_id = c.id
-                    WHERE r.id = ?
-                ''', (reparacion_id,)).fetchone()
+                reparacion_data = s.execute(
+                    select(
+                        Reparacion.__table__,
+                        Cliente.nombre, Cliente.email, Cliente.telefono,
+                    ).join(Cliente, Reparacion.cliente_id == Cliente.id)
+                    .where(Reparacion.id == reparacion_id)
+                ).mappings().first()
 
                 if reparacion_data:
                     # Generar factura PDF para adjuntar al email
@@ -4074,8 +4060,8 @@ def stripe_webhook():
             return jsonify({'error': str(e)}), 500
 
         finally:
-            if conn:
-                conn.close()
+            if s:
+                s.close()
 
     else:
         logger.info(f'[WEBHOOK] ℹ️ Evento no procesado: {event["type"]}')

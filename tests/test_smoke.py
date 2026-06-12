@@ -532,6 +532,14 @@ class TestStripeWebhook:
         assert row["estado_pago"] == "Pagado"
         assert "Stripe" in (row["metodo_pago"] or "")
 
+        # Y la auditoría debe registrar el pago (ampliado en Fase 1.8)
+        audit = db_conn.execute(
+            "SELECT evento_datos FROM audit_log "
+            "WHERE event_type='pago_registrado' ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        assert audit is not None, "webhook no registró auditoría de pago"
+        assert str(seed_reparacion) in audit["evento_datos"]
+
     def test_webhook_rejects_request_without_signature(self, client):
         r = client.post(
             "/stripe/webhook",
