@@ -42,7 +42,7 @@ from sqlalchemy import select
 from database import get_session
 from models import (
     Usuario, Cliente, Reparacion, FotoReparacion, NotaReparacion,
-    InventarioPieza, PiezaReparacion, RepairHistorial,
+    InventarioPieza, PiezaReparacion, RepairHistorial, Rol, PermisoRol,
 )
 from auth import (
     login_required, role_required, permiso_requerido, tiene_permiso,
@@ -2541,15 +2541,16 @@ def generar_pdf_presupuesto(id):
 @login_required
 @permiso_requerido('usuarios_ver')
 def admin_usuarios():
-    conn = get_db()
-    usuarios = conn.execute("""
-        SELECT id, usuario, rol, 
-               (SELECT COUNT(*) FROM reparaciones_historial 
-                WHERE usuario = usuarios.usuario) AS intervenciones
-        FROM usuarios
-        ORDER BY usuario ASC
-    """).fetchall()
-    conn.close()
+    # Fase 1.7: listado con subquery de intervenciones vía capa SQLAlchemy
+    from sqlalchemy import text as _text
+    with get_session() as s:
+        usuarios = s.execute(_text("""
+            SELECT id, usuario, rol,
+                   (SELECT COUNT(*) FROM reparaciones_historial
+                    WHERE usuario = usuarios.usuario) AS intervenciones
+            FROM usuarios
+            ORDER BY usuario ASC
+        """)).mappings().all()
     
     try:
         logger.info(json.dumps({
@@ -2588,53 +2589,46 @@ def nuevo_usuario():
             flash(f"❌ {pwd_msg}", "danger")
             return render_template("nuevo_usuario.html")
         
-        conn = get_db()
-        roles_validos = [r['nombre'] for r in conn.execute("SELECT nombre FROM roles").fetchall()]
-        if rol not in roles_validos:
-            conn.close()
-            flash("Rol invalido.", "danger")
-            roles_db = conn.execute("SELECT nombre, descripcion, color FROM roles ORDER BY nombre").fetchall()
-            return render_template("nuevo_usuario.html", roles=roles_db)
+        with get_session() as s:
+            roles_validos = list(s.scalars(select(Rol.nombre)).all())
+            if rol not in roles_validos:
+                flash("Rol invalido.", "danger")
+                roles_db = s.scalars(select(Rol).order_by(Rol.nombre)).all()
+                return render_template("nuevo_usuario.html", roles=roles_db)
 
-        try:
-            hashed_pwd = generate_password_hash(contraseña)
-            conn.execute("""
-                INSERT INTO usuarios (usuario, contraseña, rol)
-                VALUES (?, ?, ?)
-            """, (usuario, hashed_pwd, rol))
-            conn.commit()
-            
-            # Registrar auditoría
-            registrar_auditoria(conn, 'usuario_created', session.get('usuario'), {
-                'nuevo_usuario': usuario,
-                'rol': rol
-            }, ip_address=request.remote_addr)
-            
-            conn.close()
-            
             try:
-                logger.info(json.dumps({
-                    "event": "usuario_created",
-                    "admin": session.get('usuario'),
-                    "nuevo_usuario": usuario,
-                    "rol": rol
-                }, ensure_ascii=False))
-            except Exception:
-                logger.info(f"usuario_created {usuario} rol={rol}")
-            
-            flash(f"✅ Usuario '{usuario}' creado correctamente.", "success")
-            return redirect(url_for("admin_usuarios"))
-        
-        except Exception as e:
-            conn.close() if conn else None
-            error_msg = "El usuario ya existe" if "UNIQUE" in str(e) else str(e)
-            flash(f"❌ Error: {error_msg}", "danger")
-            roles_db = get_db().execute("SELECT nombre, descripcion, color FROM roles ORDER BY nombre").fetchall()
-            return render_template("nuevo_usuario.html", roles=roles_db)
+                hashed_pwd = generate_password_hash(contraseña)
+                s.add(Usuario(usuario=usuario, password=hashed_pwd, rol=rol))
+                s.commit()
 
-    conn = get_db()
-    roles_db = conn.execute("SELECT nombre, descripcion, color FROM roles ORDER BY nombre").fetchall()
-    conn.close()
+                # Registrar auditoría
+                registrar_auditoria(None, 'usuario_created', session.get('usuario'), {
+                    'nuevo_usuario': usuario,
+                    'rol': rol
+                }, ip_address=request.remote_addr)
+
+                try:
+                    logger.info(json.dumps({
+                        "event": "usuario_created",
+                        "admin": session.get('usuario'),
+                        "nuevo_usuario": usuario,
+                        "rol": rol
+                    }, ensure_ascii=False))
+                except Exception:
+                    logger.info(f"usuario_created {usuario} rol={rol}")
+
+                flash(f"✅ Usuario '{usuario}' creado correctamente.", "success")
+                return redirect(url_for("admin_usuarios"))
+
+            except Exception as e:
+                s.rollback()
+                error_msg = "El usuario ya existe" if "UNIQUE" in str(e) else str(e)
+                flash(f"❌ Error: {error_msg}", "danger")
+                roles_db = s.scalars(select(Rol).order_by(Rol.nombre)).all()
+                return render_template("nuevo_usuario.html", roles=roles_db)
+
+    with get_session() as s:
+        roles_db = s.scalars(select(Rol).order_by(Rol.nombre)).all()
     return render_template("nuevo_usuario.html", roles=roles_db)
 
 
@@ -2644,81 +2638,66 @@ def nuevo_usuario():
 @permiso_requerido('usuarios_editar')
 @csrf_protect
 def editar_usuario(id):
-    conn = get_db()
-    usuario = conn.execute("SELECT * FROM usuarios WHERE id = ?", (id,)).fetchone()
-    
-    if not usuario:
-        conn.close()
-        flash("❌ Usuario no encontrado.", "danger")
-        return redirect(url_for("admin_usuarios"))
-    
-    if request.method == "POST":
-        rol = request.form.get("rol", "tecnico").strip()
-        nueva_contraseña = request.form.get("nueva_contraseña", "").strip()
-        
-        roles_validos = [r['nombre'] for r in conn.execute("SELECT nombre FROM roles").fetchall()]
-        if rol not in roles_validos:
-            flash("Rol invalido.", "danger")
-            roles_db = conn.execute("SELECT nombre, descripcion, color FROM roles ORDER BY nombre").fetchall()
-            conn.close()
-            return render_template("editar_usuario.html", usuario=usuario, roles=roles_db)
-        
-        try:
-            if nueva_contraseña:
-                pwd_ok, pwd_msg = validar_contraseña(nueva_contraseña)
-                if not pwd_ok:
-                    flash(f"❌ {pwd_msg}", "danger")
-                    conn.close()
-                    return render_template("editar_usuario.html", usuario=usuario)
-                
-                hashed_pwd = generate_password_hash(nueva_contraseña)
-                conn.execute("""
-                    UPDATE usuarios
-                    SET rol = ?, contraseña = ?
-                    WHERE id = ?
-                """, (rol, hashed_pwd, id))
-            else:
-                conn.execute("""
-                    UPDATE usuarios
-                    SET rol = ?
-                    WHERE id = ?
-                """, (rol, id))
-            
-            conn.commit()
-            
-            # Registrar auditoría
-            registrar_auditoria(conn, 'usuario_updated', session.get('usuario'), {
-                'usuario_id': id,
-                'usuario_nombre': usuario['usuario'],
-                'nuevo_rol': rol,
-                'password_changed': bool(nueva_contraseña)
-            }, ip_address=request.remote_addr)
-            
-            try:
-                logger.info(json.dumps({
-                    "event": "usuario_updated",
-                    "admin": session.get('usuario'),
-                    "usuario_id": id,
-                    "usuario_nombre": usuario['usuario'],
-                    "nuevo_rol": rol,
-                    "password_changed": bool(nueva_contraseña)
-                }, ensure_ascii=False))
-            except Exception:
-                logger.info(f"usuario_updated id={id} rol={rol}")
-            
-            flash(f"✅ Usuario '{usuario['usuario']}' actualizado correctamente.", "success")
-            conn.close()
-            return redirect(url_for("admin_usuarios"))
-        
-        except Exception as e:
-            conn.close()
-            flash(f"❌ Error al actualizar: {str(e)}", "danger")
-            roles_db = conn.execute("SELECT nombre, descripcion, color FROM roles ORDER BY nombre").fetchall()
-            return render_template("editar_usuario.html", usuario=usuario, roles=roles_db)
+    with get_session() as s:
+        usuario = s.get(Usuario, id)
 
-    roles_db = conn.execute("SELECT nombre, descripcion, color FROM roles ORDER BY nombre").fetchall()
-    conn.close()
-    return render_template("editar_usuario.html", usuario=usuario, roles=roles_db)
+        if not usuario:
+            flash("❌ Usuario no encontrado.", "danger")
+            return redirect(url_for("admin_usuarios"))
+
+        if request.method == "POST":
+            rol = request.form.get("rol", "tecnico").strip()
+            nueva_contraseña = request.form.get("nueva_contraseña", "").strip()
+
+            roles_validos = list(s.scalars(select(Rol.nombre)).all())
+            if rol not in roles_validos:
+                flash("Rol invalido.", "danger")
+                roles_db = s.scalars(select(Rol).order_by(Rol.nombre)).all()
+                return render_template("editar_usuario.html", usuario=usuario, roles=roles_db)
+
+            try:
+                if nueva_contraseña:
+                    pwd_ok, pwd_msg = validar_contraseña(nueva_contraseña)
+                    if not pwd_ok:
+                        flash(f"❌ {pwd_msg}", "danger")
+                        return render_template("editar_usuario.html", usuario=usuario)
+
+                    usuario.password = generate_password_hash(nueva_contraseña)
+
+                usuario.rol = rol
+                s.commit()
+
+                # Registrar auditoría
+                registrar_auditoria(None, 'usuario_updated', session.get('usuario'), {
+                    'usuario_id': id,
+                    'usuario_nombre': usuario.usuario,
+                    'nuevo_rol': rol,
+                    'password_changed': bool(nueva_contraseña)
+                }, ip_address=request.remote_addr)
+
+                try:
+                    logger.info(json.dumps({
+                        "event": "usuario_updated",
+                        "admin": session.get('usuario'),
+                        "usuario_id": id,
+                        "usuario_nombre": usuario.usuario,
+                        "nuevo_rol": rol,
+                        "password_changed": bool(nueva_contraseña)
+                    }, ensure_ascii=False))
+                except Exception:
+                    logger.info(f"usuario_updated id={id} rol={rol}")
+
+                flash(f"✅ Usuario '{usuario.usuario}' actualizado correctamente.", "success")
+                return redirect(url_for("admin_usuarios"))
+
+            except Exception as e:
+                s.rollback()
+                flash(f"❌ Error al actualizar: {str(e)}", "danger")
+                roles_db = s.scalars(select(Rol).order_by(Rol.nombre)).all()
+                return render_template("editar_usuario.html", usuario=usuario, roles=roles_db)
+
+        roles_db = s.scalars(select(Rol).order_by(Rol.nombre)).all()
+        return render_template("editar_usuario.html", usuario=usuario, roles=roles_db)
 
 
 # BORRAR USUARIO
@@ -2728,43 +2707,41 @@ def editar_usuario(id):
 def borrar_usuario(id):
     # Validar que no sea el mismo usuario logueado
     if session.get('usuario'):
-        conn = get_db()
-        usuario = conn.execute("SELECT usuario FROM usuarios WHERE id = ?", (id,)).fetchone()
-        
-        if usuario and usuario['usuario'] == session.get('usuario'):
-            conn.close()
-            flash("❌ No puedes borrar tu propia cuenta.", "danger")
-            return redirect(url_for("admin_usuarios"))
-        
-        try:
-            usuario_nombre = usuario['usuario'] if usuario else f"ID {id}"
-            conn.execute("DELETE FROM usuarios WHERE id = ?", (id,))
-            conn.commit()
-            
-            # Registrar auditoría
-            registrar_auditoria(conn, 'usuario_deleted', session.get('usuario'), {
-                'usuario_id': id,
-                'usuario_nombre': usuario_nombre
-            }, ip_address=request.remote_addr)
-            
+        with get_session() as s:
+            usuario = s.get(Usuario, id)
+
+            if usuario and usuario.usuario == session.get('usuario'):
+                flash("❌ No puedes borrar tu propia cuenta.", "danger")
+                return redirect(url_for("admin_usuarios"))
+
             try:
-                logger.info(json.dumps({
-                    "event": "usuario_deleted",
-                    "admin": session.get('usuario'),
-                    "usuario_id": id,
-                    "usuario_nombre": usuario_nombre
-                }, ensure_ascii=False))
-            except Exception:
-                logger.info(f"usuario_deleted id={id}")
-            
-            flash(f"✅ Usuario '{usuario_nombre}' eliminado correctamente.", "success")
-        
-        except Exception as e:
-            flash(f"❌ Error al eliminar: {str(e)}", "danger")
-        
-        finally:
-            conn.close()
-    
+                usuario_nombre = usuario.usuario if usuario else f"ID {id}"
+                if usuario:
+                    s.delete(usuario)
+                    s.commit()
+
+                # Registrar auditoría
+                registrar_auditoria(None, 'usuario_deleted', session.get('usuario'), {
+                    'usuario_id': id,
+                    'usuario_nombre': usuario_nombre
+                }, ip_address=request.remote_addr)
+
+                try:
+                    logger.info(json.dumps({
+                        "event": "usuario_deleted",
+                        "admin": session.get('usuario'),
+                        "usuario_id": id,
+                        "usuario_nombre": usuario_nombre
+                    }, ensure_ascii=False))
+                except Exception:
+                    logger.info(f"usuario_deleted id={id}")
+
+                flash(f"✅ Usuario '{usuario_nombre}' eliminado correctamente.", "success")
+
+            except Exception as e:
+                s.rollback()
+                flash(f"❌ Error al eliminar: {str(e)}", "danger")
+
     return redirect(url_for("admin_usuarios"))
 
 # =========================================
@@ -2775,29 +2752,31 @@ def borrar_usuario(id):
 @login_required
 @permiso_requerido('roles_gestionar')
 def admin_roles():
-    conn = get_db()
-    roles = conn.execute("SELECT * FROM roles ORDER BY es_sistema DESC, nombre").fetchall()
-    roles_list = []
-    for r in roles:
-        permisos = conn.execute(
-            "SELECT permiso FROM permisos_rol WHERE rol_nombre = ?", (r['nombre'],)
-        ).fetchall()
-        permisos_list = [p['permiso'] for p in permisos]
-        # Contar usuarios con este rol
-        count = conn.execute(
-            "SELECT COUNT(*) FROM usuarios WHERE rol = ?", (r['nombre'],)
-        ).fetchone()[0]
-        roles_list.append({
-            'id': r['id'],
-            'nombre': r['nombre'],
-            'descripcion': r['descripcion'],
-            'es_sistema': r['es_sistema'],
-            'color': r['color'],
-            'permisos': permisos_list,
-            'num_permisos': len(permisos_list),
-            'num_usuarios': count,
-        })
-    conn.close()
+    from sqlalchemy import func as _func
+    with get_session() as s:
+        roles = s.scalars(
+            select(Rol).order_by(Rol.es_sistema.desc(), Rol.nombre)
+        ).all()
+        roles_list = []
+        for r in roles:
+            permisos_list = list(s.scalars(
+                select(PermisoRol.permiso).where(PermisoRol.rol_nombre == r.nombre)
+            ).all())
+            # Contar usuarios con este rol
+            count = s.scalar(
+                select(_func.count()).select_from(Usuario)
+                .where(Usuario.rol == r.nombre)
+            )
+            roles_list.append({
+                'id': r.id,
+                'nombre': r.nombre,
+                'descripcion': r.descripcion,
+                'es_sistema': r.es_sistema,
+                'color': r.color,
+                'permisos': permisos_list,
+                'num_permisos': len(permisos_list),
+                'num_usuarios': count,
+            })
 
     # Agrupar permisos por categoria
     categorias = {}
@@ -2831,31 +2810,30 @@ def nuevo_rol():
             flash("No puedes crear un rol con ese nombre reservado.", "danger")
             return redirect(url_for('nuevo_rol'))
 
-        conn = get_db()
-        try:
-            conn.execute(
-                "INSERT INTO roles (nombre, descripcion, es_sistema, color) VALUES (?, ?, 0, ?)",
-                (nombre, descripcion, color)
-            )
-            for p in permisos:
-                conn.execute(
-                    "INSERT OR IGNORE INTO permisos_rol (rol_nombre, permiso) VALUES (?, ?)",
-                    (nombre, p)
-                )
-            conn.commit()
+        from sqlalchemy.dialects.sqlite import insert as _sqlite_insert
+        with get_session() as s:
+            try:
+                s.add(Rol(nombre=nombre, descripcion=descripcion,
+                          es_sistema=0, color=color))
+                for p in permisos:
+                    s.execute(
+                        _sqlite_insert(PermisoRol)
+                        .values(rol_nombre=nombre, permiso=p)
+                        .on_conflict_do_nothing()
+                    )
+                s.commit()
 
-            registrar_auditoria(conn, 'rol_created', session.get('usuario'), {
-                'rol': nombre, 'permisos': permisos
-            }, ip_address=request.remote_addr)
+                registrar_auditoria(None, 'rol_created', session.get('usuario'), {
+                    'rol': nombre, 'permisos': permisos
+                }, ip_address=request.remote_addr)
 
-            conn.close()
-            flash(f"Rol '{nombre}' creado correctamente con {len(permisos)} permisos.", "success")
-            return redirect(url_for('admin_roles'))
-        except Exception as e:
-            conn.close()
-            error_msg = "El rol ya existe" if "UNIQUE" in str(e) else str(e)
-            flash(f"Error: {error_msg}", "danger")
-            return redirect(url_for('nuevo_rol'))
+                flash(f"Rol '{nombre}' creado correctamente con {len(permisos)} permisos.", "success")
+                return redirect(url_for('admin_roles'))
+            except Exception as e:
+                s.rollback()
+                error_msg = "El rol ya existe" if "UNIQUE" in str(e) else str(e)
+                flash(f"Error: {error_msg}", "danger")
+                return redirect(url_for('nuevo_rol'))
 
     categorias = {}
     for p in PERMISOS_DISPONIBLES:
@@ -2871,54 +2849,46 @@ def nuevo_rol():
 @login_required
 @permiso_requerido('roles_gestionar')
 def editar_rol(id):
-    conn = get_db()
-    rol = conn.execute("SELECT * FROM roles WHERE id = ?", (id,)).fetchone()
-    if not rol:
-        conn.close()
-        flash("Rol no encontrado.", "danger")
-        return redirect(url_for('admin_roles'))
-
-    if request.method == "POST":
-        descripcion = request.form.get("descripcion", "").strip()
-        color = request.form.get("color", "#6c757d").strip()
-        permisos = request.form.getlist("permisos")
-
-        # Admin siempre tiene todos los permisos
-        if rol['nombre'] == 'admin':
-            permisos = [p['clave'] for p in PERMISOS_DISPONIBLES]
-
-        try:
-            conn.execute(
-                "UPDATE roles SET descripcion = ?, color = ? WHERE id = ?",
-                (descripcion, color, id)
-            )
-            # Reemplazar permisos
-            conn.execute("DELETE FROM permisos_rol WHERE rol_nombre = ?", (rol['nombre'],))
-            for p in permisos:
-                conn.execute(
-                    "INSERT INTO permisos_rol (rol_nombre, permiso) VALUES (?, ?)",
-                    (rol['nombre'], p)
-                )
-            conn.commit()
-
-            registrar_auditoria(conn, 'rol_updated', session.get('usuario'), {
-                'rol': rol['nombre'], 'permisos': permisos
-            }, ip_address=request.remote_addr)
-
-            conn.close()
-            flash(f"Rol '{rol['nombre']}' actualizado correctamente.", "success")
+    from sqlalchemy import delete as _delete
+    with get_session() as s:
+        rol = s.get(Rol, id)
+        if not rol:
+            flash("Rol no encontrado.", "danger")
             return redirect(url_for('admin_roles'))
-        except Exception as e:
-            conn.close()
-            flash(f"Error al actualizar: {str(e)}", "danger")
-            return redirect(url_for('editar_rol', id=id))
 
-    # GET — cargar permisos actuales
-    permisos_actuales = conn.execute(
-        "SELECT permiso FROM permisos_rol WHERE rol_nombre = ?", (rol['nombre'],)
-    ).fetchall()
-    permisos_list = [p['permiso'] for p in permisos_actuales]
-    conn.close()
+        if request.method == "POST":
+            descripcion = request.form.get("descripcion", "").strip()
+            color = request.form.get("color", "#6c757d").strip()
+            permisos = request.form.getlist("permisos")
+
+            # Admin siempre tiene todos los permisos
+            if rol.nombre == 'admin':
+                permisos = [p['clave'] for p in PERMISOS_DISPONIBLES]
+
+            try:
+                rol.descripcion = descripcion
+                rol.color = color
+                # Reemplazar permisos
+                s.execute(_delete(PermisoRol).where(PermisoRol.rol_nombre == rol.nombre))
+                for p in permisos:
+                    s.add(PermisoRol(rol_nombre=rol.nombre, permiso=p))
+                s.commit()
+
+                registrar_auditoria(None, 'rol_updated', session.get('usuario'), {
+                    'rol': rol.nombre, 'permisos': permisos
+                }, ip_address=request.remote_addr)
+
+                flash(f"Rol '{rol.nombre}' actualizado correctamente.", "success")
+                return redirect(url_for('admin_roles'))
+            except Exception as e:
+                s.rollback()
+                flash(f"Error al actualizar: {str(e)}", "danger")
+                return redirect(url_for('editar_rol', id=id))
+
+        # GET — cargar permisos actuales
+        permisos_list = list(s.scalars(
+            select(PermisoRol.permiso).where(PermisoRol.rol_nombre == rol.nombre)
+        ).all())
 
     categorias = {}
     for p in PERMISOS_DISPONIBLES:
@@ -2935,37 +2905,35 @@ def editar_rol(id):
 @login_required
 @permiso_requerido('roles_gestionar')
 def borrar_rol(id):
-    conn = get_db()
-    rol = conn.execute("SELECT * FROM roles WHERE id = ?", (id,)).fetchone()
-    if not rol:
-        conn.close()
-        flash("Rol no encontrado.", "danger")
-        return redirect(url_for('admin_roles'))
+    from sqlalchemy import delete as _delete, func as _func
+    with get_session() as s:
+        rol = s.get(Rol, id)
+        if not rol:
+            flash("Rol no encontrado.", "danger")
+            return redirect(url_for('admin_roles'))
 
-    if rol['es_sistema']:
-        conn.close()
-        flash("No puedes eliminar roles del sistema (admin, tecnico).", "danger")
-        return redirect(url_for('admin_roles'))
+        if rol.es_sistema:
+            flash("No puedes eliminar roles del sistema (admin, tecnico).", "danger")
+            return redirect(url_for('admin_roles'))
 
-    # Verificar que no haya usuarios con este rol
-    users_count = conn.execute(
-        "SELECT COUNT(*) FROM usuarios WHERE rol = ?", (rol['nombre'],)
-    ).fetchone()[0]
-    if users_count > 0:
-        conn.close()
-        flash(f"No puedes eliminar el rol '{rol['nombre']}' porque tiene {users_count} usuario(s) asignado(s). Reasignalos primero.", "danger")
-        return redirect(url_for('admin_roles'))
+        # Verificar que no haya usuarios con este rol
+        users_count = s.scalar(
+            select(_func.count()).select_from(Usuario).where(Usuario.rol == rol.nombre)
+        )
+        if users_count > 0:
+            flash(f"No puedes eliminar el rol '{rol.nombre}' porque tiene {users_count} usuario(s) asignado(s). Reasignalos primero.", "danger")
+            return redirect(url_for('admin_roles'))
 
-    conn.execute("DELETE FROM permisos_rol WHERE rol_nombre = ?", (rol['nombre'],))
-    conn.execute("DELETE FROM roles WHERE id = ?", (id,))
-    conn.commit()
+        rol_nombre = rol.nombre
+        s.execute(_delete(PermisoRol).where(PermisoRol.rol_nombre == rol_nombre))
+        s.delete(rol)
+        s.commit()
 
-    registrar_auditoria(conn, 'rol_deleted', session.get('usuario'), {
-        'rol': rol['nombre']
+    registrar_auditoria(None, 'rol_deleted', session.get('usuario'), {
+        'rol': rol_nombre
     }, ip_address=request.remote_addr)
 
-    conn.close()
-    flash(f"Rol '{rol['nombre']}' eliminado correctamente.", "success")
+    flash(f"Rol '{rol_nombre}' eliminado correctamente.", "success")
     return redirect(url_for('admin_roles'))
 
 
@@ -3484,30 +3452,31 @@ def admin_sistema():
     except OSError:
         db_size_kb = 0
 
-    # Conteo de registros por tabla
-    conn = get_db()
+    # Conteo de registros por tabla (nombres fijos del bucle, no input externo)
+    from sqlalchemy import text as _text
     tablas_conteo = {}
-    for tabla in ('clientes', 'reparaciones', 'usuarios', 'audit_log'):
-        try:
-            c = conn.execute(f"SELECT COUNT(*) FROM {tabla}").fetchone()
-            tablas_conteo[tabla] = c[0] if c else 0
-        except Exception:
-            tablas_conteo[tabla] = None
+    with get_session() as s:
+        for tabla in ('clientes', 'reparaciones', 'usuarios', 'audit_log'):
+            try:
+                tablas_conteo[tabla] = s.execute(
+                    _text(f"SELECT COUNT(*) FROM {tabla}")
+                ).scalar()
+            except Exception:
+                tablas_conteo[tabla] = None
 
-    # Ultimo evento del audit_log
-    ultimo_evento = None
-    try:
-        row = conn.execute(
-            "SELECT event_type, timestamp FROM audit_log ORDER BY id DESC LIMIT 1"
-        ).fetchone()
-        if row:
-            ultimo_evento = {
-                'event_type': row['event_type'],
-                'timestamp': row['timestamp'],
-            }
-    except Exception:
+        # Ultimo evento del audit_log
         ultimo_evento = None
-    conn.close()
+        try:
+            row = s.execute(_text(
+                "SELECT event_type, timestamp FROM audit_log ORDER BY id DESC LIMIT 1"
+            )).mappings().first()
+            if row:
+                ultimo_evento = {
+                    'event_type': row['event_type'],
+                    'timestamp': row['timestamp'],
+                }
+        except Exception:
+            ultimo_evento = None
 
     # Fecha y hora actual del servidor
     ahora = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
