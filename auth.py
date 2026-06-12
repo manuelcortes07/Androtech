@@ -76,14 +76,8 @@ PERMISOS_TECNICO = [
 ]
 
 
-def init_permisos_db(conn=None):
-    """Create permissions tables and seed default roles.
-
-    El parámetro `conn` (sqlite3.Connection) se mantiene por compatibilidad
-    con el llamador de `app.py` pero se ignora — internamente usamos
-    SQLAlchemy. Eliminar el parámetro requeriría tocar `app.py`, lo que
-    queda fuera del alcance de la Fase 1.1.
-    """
+def init_permisos_db():
+    """Create permissions tables and seed default roles (SQLAlchemy)."""
     engine = get_engine()
 
     # Crear las tablas si no existen. SQLAlchemy genera el DDL equivalente

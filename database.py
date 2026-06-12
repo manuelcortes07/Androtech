@@ -1,8 +1,9 @@
-"""SQLAlchemy engine and session — capa ORM de la Fase 1 del SaaS.
+"""SQLAlchemy engine and session — capa de acceso a datos de AndroTech.
 
-Este módulo COEXISTE con `db.py` durante la migración. El código legacy
-sigue usando `db.get_db()` (sqlite3 crudo) mientras los módulos que se van
-migrando (`auth.py` y `audit.py` en Fase 1.1) usan este `get_session()`.
+Desde la Fase 1.9 es la ÚNICA capa de acceso: `db.py` (sqlite3 crudo)
+fue eliminado y todo el proyecto usa `get_session()` + modelos de
+`models.py` (o `text()` para las consultas complejas anotadas para
+recibir filtro `taller_id` manual en la Fase 2).
 
 Diseño:
 - Engine y `sessionmaker` se construyen **perezosamente** en la primera

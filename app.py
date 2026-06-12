@@ -34,12 +34,10 @@ from flask_limiter.util import get_remote_address
 
 # local modules (split responsibilities)
 from utils.pdf_generator import generar_presupuesto_pdf
-from db import get_db
-# Capa ORM (Fase 1 SaaS). Convive con db.get_db() durante la migración:
-# los bloques ya migrados usan get_session()/select(); el resto sigue
-# con sqlite3 crudo hasta su sub-fase correspondiente.
+# Capa de acceso a datos: SQLAlchemy (Fase 1 SaaS completada — todo el
+# proyecto usa get_session()/select(); sqlite3 directo eliminado).
 from sqlalchemy import select
-from database import get_session
+from database import get_session, get_engine
 from models import (
     Usuario, Cliente, Reparacion, FotoReparacion, NotaReparacion,
     InventarioPieza, PiezaReparacion, RepairHistorial, Rol, PermisoRol,
@@ -153,12 +151,18 @@ if STRIPE_SECRET_KEY and not STRIPE_SECRET_KEY.startswith('sk_'):
         _mask_key(STRIPE_SECRET_KEY)
     )
 
-# Inicializar tabla de auditoría
-_conn_init = get_db()
-crear_tabla_auditoria(_conn_init)
+# Inicialización defensiva del esquema al arrancar (Fase 1.9: vía engine
+# SQLAlchemy, sin sqlite3 directo). El DDL se conserva byte-idéntico al
+# original para que una instalación desde cero genere el mismo esquema
+# (p. ej. los ON DELETE CASCADE que los modelos ORM no declaran).
+from sqlalchemy import text as _ddl_text
+
+crear_tabla_auditoria()
+
+_init_conn = get_engine().connect()
 
 # Inicializar tabla de fotos de reparaciones
-_conn_init.execute("""
+_init_conn.execute(_ddl_text("""
     CREATE TABLE IF NOT EXISTS fotos_reparacion (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         reparacion_id INTEGER NOT NULL,
@@ -168,16 +172,16 @@ _conn_init.execute("""
         subido_por TEXT,
         FOREIGN KEY (reparacion_id) REFERENCES reparaciones(id) ON DELETE CASCADE
     )
-""")
+"""))
 # Añadir columna firma si no existe
 try:
-    _conn_init.execute("ALTER TABLE reparaciones ADD COLUMN firma TEXT")
-    _conn_init.commit()
+    _init_conn.execute(_ddl_text("ALTER TABLE reparaciones ADD COLUMN firma TEXT"))
+    _init_conn.commit()
 except Exception:
     pass  # columna ya existe
 
 # Tabla de notas internas
-_conn_init.execute("""
+_init_conn.execute(_ddl_text("""
     CREATE TABLE IF NOT EXISTS notas_reparacion (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         reparacion_id INTEGER NOT NULL,
@@ -187,11 +191,11 @@ _conn_init.execute("""
         es_importante INTEGER DEFAULT 0,
         FOREIGN KEY (reparacion_id) REFERENCES reparaciones(id) ON DELETE CASCADE
     )
-""")
-_conn_init.commit()
+"""))
+_init_conn.commit()
 
 # Tabla de inventario de piezas
-_conn_init.execute("""
+_init_conn.execute(_ddl_text("""
     CREATE TABLE IF NOT EXISTS inventario_piezas (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nombre TEXT NOT NULL,
@@ -205,10 +209,10 @@ _conn_init.execute("""
         ubicacion TEXT,
         fecha_actualizacion TEXT
     )
-""")
+"""))
 
 # Tabla de piezas usadas en reparaciones
-_conn_init.execute("""
+_init_conn.execute(_ddl_text("""
     CREATE TABLE IF NOT EXISTS piezas_reparacion (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         reparacion_id INTEGER NOT NULL,
@@ -219,11 +223,11 @@ _conn_init.execute("""
         FOREIGN KEY (reparacion_id) REFERENCES reparaciones(id),
         FOREIGN KEY (pieza_id) REFERENCES inventario_piezas(id)
     )
-""")
-_conn_init.commit()
+"""))
+_init_conn.commit()
 
 # Tabla de solicitudes de reparacion (formulario publico)
-_conn_init.execute("""
+_init_conn.execute(_ddl_text("""
     CREATE TABLE IF NOT EXISTS solicitudes_reparacion (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nombre TEXT NOT NULL,
@@ -241,13 +245,12 @@ _conn_init.execute("""
         fecha_solicitud TEXT NOT NULL,
         fecha_gestion TEXT
     )
-""")
-_conn_init.commit()
+"""))
+_init_conn.commit()
+_init_conn.close()
 
 # Inicializar sistema de roles y permisos
-init_permisos_db(_conn_init)
-
-_conn_init.close()
+init_permisos_db()
 
 # Configuración de subida de fotos
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads', 'reparaciones')
@@ -508,9 +511,6 @@ def validate_csrf():
 # removed from this module.
 
 
-# Database connection function now lives in db.py and is
-# imported as ``get_db``. Keeping this placeholder comment for clarity.
-
 # Authentication decorators (`login_required`, `role_required`) are
 # now located in auth.py; they are imported above.
 # History recording logic has been delegated to historial.py;
@@ -548,7 +548,7 @@ def login():
             flash(f"Bienvenido, {user.usuario}!", "success")
 
             # Registrar auditoría
-            registrar_auditoria(None, 'login', user.usuario, {
+            registrar_auditoria('login', user.usuario, {
                 'rol': user.rol,
                 'ip': request.remote_addr
             }, ip_address=request.remote_addr)
@@ -568,7 +568,7 @@ def login():
             flash("Usuario o contraseña incorrectos.", "danger")
 
             # Registrar intento fallido
-            registrar_auditoria(None, 'login_failed', usuario or 'unknown', {
+            registrar_auditoria('login_failed', usuario or 'unknown', {
                 'ip': request.remote_addr
             }, ip_address=request.remote_addr)
 
@@ -845,7 +845,7 @@ def dashboard():
     tecnico_dict = [{"nombre": t[0], "cantidad": t[1]} for t in reparaciones_por_tecnico] if reparaciones_por_tecnico else []
 
     # ========== AUDITORÍA RECIENTE (últimos 10 eventos) ==========
-    eventos_auditoria = obtener_auditoria_reciente(None, limite=10)
+    eventos_auditoria = obtener_auditoria_reciente(limite=10)
 
     s.close()
     
@@ -1730,7 +1730,7 @@ def editar_reparacion(id):
             # Registrar cambio de estado en historial (ANTES de actualizar:
             # registrar_cambio_estado lee el estado vigente de BD en su
             # propia sesión, así que el orden sigue siendo contrato).
-            registrar_cambio_estado(None, id, estado, usuario=session.get('usuario'))
+            registrar_cambio_estado(id, estado, usuario=session.get('usuario'))
 
             rep.cliente_id = cliente_id
             rep.dispositivo = dispositivo
@@ -2603,7 +2603,7 @@ def nuevo_usuario():
                 s.commit()
 
                 # Registrar auditoría
-                registrar_auditoria(None, 'usuario_created', session.get('usuario'), {
+                registrar_auditoria('usuario_created', session.get('usuario'), {
                     'nuevo_usuario': usuario,
                     'rol': rol
                 }, ip_address=request.remote_addr)
@@ -2669,7 +2669,7 @@ def editar_usuario(id):
                 s.commit()
 
                 # Registrar auditoría
-                registrar_auditoria(None, 'usuario_updated', session.get('usuario'), {
+                registrar_auditoria('usuario_updated', session.get('usuario'), {
                     'usuario_id': id,
                     'usuario_nombre': usuario.usuario,
                     'nuevo_rol': rol,
@@ -2722,7 +2722,7 @@ def borrar_usuario(id):
                     s.commit()
 
                 # Registrar auditoría
-                registrar_auditoria(None, 'usuario_deleted', session.get('usuario'), {
+                registrar_auditoria('usuario_deleted', session.get('usuario'), {
                     'usuario_id': id,
                     'usuario_nombre': usuario_nombre
                 }, ip_address=request.remote_addr)
@@ -2824,7 +2824,7 @@ def nuevo_rol():
                     )
                 s.commit()
 
-                registrar_auditoria(None, 'rol_created', session.get('usuario'), {
+                registrar_auditoria('rol_created', session.get('usuario'), {
                     'rol': nombre, 'permisos': permisos
                 }, ip_address=request.remote_addr)
 
@@ -2875,7 +2875,7 @@ def editar_rol(id):
                     s.add(PermisoRol(rol_nombre=rol.nombre, permiso=p))
                 s.commit()
 
-                registrar_auditoria(None, 'rol_updated', session.get('usuario'), {
+                registrar_auditoria('rol_updated', session.get('usuario'), {
                     'rol': rol.nombre, 'permisos': permisos
                 }, ip_address=request.remote_addr)
 
@@ -2930,7 +2930,7 @@ def borrar_rol(id):
         s.delete(rol)
         s.commit()
 
-    registrar_auditoria(None, 'rol_deleted', session.get('usuario'), {
+    registrar_auditoria('rol_deleted', session.get('usuario'), {
         'rol': rol_nombre
     }, ip_address=request.remote_addr)
 
@@ -3986,7 +3986,7 @@ def stripe_webhook():
 
             # Registrar auditoría y log estructurado
             try:
-                registrar_auditoria(None, 'pago_registrado', None, {
+                registrar_auditoria('pago_registrado', None, {
                     'reparacion_id': reparacion_id,
                     'session_id': session_id,
                     'cliente_email': cliente_email,
@@ -4106,7 +4106,7 @@ def internal_error(error):
 # Descomenta y ejecuta esta función UNA VEZ para crear el usuario admin
 # Luego vuelve a comentarla para evitar recrearlo
 # def crear_admin_inicial():
-#     conn = get_db()
+#     with get_session() as s:  # (actualizado en Fase 1.9; antes usaba sqlite3)
 #     hashed_password = generate_password_hash("admin123")  # Cambia la contraseña
 #     try:
 #         conn.execute("""

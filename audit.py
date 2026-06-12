@@ -3,10 +3,9 @@
 Este módulo proporciona funciones para registrar eventos de auditoría
 (logins, cambios de usuarios, reparaciones, pagos) en la tabla audit_log.
 
-Fase 1.1 de la migración SaaS: las consultas usan SQLAlchemy a través
-del modelo `AuditLog`. El parámetro `conn` (sqlite3.Connection) que
-recibían las funciones se mantiene por compatibilidad con los llamadores
-de `app.py` pero se ignora — internamente abrimos `Session` propia.
+Las consultas usan SQLAlchemy a través del modelo `AuditLog` (Fase 1
+de la migración SaaS completada; el parámetro `conn` legacy se eliminó
+en la limpieza de la Fase 1.9).
 """
 
 from datetime import datetime
@@ -21,12 +20,10 @@ from models import AuditLog
 logger = logging.getLogger("androtech")
 
 
-def registrar_auditoria(conn, event_type, usuario, evento_datos, ip_address=None):
+def registrar_auditoria(event_type, usuario, evento_datos, ip_address=None):
     """Registra un evento de auditoría en la tabla audit_log.
 
     Args:
-        conn: parámetro legacy (sqlite3.Connection). **Ignorado**; se mantiene
-              por compatibilidad con los ~30 puntos de llamada en app.py.
         event_type: Tipo de evento (string):
             'login', 'usuario_created', 'usuario_updated', 'usuario_deleted',
             'reparacion_created', 'reparacion_updated', 'reparacion_deleted',
@@ -64,11 +61,10 @@ def registrar_auditoria(conn, event_type, usuario, evento_datos, ip_address=None
         return False
 
 
-def obtener_auditoria_reciente(conn=None, limite=20, event_type=None):
+def obtener_auditoria_reciente(limite=20, event_type=None):
     """Obtiene los eventos de auditoría más recientes.
 
     Args:
-        conn: parámetro legacy. **Ignorado**; se mantiene por compatibilidad.
         limite: Número máximo de registros a retornar (default 20)
         event_type: Filtrar por tipo de evento (default: todos)
 
@@ -111,11 +107,8 @@ def obtener_auditoria_reciente(conn=None, limite=20, event_type=None):
         return []
 
 
-def crear_tabla_auditoria(conn=None):
+def crear_tabla_auditoria():
     """Crea la tabla audit_log si no existe.
-
-    Args:
-        conn: parámetro legacy. **Ignorado**; se mantiene por compatibilidad.
 
     Returns:
         bool: True si se creó o ya existe, False en caso de error.

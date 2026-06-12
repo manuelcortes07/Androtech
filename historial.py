@@ -4,25 +4,21 @@ The application stores a history of state transitions in
 `reparaciones_historial`; this module exposes a single function that
 encapsulates the insert logic and the guard against duplicate entries.
 
-Fase 1.2 de la migración SaaS: las dos consultas de
-`registrar_cambio_estado` usan SQLAlchemy. La inserción en
-`reparaciones_historial` va por el modelo ORM `RepairHistorial`; la
-lectura de `reparaciones.estado` usa SQL crudo vía `text()` porque el
-modelo `Reparacion` aún no existe — se migrará en una fase posterior.
+Las dos consultas de `registrar_cambio_estado` usan SQLAlchemy con los
+modelos ORM `Reparacion` y `RepairHistorial` (el `text()` provisional
+de la Fase 1.2 se sustituyó en la limpieza de la Fase 1.9, cuando el
+modelo `Reparacion` ya existía).
 
-Cuando se cree el modelo `Reparacion`, sustituir la sentencia `text()`
-por `select(Reparacion.estado).where(Reparacion.id == reparacion_id)`.
-
-`validar_transicion` es lógica pura sin acceso a BD: no se toca.
+`validar_transicion` es lógica pura sin acceso a BD.
 """
 
 from datetime import datetime
 import logging
 
-from sqlalchemy import text
+from sqlalchemy import select
 
 from database import get_session
-from models import RepairHistorial
+from models import Reparacion, RepairHistorial
 
 logger = logging.getLogger("androtech")
 
@@ -62,13 +58,10 @@ def validar_transicion(estado_actual, estado_nuevo, rol='tecnico'):
     return True, ''
 
 
-def registrar_cambio_estado(conn, reparacion_id, estado_nuevo, usuario=None):
+def registrar_cambio_estado(reparacion_id, estado_nuevo, usuario=None):
     """Record a state change if the new value differs from the previous one.
 
     Args:
-        conn: parámetro legacy (sqlite3.Connection). **Ignorado**; se mantiene
-              por compatibilidad con los llamadores en app.py. Internamente
-              se abre una `Session` SQLAlchemy.
         reparacion_id: ID de la reparación cuyo estado cambia.
         estado_nuevo: Estado destino.
         usuario: Nombre del usuario que provoca el cambio (opcional).
@@ -77,21 +70,19 @@ def registrar_cambio_estado(conn, reparacion_id, estado_nuevo, usuario=None):
         bool: True si se insertó una fila en `reparaciones_historial`,
               False si la reparación no existe o el estado no cambia
               realmente (no-op deseado para evitar ruido).
+
+    Contrato con los llamadores: esta función lee el estado VIGENTE en BD
+    en su propia sesión, así que debe invocarse ANTES de commitear el
+    update del nuevo estado (como hace editar_reparacion en app.py).
     """
     try:
         with get_session() as s:
-            # Lectura del estado actual. Modelo `Reparacion` aún no existe
-            # (vendrá en una fase posterior), así que usamos `text()` para
-            # mantener el SQL crudo de forma idiomática.
-            row = s.execute(
-                text("SELECT estado FROM reparaciones WHERE id = :id"),
-                {"id": reparacion_id},
+            estado_anterior = s.scalars(
+                select(Reparacion.estado).where(Reparacion.id == reparacion_id)
             ).first()
 
-            if not row:
+            if estado_anterior is None:
                 return False
-
-            estado_anterior = row[0]
             if estado_anterior == estado_nuevo:
                 return False
 
