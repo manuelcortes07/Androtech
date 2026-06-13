@@ -99,6 +99,18 @@ _bootstrap_core_schema(TEST_DB_PATH)
 import app as app_module  # noqa: E402
 from werkzeug.security import generate_password_hash  # noqa: E402
 
+# ───────────────────────────────────────────────────────────────────
+# Redirigir las subidas (fotos/firmas) a un tmpdir EFÍMERO.
+# Los handlers leen `UPLOAD_FOLDER`/`SIGNATURES_FOLDER` como globals de
+# `app.py` en cada llamada, así que reasignarlos aquí basta para que ningún
+# test escriba jamás en el `static/uploads/` real del repo (Fase 2.0).
+# ───────────────────────────────────────────────────────────────────
+_TEST_UPLOAD_ROOT = tempfile.mkdtemp(prefix="androtech_test_uploads_")
+app_module.UPLOAD_FOLDER = os.path.join(_TEST_UPLOAD_ROOT, "reparaciones")
+app_module.SIGNATURES_FOLDER = os.path.join(_TEST_UPLOAD_ROOT, "firmas")
+os.makedirs(app_module.UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(app_module.SIGNATURES_FOLDER, exist_ok=True)
+
 
 # ───────────────────────────────────────────────────────────────────
 # Fixtures de Flask
