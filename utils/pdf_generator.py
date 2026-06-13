@@ -264,14 +264,15 @@ def _build_terms(styles, tipo="presupuesto"):
     return elements
 
 
-def _build_qr(styles, reparacion_id, base_url=None):
+def _build_qr(styles, reparacion_id, base_url=None, taller_slug=None):
     """
     Construir QR de consulta directa.
 
-    El QR codifica la URL completa /consulta?id=X para que el cliente
-    pueda escanear y ver el estado de su reparacion sin escribir nada.
-    base_url se recibe desde la vista Flask (request.host_url) para
-    que funcione correctamente tanto en local como en Railway (https).
+    Multi-tenant (Fase 2.2): el QR codifica la URL canónica con slug de taller
+    `/t/{slug}/consulta?id=X`. Si no hay slug (contexto sin taller), cae a la
+    legacy `/consulta?id=X`, que sigue resolviendo el taller desde el id.
+    base_url se recibe desde la vista Flask (request.host_url) para que
+    funcione tanto en local como en Railway (https).
     """
     elements = []
     try:
@@ -280,7 +281,11 @@ def _build_qr(styles, reparacion_id, base_url=None):
             base_url = os.environ.get(
                 'APP_BASE_URL', 'https://androtech-production.up.railway.app'
             )
-        url = f"{base_url.rstrip('/')}/consulta?id={reparacion_id}"
+        base = base_url.rstrip('/')
+        if taller_slug:
+            url = f"{base}/t/{taller_slug}/consulta?id={reparacion_id}"
+        else:
+            url = f"{base}/consulta?id={reparacion_id}"
 
         qr = QrCodeWidget(url)
         qr.barWidth = 80
@@ -320,7 +325,8 @@ def _build_footer(styles):
     return elements
 
 
-def generar_presupuesto_pdf(reparacion_data, tipo_documento="presupuesto", base_url=None):
+def generar_presupuesto_pdf(reparacion_data, tipo_documento="presupuesto", base_url=None,
+                            taller_slug=None):
     """
     Generar un PDF de presupuesto o factura para una reparacion.
 
@@ -380,7 +386,7 @@ def generar_presupuesto_pdf(reparacion_data, tipo_documento="presupuesto", base_
     elements.extend(_build_terms(styles, tipo_documento))
 
     # QR
-    elements.extend(_build_qr(styles, rep_id, base_url=base_url))
+    elements.extend(_build_qr(styles, rep_id, base_url=base_url, taller_slug=taller_slug))
 
     # Footer
     elements.extend(_build_footer(styles))

@@ -237,6 +237,9 @@ def logged_admin(client, seed_admin, app):
         # pero los rellenamos por consistencia con login() real.
         from auth import PERMISOS_ADMIN
         sess["permisos"] = PERMISOS_ADMIN
+        # Fase 2.2: la sesión queda ligada al taller (el resolver lee de aquí).
+        sess["taller_id"] = 1
+        sess["taller_slug"] = "androtech"
         sess["csrf_token"] = "test-csrf-token"
     return client
 
@@ -249,6 +252,8 @@ def logged_tecnico(client, seed_tecnico, app):
         sess["rol"] = "tecnico"
         from auth import PERMISOS_TECNICO
         sess["permisos"] = list(PERMISOS_TECNICO)
+        sess["taller_id"] = 1
+        sess["taller_slug"] = "androtech"
         sess["csrf_token"] = "test-csrf-token"
     return client
 

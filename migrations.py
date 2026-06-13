@@ -129,10 +129,64 @@ def _anadir_taller_id_scoped(conn) -> None:
             )
 
 
-def _anadir_taller_id_audit(conn) -> None:
-    if _table_exists(conn, "audit_log") and not _has_column(conn, "audit_log", "taller_id"):
-        # Nullable a propósito: eventos del superadmin de plataforma llevan NULL.
-        conn.exec_driver_sql("ALTER TABLE audit_log ADD COLUMN taller_id INTEGER")
+def _audit_tiene_unique_con_taller(conn) -> bool:
+    """True si audit_log ya tiene un UNIQUE que incluye taller_id."""
+    for idx in conn.exec_driver_sql("PRAGMA index_list(audit_log)").fetchall():
+        idx_name, unique = idx[1], idx[2]
+        if not unique:
+            continue
+        cols = [r[2] for r in
+                conn.exec_driver_sql(f"PRAGMA index_info({idx_name})").fetchall()]
+        if "taller_id" in cols:
+            return True
+    return False
+
+
+def _rebuild_audit_log(conn) -> None:
+    """Rebuild de audit_log: añade taller_id (nullable) Y mete taller_id en el
+    UNIQUE → UNIQUE(taller_id, event_type, usuario, timestamp).
+
+    Por qué el rebuild y no un simple ALTER: el UNIQUE original
+    (event_type, usuario, timestamp) NO incluye taller_id, así que el "admin"
+    del taller A y el "admin" del taller B que hacen login en el mismo segundo
+    COLISIONAN y se pierde un evento de auditoría. Inaceptable en un log de
+    seguridad multi-tenant. SQLite no permite cambiar un UNIQUE vía ALTER, de
+    ahí el rebuild. Idempotente: si el UNIQUE ya incluye taller_id, no hace nada.
+    """
+    if not _table_exists(conn, "audit_log"):
+        return
+    if _audit_tiene_unique_con_taller(conn):
+        return
+
+    tiene_taller_id = _has_column(conn, "audit_log", "taller_id")
+
+    conn.exec_driver_sql("""
+        CREATE TABLE audit_log_nuevo (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            taller_id INTEGER,
+            event_type TEXT NOT NULL,
+            usuario TEXT,
+            evento_datos TEXT,
+            ip_address TEXT,
+            timestamp TEXT NOT NULL,
+            UNIQUE(taller_id, event_type, usuario, timestamp)
+        )
+    """)
+    if tiene_taller_id:
+        conn.exec_driver_sql("""
+            INSERT INTO audit_log_nuevo (id, taller_id, event_type, usuario, evento_datos, ip_address, timestamp)
+            SELECT id, taller_id, event_type, usuario, evento_datos, ip_address, timestamp FROM audit_log
+        """)
+    else:
+        conn.exec_driver_sql("""
+            INSERT INTO audit_log_nuevo (id, event_type, usuario, evento_datos, ip_address, timestamp)
+            SELECT id, event_type, usuario, evento_datos, ip_address, timestamp FROM audit_log
+        """)
+    conn.exec_driver_sql("DROP TABLE audit_log")
+    conn.exec_driver_sql("ALTER TABLE audit_log_nuevo RENAME TO audit_log")
+    # Recrear los índices de búsqueda.
+    conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS idx_audit_event_type ON audit_log(event_type)")
+    conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp DESC)")
 
 
 def _rebuild_usuarios(conn) -> None:
@@ -179,7 +233,8 @@ def aplicar_migracion_multitenant() -> dict:
     """Aplica la migración multi-tenant. Idempotente. Devuelve un resumen."""
     engine = get_engine()
     resumen = {"talleres_creada": False, "taller_1_insertado": False,
-               "columnas_anadidas": [], "usuarios_rebuild": False}
+               "columnas_anadidas": [], "usuarios_rebuild": False,
+               "audit_rebuild": False}
 
     with engine.begin() as conn:
         _crear_tabla_talleres(conn)
@@ -195,7 +250,14 @@ def aplicar_migracion_multitenant() -> dict:
             if not tenia:
                 resumen["columnas_anadidas"].append(tabla)
         _anadir_taller_id_scoped(conn)
-        _anadir_taller_id_audit(conn)
+
+        # audit_log: rebuild para meter taller_id en el UNIQUE (per-taller dedup).
+        necesita_audit = (
+            _table_exists(conn, "audit_log")
+            and not _audit_tiene_unique_con_taller(conn)
+        )
+        _rebuild_audit_log(conn)
+        resumen["audit_rebuild"] = necesita_audit
 
         necesita_rebuild = (
             _table_exists(conn, "usuarios")

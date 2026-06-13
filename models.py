@@ -147,8 +147,12 @@ class AuditLog(Base):
     timestamp = Column(Text, nullable=False)
 
     __table_args__ = (
+        # taller_id va en el UNIQUE: per-taller dedup. Sin él, el "admin" de
+        # dos talleres logueándose en el mismo segundo colisionaría y se
+        # perdería un evento de auditoría (Fase 2.2).
         UniqueConstraint(
-            "event_type", "usuario", "timestamp", name="uq_audit_event"
+            "taller_id", "event_type", "usuario", "timestamp",
+            name="uq_audit_event"
         ),
         Index("idx_audit_event_type", "event_type"),
         Index("idx_audit_timestamp", "timestamp"),

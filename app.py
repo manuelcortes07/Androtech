@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify, send_from_directory, g
 import os
 import socket
 from datetime import datetime, timedelta
@@ -315,6 +315,17 @@ email_service = EmailService(mail)
 app.before_request(ensure_csrf_token)
 app.context_processor(inject_csrf_token)
 
+# Multi-tenancy (Fase 2.2): resolver el taller activo (g.taller_id) en cada
+# petición. Debe correr antes de cualquier handler que consulte datos con scope.
+from tenancy import resolver_taller, DEFAULT_TALLER_ID, DEFAULT_TALLER_SLUG
+app.before_request(resolver_taller)
+
+# Exponer el taller activo a las plantillas (para construir URLs /t/{slug}/...).
+@app.context_processor
+def inject_taller():
+    return dict(taller_slug=getattr(g, 'taller_slug', None),
+                taller_id=getattr(g, 'taller_id', None))
+
 # REGISTRAR FILTRO PERSONALIZADO PARA JINJA2
 @app.template_filter('strftime')
 def strftime_filter(date_str, format_str='%d/%m/%Y'):
@@ -531,26 +542,33 @@ def validate_csrf():
 
 # LOGIN
 @app.route("/login", methods=["GET", "POST"])
+@app.route("/t/<slug>/login", methods=["GET", "POST"])
 @limiter.limit("5 per minute", methods=["POST"])
 @csrf_protect
-def login():
+def login(slug=None):
     if request.method == "POST":
         usuario = request.form["usuario"]
         contraseña = request.form["contraseña"]
 
-        # Fase 1.3: lookup de usuario vía SQLAlchemy (modelo Usuario).
-        # El atributo Python `password` mapea a la columna SQL `contraseña`.
+        # Fase 2.2 (riesgo 🔴 #4): el usuario se busca por (taller_id, usuario),
+        # no solo por usuario. g.taller_id lo ha resuelto el before_request
+        # (desde el slug /t/{slug}/login o por defecto el taller 1).
         with get_session() as s:
             user = s.scalars(
-                select(Usuario).where(Usuario.usuario == usuario)
+                select(Usuario).where(
+                    Usuario.usuario == usuario,
+                    Usuario.taller_id == g.taller_id,
+                )
             ).first()
 
-        # registrar_auditoria ignora `conn` desde Fase 1.1 (abre su propia
-        # Session); pasamos None hasta la limpieza de firmas en Fase 1.9.
         if user and check_password_hash(user.password, contraseña):
             session["usuario"] = user.usuario
             session["rol"] = user.rol
             session["permisos"] = obtener_permisos_usuario(user.rol)
+            # Ligar la sesión al taller del usuario (fuente de verdad de las
+            # rutas internas en las siguientes peticiones).
+            session["taller_id"] = user.taller_id
+            session["taller_slug"] = g.taller_slug
             flash(f"Bienvenido, {user.usuario}!", "success")
 
             # Registrar auditoría
@@ -2358,7 +2376,11 @@ def ticket_recogida(id):
     # QR code: URL directa a la consulta de esta reparacion
     # request.host_url ya incluye esquema y host correctos (https en Railway via ProxyFix)
     base_url = request.host_url.rstrip('/')
-    qr_data = f"{base_url}/consulta?id={id}"
+    # Fase 2.2: QR canónico con slug de taller (la legacy /consulta?id sigue viva).
+    if getattr(g, 'taller_slug', None):
+        qr_data = f"{base_url}/t/{g.taller_slug}/consulta?id={id}"
+    else:
+        qr_data = f"{base_url}/consulta?id={id}"
     qr = QrCodeWidget(qr_data)
     qr.barWidth = 100
     qr.barHeight = 100
@@ -2528,7 +2550,8 @@ def generar_pdf_presupuesto(id):
     # Pasamos base_url para que el QR apunte al servidor correcto (local o Railway)
     base_url = request.host_url.rstrip('/')
     pdf_buffer = generar_presupuesto_pdf(reparacion_data, tipo_documento=tipo_documento,
-                                         base_url=base_url)
+                                         base_url=base_url,
+                                         taller_slug=getattr(g, 'taller_slug', None))
     
     # Retornar como descarga
     nombre_archivo = f"{tipo_documento}_reparacion_{id}.pdf"
@@ -2996,8 +3019,13 @@ def servicios():
 # =========================================
 
 @app.route("/consulta", methods=["GET", "POST"])
+@app.route("/t/<slug>/consulta", methods=["GET", "POST"])
 @csrf_protect
-def consulta():
+def consulta(slug=None):
+    # El taller lo resuelve el before_request (g.taller_id): desde el slug si
+    # la URL es /t/{slug}/..., o desde el id de la reparación si es la legacy
+    # /consulta?id=X (QR impresos). El param `slug` aquí solo existe para casar
+    # la regla; no se usa en el cuerpo.
     reparacion = None
     error = None
 
@@ -3038,8 +3066,9 @@ def consulta():
 
 
 @app.route("/mis-reparaciones", methods=["GET", "POST"])
+@app.route("/t/<slug>/mis-reparaciones", methods=["GET", "POST"])
 @csrf_protect
-def mis_reparaciones():
+def mis_reparaciones(slug=None):
     """Panel publico: el cliente introduce su email y ve todas sus reparaciones."""
     reparaciones_list = None
     cliente_nombre = None
@@ -3089,8 +3118,9 @@ def mis_reparaciones():
 # =========================================
 
 @app.route("/solicitar-reparacion", methods=["GET", "POST"])
+@app.route("/t/<slug>/solicitar-reparacion", methods=["GET", "POST"])
 @csrf_protect
-def solicitar_reparacion():
+def solicitar_reparacion(slug=None):
     """Formulario publico para que clientes soliciten una reparacion."""
     if request.method == "POST":
         nombre = request.form.get("nombre", "").strip()
@@ -4028,7 +4058,10 @@ def stripe_webhook():
                         }
                         pdf_buffer = generar_presupuesto_pdf(
                             pdf_reparacion, tipo_documento="factura",
-                            base_url=request.host_url.rstrip('/')
+                            base_url=request.host_url.rstrip('/'),
+                            # El webhook es ruta de plataforma; el slug del taller
+                            # se resuelve desde la metadata de Stripe en Fase 2.4.
+                            taller_slug=getattr(g, 'taller_slug', None),
                         )
                     except Exception:
                         logger.exception(f'[WEBHOOK] Error generando PDF para reparacion {reparacion_id}, se enviara email sin adjunto')

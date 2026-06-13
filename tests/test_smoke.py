@@ -571,3 +571,66 @@ class TestPermisos:
         r = client.get("/clientes", follow_redirects=False)
         assert r.status_code == 302
         assert "/login" in r.headers.get("Location", "")
+
+
+# ════════════════════════════════════════════════════════════════════
+# 11. Multi-tenancy: resolución del taller (Fase 2.2)
+# ════════════════════════════════════════════════════════════════════
+class TestTenancyResolucion:
+    def test_taller_1_existe_tras_migracion(self, db_conn):
+        """La migración (Fase 2.1) dejó el taller 1 'androtech' creado."""
+        row = db_conn.execute(
+            "SELECT slug, nombre FROM talleres WHERE id=1"
+        ).fetchone()
+        assert row is not None
+        assert row["slug"] == "androtech"
+
+    def test_consulta_canonica_con_slug(self, client, seed_reparacion):
+        """La ruta canónica /t/{slug}/consulta?id=X resuelve el taller y muestra
+        la reparación (es la que imprimen los nuevos QR)."""
+        r = client.get(f"/t/androtech/consulta?id={seed_reparacion}")
+        assert r.status_code == 200
+        assert b"iPhone 12" in r.data
+
+    def test_slug_desconocido_da_404(self, client):
+        """Un slug de taller inexistente → 404 (no se filtra a ciegas)."""
+        r = client.get("/t/noexiste/consulta?id=1")
+        assert r.status_code == 404
+
+    def test_consulta_legacy_sin_slug_sigue_viva(self, client, seed_reparacion):
+        """La legacy /consulta?id=X (QR ya impresos) sigue funcionando:
+        resuelve el taller desde el id de la reparación."""
+        r = client.get(f"/consulta?id={seed_reparacion}")
+        assert r.status_code == 200
+        assert b"iPhone 12" in r.data
+
+    def test_login_legacy_default_taller_1(self, client, seed_admin):
+        """El login legacy /login (sin slug) entra en el taller 1 y liga la
+        sesión a ese taller."""
+        r = client.post(
+            "/login",
+            data={"usuario": "admin", "contraseña": "admin123",
+                  "csrf_token": "test-csrf-token"},
+            follow_redirects=False,
+        )
+        assert r.status_code == 302
+        with client.session_transaction() as sess:
+            assert sess.get("taller_id") == 1
+            assert sess.get("taller_slug") == "androtech"
+
+    def test_login_por_slug_resuelve_taller(self, client, seed_admin):
+        """El login canónico /t/{slug}/login resuelve el taller desde el slug."""
+        r = client.post(
+            "/t/androtech/login",
+            data={"usuario": "admin", "contraseña": "admin123",
+                  "csrf_token": "test-csrf-token"},
+            follow_redirects=False,
+        )
+        assert r.status_code == 302
+        with client.session_transaction() as sess:
+            assert sess.get("taller_id") == 1
+
+    def test_health_no_necesita_taller(self, client):
+        """Las rutas de plataforma (health) no requieren taller y responden 200."""
+        r = client.get("/health")
+        assert r.status_code == 200
