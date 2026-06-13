@@ -22,10 +22,17 @@ NO deben pasar por el filtro automático del ORM (Fase 2.3), porque resolver
 from __future__ import annotations
 
 import re
+import logging
+from contextlib import contextmanager
+from contextvars import ContextVar
 
-from flask import g, request, session, abort
+from flask import g, request, session, abort, has_request_context
+from sqlalchemy import event
+from sqlalchemy.orm import Session, with_loader_criteria
 
 from database import get_engine
+
+logger = logging.getLogger("androtech")
 
 # Taller original (compat legacy): las rutas sin slug ni sesión caen aquí.
 DEFAULT_TALLER_ID = 1
@@ -126,3 +133,105 @@ def resolver_taller() -> None:
     # 5. Resto de legacy público sin slug: taller 1 ("androtech").
     g.taller_id = DEFAULT_TALLER_ID
     g.taller_slug = DEFAULT_TALLER_SLUG
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# FILTRO AUTOMÁTICO POR TALLER (Fase 2.3) — el núcleo de la REGLA DE ORO
+# ═══════════════════════════════════════════════════════════════════════
+# Toda consulta ORM sobre un modelo con scope se filtra automáticamente por
+# el taller activo (g.taller_id). Los INSERT reciben taller_id automáticamente.
+# El único modo de ver varios talleres es el escape EXPLÍCITO sin_filtro_taller().
+
+from models import (  # noqa: E402  (import tardío: evita ciclos en el arranque)
+    Usuario, Cliente, Reparacion, FotoReparacion, NotaReparacion,
+    PiezaReparacion, InventarioPieza, SolicitudReparacion, RepairHistorial,
+    AuditLog,
+)
+
+# Los 10 modelos con columna taller_id (9 de scope NOT NULL + audit_log nullable).
+_MODELOS_SCOPED = (
+    Usuario, Cliente, Reparacion, FotoReparacion, NotaReparacion,
+    PiezaReparacion, InventarioPieza, SolicitudReparacion, RepairHistorial,
+    AuditLog,
+)
+
+# Escape explícito de plataforma (context-var, seguro entre hilos/peticiones).
+_escape_filtro: ContextVar[bool] = ContextVar("sin_filtro_taller", default=False)
+
+
+def _taller_para_filtrar():
+    """taller_id por el que filtrar/sellar, o None si NO se debe filtrar.
+
+    None (sin filtro) SOLO en estos casos legítimos:
+      - escape explícito sin_filtro_taller() (plataforma, auditado),
+      - fuera de un request HTTP (arranque, migración, scripts: código de
+        confianza con acceso total),
+      - rutas de plataforma (g.taller_id es None).
+    En un request normal a una ruta con scope, g.taller_id SIEMPRE está fijado
+    (el resolver pone taller 1 por defecto en el peor caso), así que el filtro
+    SIEMPRE se aplica. Nunca hay fuga "por olvido".
+    """
+    if _escape_filtro.get():
+        return None
+    if not has_request_context():
+        return None
+    return getattr(g, "taller_id", None)
+
+
+@event.listens_for(Session, "do_orm_execute")
+def _filtrar_por_taller(execute_state):
+    """Inyecta WHERE taller_id = :tid en toda SELECT ORM sobre modelos con scope."""
+    if not execute_state.is_select:
+        return
+    tid = _taller_para_filtrar()
+    if tid is None:
+        return
+    execute_state.statement = execute_state.statement.options(
+        *[
+            with_loader_criteria(
+                modelo,
+                modelo.taller_id == tid,
+                include_aliases=True,
+            )
+            for modelo in _MODELOS_SCOPED
+        ]
+    )
+
+
+@event.listens_for(Session, "before_flush")
+def _sellar_taller_en_insert(session_, flush_context, instances):
+    """Asigna taller_id automáticamente a los objetos nuevos con scope.
+
+    Así ningún handler tiene que acordarse de poner taller_id en un INSERT.
+    Respeta un taller_id ya fijado explícitamente (p. ej. seeds de tests).
+    """
+    tid = _taller_para_filtrar()
+    if tid is None:
+        return
+    for obj in session_.new:
+        if isinstance(obj, _MODELOS_SCOPED) and getattr(obj, "taller_id", None) is None:
+            obj.taller_id = tid
+
+
+@contextmanager
+def sin_filtro_taller(motivo: str):
+    """Escape EXPLÍCITO del filtro de taller, para operaciones de plataforma.
+
+    Dentro del `with`, las consultas ORM ven TODOS los talleres. Es el único
+    mecanismo autorizado para saltarse la regla de oro, y queda registrado en
+    auditoría (taller_id NULL = evento de plataforma) y en el log.
+
+    Uso:
+        with sin_filtro_taller("listado de talleres del superadmin"):
+            todos = s.scalars(select(Reparacion)).all()
+    """
+    from audit import registrar_auditoria  # import tardío: evita ciclo con app
+    usuario = session.get("usuario") if has_request_context() else "sistema"
+    token = _escape_filtro.set(True)
+    try:
+        logger.warning('{"event": "sin_filtro_taller", "motivo": %r, "usuario": %r}'
+                       % (motivo, usuario))
+        registrar_auditoria("sin_filtro_taller", usuario, {"motivo": motivo})
+        yield
+    finally:
+        _escape_filtro.reset(token)

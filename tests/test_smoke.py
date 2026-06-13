@@ -634,3 +634,79 @@ class TestTenancyResolucion:
         """Las rutas de plataforma (health) no requieren taller y responden 200."""
         r = client.get("/health")
         assert r.status_code == 200
+
+
+# ════════════════════════════════════════════════════════════════════
+# 12. Filtro automático por taller (Fase 2.3) — el núcleo de la regla de oro
+# ════════════════════════════════════════════════════════════════════
+class TestFiltroAutomatico:
+    def test_select_filtrado_por_taller(self, app, seed_reparacion, seed_taller_2):
+        """Una SELECT ORM con g.taller_id=1 solo ve datos del taller 1."""
+        from database import get_session
+        from models import Reparacion
+        from sqlalchemy import select
+        from flask import g
+        with app.test_request_context("/dashboard"):
+            g.taller_id = 1
+            with get_session() as s:
+                reps = s.scalars(select(Reparacion)).all()
+        dispositivos = {r.dispositivo for r in reps}
+        assert "iPhone 12" in dispositivos          # taller 1
+        assert "Pixel RIVAL" not in dispositivos    # taller 2, NO visible
+
+    def test_idor_get_otro_taller_devuelve_none(self, app, seed_reparacion,
+                                                 seed_taller_2):
+        """IDOR: s.get(Reparacion, <id_de_taller_2>) con g.taller_id=1 → None."""
+        from database import get_session
+        from models import Reparacion
+        from flask import g
+        rep2 = seed_taller_2["reparacion_id"]
+        with app.test_request_context("/dashboard"):
+            g.taller_id = 1
+            with get_session() as s:
+                fuga = s.get(Reparacion, rep2)
+        assert fuga is None, "IDOR: se pudo leer una reparación de otro taller por id"
+
+    def test_auto_stamp_en_insert(self, app, db_conn):
+        """Un INSERT ORM con g.taller_id=2 recibe taller_id=2 sin que el handler
+        lo fije (sello automático en before_flush)."""
+        from database import get_session
+        from models import Cliente
+        from flask import g
+        # taller 2 debe existir para la FK lógica
+        db_conn.execute(
+            "INSERT INTO talleres (id, nombre, slug, fecha_alta, estado, plan) "
+            "VALUES (2, 'Rival', 'rival', '2026', 'activo', 'basico')"
+        )
+        db_conn.commit()
+        with app.test_request_context("/t/rival/x"):
+            g.taller_id = 2
+            with get_session() as s:
+                s.add(Cliente(nombre="Sellado", email="s@x.com"))
+                s.commit()
+        row = db_conn.execute(
+            "SELECT taller_id FROM clientes WHERE nombre='Sellado'"
+        ).fetchone()
+        assert row["taller_id"] == 2
+
+    def test_sin_filtro_taller_ve_ambos_y_audita(self, app, seed_reparacion,
+                                                 seed_taller_2, db_conn):
+        """El escape sin_filtro_taller() ve TODOS los talleres y queda auditado
+        con taller_id NULL (evento de plataforma)."""
+        from database import get_session
+        from models import Reparacion
+        from sqlalchemy import select
+        from flask import g
+        from tenancy import sin_filtro_taller
+        with app.test_request_context("/dashboard"):
+            g.taller_id = 1
+            with sin_filtro_taller("test plataforma"):
+                with get_session() as s:
+                    todas = s.scalars(select(Reparacion)).all()
+        assert len(todas) >= 2  # ve taller 1 Y taller 2
+        aud = db_conn.execute(
+            "SELECT taller_id FROM audit_log WHERE event_type='sin_filtro_taller' "
+            "ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        assert aud is not None
+        assert aud["taller_id"] is None  # evento de plataforma

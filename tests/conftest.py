@@ -166,6 +166,12 @@ def _reset_data():
             conn.execute(f"DELETE FROM {t}")
         except sqlite3.OperationalError:
             pass  # tabla no existe en este DB todavía
+    # Mantener el taller 1 ("androtech"); borrar talleres extra de tests
+    # (p. ej. el taller 2 'rival' de seed_taller_2) para no colisionar.
+    try:
+        conn.execute("DELETE FROM talleres WHERE id != 1")
+    except sqlite3.OperationalError:
+        pass
     conn.commit()
     conn.close()
     yield
@@ -222,6 +228,49 @@ def seed_reparacion(db_conn, seed_cliente):
     )
     db_conn.commit()
     return cur.lastrowid
+
+
+@pytest.fixture
+def seed_taller_2(db_conn):
+    """Crea el taller 2 'rival' con datos deliberadamente clónicos a los del
+    taller 1 (mismo nombre de cliente/email, mismo usuario 'admin').
+
+    Devuelve un dict con los ids de taller 2 para los tests de aislamiento.
+    Inserta vía SQL crudo con taller_id explícito (no pasa por el auto-stamp).
+    """
+    db_conn.execute(
+        """INSERT INTO talleres (id, nombre, slug, email_contacto, fecha_alta, estado, plan)
+           VALUES (2, 'Taller Rival', 'rival', 'rival@x.com', '2026-01-01', 'activo', 'basico')"""
+    )
+    pwd = generate_password_hash("rivalpass")
+    db_conn.execute(
+        'INSERT INTO usuarios (usuario, "contraseña", rol, taller_id) VALUES (?, ?, ?, 2)',
+        ("admin", pwd, "admin"),
+    )
+    cur = db_conn.execute(
+        "INSERT INTO clientes (nombre, telefono, email, direccion, taller_id) "
+        "VALUES ('Cliente Test', '600111222', 'test@cliente.com', 'Calle X', 2)"
+    )
+    cli2 = cur.lastrowid
+    cur = db_conn.execute(
+        """INSERT INTO reparaciones
+           (cliente_id, dispositivo, descripcion, estado, fecha_entrada, precio, estado_pago, taller_id)
+           VALUES (?, 'Pixel RIVAL', 'Secreto de B', 'Pendiente', '2026-02-01', 999.0, 'Pendiente', 2)""",
+        (cli2,),
+    )
+    rep2 = cur.lastrowid
+    cur = db_conn.execute(
+        "INSERT INTO inventario_piezas (nombre, cantidad, taller_id) VALUES ('Pieza RIVAL', 7, 2)"
+    )
+    pieza2 = cur.lastrowid
+    cur = db_conn.execute(
+        """INSERT INTO solicitudes_reparacion (nombre, telefono, dispositivo, descripcion, fecha_solicitud, taller_id)
+           VALUES ('Solicitante B', '699', 'Tablet', 'Algo de B', '2026-02-02', 2)"""
+    )
+    sol2 = cur.lastrowid
+    db_conn.commit()
+    return {"taller_id": 2, "slug": "rival", "cliente_id": cli2,
+            "reparacion_id": rep2, "pieza_id": pieza2, "solicitud_id": sol2}
 
 
 # ───────────────────────────────────────────────────────────────────
