@@ -399,14 +399,15 @@ def export_reparaciones():
 
     where, params = build_reparaciones_filters(request.args)
 
-    # ⚠️ Fase 2: raw SQL — necesitará AND reparaciones.taller_id=? manual.
+    # Fase 2.4: filtro MANUAL de taller en el raw SQL del export filtrado.
     from sqlalchemy import text as _text
+    params["tid"] = g.taller_id
     query = (
         "SELECT reparaciones.id, clientes.nombre as cliente, clientes.telefono, "
         "reparaciones.dispositivo, reparaciones.estado, reparaciones.estado_pago, "
         "reparaciones.precio, reparaciones.fecha_entrada, reparaciones.fecha_pago as fecha_finalizacion "
         "FROM reparaciones JOIN clientes ON clientes.id = reparaciones.cliente_id "
-        f"WHERE {where} ORDER BY reparaciones.id DESC"
+        f"WHERE reparaciones.taller_id = :tid AND ({where}) ORDER BY reparaciones.id DESC"
     )
     with get_session() as s:
         rows = s.execute(_text(query), params).mappings().all()
@@ -635,14 +636,17 @@ def healthcheck():
 @app.route("/")
 def index():
     from sqlalchemy import text as _text
+    # Fase 2.4: SQL crudo → filtrado MANUAL por taller (el filtro automático del
+    # ORM no alcanza las text()). tid = taller activo resuelto por el resolver.
+    tp = {"tid": g.taller_id}
     with get_session() as s:
-        total_clientes = s.execute(_text("SELECT COUNT(*) FROM clientes")).scalar()
-        activas = s.execute(_text("SELECT COUNT(*) FROM reparaciones WHERE estado != 'Terminado' AND estado != 'Entregado'")).scalar()
-        terminadas = s.execute(_text("SELECT COUNT(*) FROM reparaciones WHERE estado = 'Terminado' OR estado = 'Entregado'")).scalar()
-        ingresos = s.execute(_text("SELECT COALESCE(SUM(precio), 0) FROM reparaciones WHERE estado = 'Terminado' OR estado = 'Entregado'")).scalar()
+        total_clientes = s.execute(_text("SELECT COUNT(*) FROM clientes WHERE taller_id = :tid"), tp).scalar()
+        activas = s.execute(_text("SELECT COUNT(*) FROM reparaciones WHERE taller_id = :tid AND estado != 'Terminado' AND estado != 'Entregado'"), tp).scalar()
+        terminadas = s.execute(_text("SELECT COUNT(*) FROM reparaciones WHERE taller_id = :tid AND (estado = 'Terminado' OR estado = 'Entregado')"), tp).scalar()
+        ingresos = s.execute(_text("SELECT COALESCE(SUM(precio), 0) FROM reparaciones WHERE taller_id = :tid AND (estado = 'Terminado' OR estado = 'Entregado')"), tp).scalar()
         # Desglose por estado para mini-panel del hero
         estados_count = {}
-        for row in s.execute(_text("SELECT estado, COUNT(*) as c FROM reparaciones GROUP BY estado")).all():
+        for row in s.execute(_text("SELECT estado, COUNT(*) as c FROM reparaciones WHERE taller_id = :tid GROUP BY estado"), tp).all():
             estados_count[row[0]] = row[1]
     return render_template("index.html",
         total_clientes=total_clientes,
@@ -659,31 +663,31 @@ def index():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    # Fase 1.5b: las ~20 queries del dashboard van por la capa SQLAlchemy
-    # (text() con SQL idéntico). ⚠️ Fase 2: raw SQL — cada una necesitará
-    # AND taller_id=? manual o migración a ORM con filtro automático.
+    # Fase 2.4: las ~20 queries del dashboard son raw SQL → NO las alcanza el
+    # filtro automático del ORM. Cada una lleva el filtro MANUAL taller_id=:tid.
     from sqlalchemy import text as _text
+    tp = {"tid": g.taller_id}
     s = get_session()
 
     # ========== ESTADÍSTICAS GENERALES ==========
-    total_clientes = s.execute(_text("SELECT COUNT(*) FROM clientes")).scalar()
-    total_reparaciones = s.execute(_text("SELECT COUNT(*) FROM reparaciones")).scalar()
+    total_clientes = s.execute(_text("SELECT COUNT(*) FROM clientes WHERE taller_id = :tid"), tp).scalar()
+    total_reparaciones = s.execute(_text("SELECT COUNT(*) FROM reparaciones WHERE taller_id = :tid"), tp).scalar()
 
     reparaciones_activas = s.execute(_text("""
         SELECT COUNT(*) FROM reparaciones
-        WHERE estado != 'Terminado' AND estado != 'Entregado'
-    """)).scalar()
+        WHERE taller_id = :tid AND estado != 'Terminado' AND estado != 'Entregado'
+    """), tp).scalar()
 
     reparaciones_terminadas = s.execute(_text("""
         SELECT COUNT(*) FROM reparaciones
-        WHERE estado = 'Terminado' OR estado = 'Entregado'
-    """)).scalar()
+        WHERE taller_id = :tid AND (estado = 'Terminado' OR estado = 'Entregado')
+    """), tp).scalar()
 
     # Ingresos totales
     ingresos_total = s.execute(_text("""
         SELECT IFNULL(SUM(precio), 0) FROM reparaciones
-        WHERE precio IS NOT NULL
-    """)).scalar()
+        WHERE taller_id = :tid AND precio IS NOT NULL
+    """), tp).scalar()
 
     # ========== ESTADÍSTICAS DE ESTE MES ==========
     hoy = datetime.now()
@@ -691,94 +695,100 @@ def dashboard():
 
     ingresos_mes = s.execute(_text("""
         SELECT IFNULL(SUM(precio), 0) FROM reparaciones
-        WHERE fecha_entrada >= :inicio AND precio IS NOT NULL
-    """), {"inicio": inicio_mes.strftime("%Y-%m-%d")}).scalar()
+        WHERE taller_id = :tid AND fecha_entrada >= :inicio AND precio IS NOT NULL
+    """), {**tp, "inicio": inicio_mes.strftime("%Y-%m-%d")}).scalar()
 
     reparaciones_mes = s.execute(_text("""
         SELECT COUNT(*) FROM reparaciones
-        WHERE fecha_entrada >= :inicio
-    """), {"inicio": inicio_mes.strftime("%Y-%m-%d")}).scalar()
+        WHERE taller_id = :tid AND fecha_entrada >= :inicio
+    """), {**tp, "inicio": inicio_mes.strftime("%Y-%m-%d")}).scalar()
 
     reparaciones_completadas_mes = s.execute(_text("""
         SELECT COUNT(*) FROM reparaciones
-        WHERE (estado = 'Terminado' OR estado = 'Entregado')
+        WHERE taller_id = :tid AND (estado = 'Terminado' OR estado = 'Entregado')
         AND fecha_entrada >= :inicio
-    """), {"inicio": inicio_mes.strftime("%Y-%m-%d")}).scalar()
+    """), {**tp, "inicio": inicio_mes.strftime("%Y-%m-%d")}).scalar()
 
     # ========== ESTADÍSTICAS DE PAGOS ==========
     dinero_cobrado = s.execute(_text("""
         SELECT IFNULL(SUM(precio), 0) FROM reparaciones
-        WHERE estado_pago = 'Pagado' AND precio IS NOT NULL
-    """)).scalar()
+        WHERE taller_id = :tid AND estado_pago = 'Pagado' AND precio IS NOT NULL
+    """), tp).scalar()
 
     dinero_por_cobrar = ingresos_total - dinero_cobrado
 
     reparaciones_pendiente_pago = s.execute(_text("""
         SELECT COUNT(*) FROM reparaciones
-        WHERE estado_pago = 'Pendiente' AND precio IS NOT NULL AND precio > 0
-    """)).scalar()
+        WHERE taller_id = :tid AND estado_pago = 'Pendiente' AND precio IS NOT NULL AND precio > 0
+    """), tp).scalar()
 
     reparaciones_pagadas = s.execute(_text("""
         SELECT COUNT(*) FROM reparaciones
-        WHERE estado_pago = 'Pagado'
-    """)).scalar()
-    
+        WHERE taller_id = :tid AND estado_pago = 'Pagado'
+    """), tp).scalar()
+
     # Calcular tasa de cobro (porcentaje)
     tasa_cobro = 0
     if ingresos_total > 0:
         tasa_cobro = round((dinero_cobrado / ingresos_total * 100), 1)
-    
+
     # Obtener reparaciones pendientes de pago (últimas 5)
     reparaciones_sin_pagar = s.execute(_text("""
         SELECT reparaciones.*, clientes.nombre AS cliente
         FROM reparaciones
         LEFT JOIN clientes ON clientes.id = reparaciones.cliente_id
-        WHERE reparaciones.estado_pago = 'Pendiente'
+        WHERE reparaciones.taller_id = :tid AND reparaciones.estado_pago = 'Pendiente'
         AND reparaciones.precio IS NOT NULL AND reparaciones.precio > 0
         ORDER BY reparaciones.id DESC
         LIMIT 5
-    """)).mappings().all()
+    """), tp).mappings().all()
     reparaciones_sin_pagar_list = [dict(r) for r in reparaciones_sin_pagar] if reparaciones_sin_pagar else []
 
     # ========== DISPOSITIVOS MÁS REPARADOS ==========
     dispositivos_top = s.execute(_text("""
         SELECT dispositivo, COUNT(*) as cantidad
         FROM reparaciones
-        WHERE dispositivo IS NOT NULL AND dispositivo != ''
+        WHERE taller_id = :tid AND dispositivo IS NOT NULL AND dispositivo != ''
         GROUP BY dispositivo
         ORDER BY cantidad DESC
         LIMIT 5
-    """)).all()
+    """), tp).all()
 
     # ========== ESTADOS MÁS COMUNES ==========
     estados_distribucion = s.execute(_text("""
         SELECT estado, COUNT(*) as cantidad
         FROM reparaciones
+        WHERE taller_id = :tid
         GROUP BY estado
         ORDER BY cantidad DESC
-    """)).all()
-    
+    """), tp).all()
+
     # Convertir a dict para template
     dispositivos_dict = [{"nombre": d[0], "cantidad": d[1]} for d in dispositivos_top] if dispositivos_top else []
     estados_dict = [{"nombre": e[0], "cantidad": e[1]} for e in estados_distribucion] if estados_distribucion else []
-    
+
     # Calcular porcentajes
     total_rep = reparaciones_activas + reparaciones_terminadas
     porcentaje_activas = round((reparaciones_activas / total_rep * 100), 1) if total_rep > 0 else 0
     porcentaje_terminadas = round((reparaciones_terminadas / total_rep * 100), 1) if total_rep > 0 else 0
-    
+
     # Últimas 5 reparaciones
     ultimas_reparaciones = s.execute(_text("""
         SELECT reparaciones.*, clientes.nombre AS cliente
         FROM reparaciones
         LEFT JOIN clientes ON clientes.id = reparaciones.cliente_id
+        WHERE reparaciones.taller_id = :tid
         ORDER BY reparaciones.id DESC
         LIMIT 5
-    """)).mappings().all()
+    """), tp).mappings().all()
 
     # ========== REPARACIONES ATRASADAS (sin actualización hace > 7 días) ==========
     hace_7_dias = (hoy - __import__('datetime').timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
 
+    # ⚠️ El filtro taller_id envuelve TODA la condición original: el OR del
+    # final tiene menor precedencia, así que sin el paréntesis externo
+    # `... OR (subq)=0` se saldría del scope y filtraría reparaciones de otro
+    # taller sin historial. taller_id AND ( <condición original> ) lo evita.
     reparaciones_atrasadas = s.execute(_text("""
         SELECT reparaciones.*, clientes.nombre AS cliente,
                (SELECT fecha_cambio FROM reparaciones_historial
@@ -786,19 +796,21 @@ def dashboard():
                 ORDER BY fecha_cambio DESC LIMIT 1) AS ultima_actualizacion
         FROM reparaciones
         LEFT JOIN clientes ON clientes.id = reparaciones.cliente_id
-        WHERE reparaciones.estado IN ('En proceso', 'Pendiente')
-        AND (
-            SELECT fecha_cambio FROM reparaciones_historial
-            WHERE reparacion_id = reparaciones.id
-            ORDER BY fecha_cambio DESC LIMIT 1
-        ) < :hace7
-        OR (
-            SELECT COUNT(*) FROM reparaciones_historial
-            WHERE reparacion_id = reparaciones.id
-        ) = 0
+        WHERE reparaciones.taller_id = :tid AND (
+            reparaciones.estado IN ('En proceso', 'Pendiente')
+            AND (
+                SELECT fecha_cambio FROM reparaciones_historial
+                WHERE reparacion_id = reparaciones.id
+                ORDER BY fecha_cambio DESC LIMIT 1
+            ) < :hace7
+            OR (
+                SELECT COUNT(*) FROM reparaciones_historial
+                WHERE reparacion_id = reparaciones.id
+            ) = 0
+        )
         ORDER BY reparaciones.id DESC
-    """), {"hace7": hace_7_dias}).mappings().all()
-    
+    """), {**tp, "hace7": hace_7_dias}).mappings().all()
+
     reparaciones_atrasadas_list = [dict(r) for r in reparaciones_atrasadas] if reparaciones_atrasadas else []
     
     # Enriquecer con alertas
@@ -824,8 +836,8 @@ def dashboard():
         
         ingreso_mes_i = s.execute(_text("""
             SELECT IFNULL(SUM(precio), 0) FROM reparaciones
-            WHERE fecha_entrada >= :ini AND fecha_entrada <= :fin AND precio IS NOT NULL
-        """), {"ini": inicio.strftime("%Y-%m-%d"), "fin": fin.strftime("%Y-%m-%d")}).scalar()
+            WHERE taller_id = :tid AND fecha_entrada >= :ini AND fecha_entrada <= :fin AND precio IS NOT NULL
+        """), {**tp, "ini": inicio.strftime("%Y-%m-%d"), "fin": fin.strftime("%Y-%m-%d")}).scalar()
         
         ingresos_por_mes.append({
             "mes": inicio.strftime("%b %Y"),
@@ -836,8 +848,8 @@ def dashboard():
     tiempo_medio_dias = 0
     reparaciones_completadas = s.execute(_text("""
         SELECT COUNT(*) FROM reparaciones
-        WHERE estado = 'Terminado' OR estado = 'Entregado'
-    """)).scalar()
+        WHERE taller_id = :tid AND (estado = 'Terminado' OR estado = 'Entregado')
+    """), tp).scalar()
 
     if reparaciones_completadas > 0:
         # Calcular promedio de días entre entrada y última actualización
@@ -851,20 +863,21 @@ def dashboard():
                 )) - julianday(reparaciones.fecha_entrada)) AS REAL)
             )
             FROM reparaciones
-            WHERE estado = 'Terminado' OR estado = 'Entregado'
-        """)).scalar()
+            WHERE taller_id = :tid AND (estado = 'Terminado' OR estado = 'Entregado')
+        """), tp).scalar()
 
         if tiempo_promedio:
             tiempo_medio_dias = round(float(tiempo_promedio), 1)
 
     # ========== MÉTRICA 3: REPARACIONES POR TÉCNICO ==========
+    # reparaciones_historial lleva taller_id desnormalizado → filtro directo.
     reparaciones_por_tecnico = s.execute(_text("""
         SELECT usuario, COUNT(*) as cantidad
         FROM reparaciones_historial
-        WHERE usuario IS NOT NULL AND usuario != ''
+        WHERE taller_id = :tid AND usuario IS NOT NULL AND usuario != ''
         GROUP BY usuario
         ORDER BY cantidad DESC
-    """)).all()
+    """), tp).all()
 
     tecnico_dict = [{"nombre": t[0], "cantidad": t[1]} for t in reparaciones_por_tecnico] if reparaciones_por_tecnico else []
 
@@ -991,18 +1004,18 @@ def editar_cliente(id):
 @login_required
 @permiso_requerido('clientes_historial')
 def historial_cliente():
-    # Fase 1.5b: queries vía capa SQLAlchemy.
-    # ⚠️ Fase 2: raw SQL — necesitará filtro taller_id manual.
+    # Fase 2.4: raw SQL → filtro MANUAL de taller en cada query.
     from sqlalchemy import text as _text
+    tp = {"tid": g.taller_id}
     s = get_session()
 
     # Estadísticas generales
-    total_reparaciones = s.execute(_text("SELECT COUNT(*) FROM reparaciones")).scalar()
-    pagadas = s.execute(_text("SELECT COUNT(*) FROM reparaciones WHERE estado_pago = 'Pagado'")).scalar()
-    pendientes = s.execute(_text("SELECT COUNT(*) FROM reparaciones WHERE estado_pago != 'Pagado'")).scalar()
-    total_invertido = s.execute(_text("SELECT IFNULL(SUM(precio), 0) FROM reparaciones WHERE precio IS NOT NULL")).scalar()
-    promedio_precio = s.execute(_text("SELECT IFNULL(AVG(precio), 0) FROM reparaciones WHERE precio IS NOT NULL")).scalar()
-    total_completadas = s.execute(_text("SELECT COUNT(*) FROM reparaciones WHERE estado = 'Terminado' OR estado = 'Entregado'")).scalar()
+    total_reparaciones = s.execute(_text("SELECT COUNT(*) FROM reparaciones WHERE taller_id = :tid"), tp).scalar()
+    pagadas = s.execute(_text("SELECT COUNT(*) FROM reparaciones WHERE taller_id = :tid AND estado_pago = 'Pagado'"), tp).scalar()
+    pendientes = s.execute(_text("SELECT COUNT(*) FROM reparaciones WHERE taller_id = :tid AND estado_pago != 'Pagado'"), tp).scalar()
+    total_invertido = s.execute(_text("SELECT IFNULL(SUM(precio), 0) FROM reparaciones WHERE taller_id = :tid AND precio IS NOT NULL"), tp).scalar()
+    promedio_precio = s.execute(_text("SELECT IFNULL(AVG(precio), 0) FROM reparaciones WHERE taller_id = :tid AND precio IS NOT NULL"), tp).scalar()
+    total_completadas = s.execute(_text("SELECT COUNT(*) FROM reparaciones WHERE taller_id = :tid AND (estado = 'Terminado' OR estado = 'Entregado')"), tp).scalar()
 
     # Filtro por estado y cliente
     estado_filtro = request.args.get('estado', '').strip()
@@ -1019,8 +1032,9 @@ def historial_cliente():
     offset = (page - 1) * per_page
 
     base_sql = "SELECT reparaciones.*, clientes.nombre AS cliente FROM reparaciones LEFT JOIN clientes ON clientes.id = reparaciones.cliente_id"
-    where = []
-    params = {}
+    # El filtro de taller SIEMPRE está presente; los filtros de la UI se añaden encima.
+    where = ["reparaciones.taller_id = :tid"]
+    params = {"tid": g.taller_id}
     if estado_filtro:
         where.append("reparaciones.estado = :estado")
         params['estado'] = estado_filtro
@@ -1028,7 +1042,7 @@ def historial_cliente():
         where.append("reparaciones.cliente_id = :cliente_id")
         params['cliente_id'] = cliente_filtro
 
-    where_clause = (" WHERE " + " AND ".join(where)) if where else ""
+    where_clause = " WHERE " + " AND ".join(where)
 
     total_count = s.execute(
         _text("SELECT COUNT(*) FROM reparaciones" + where_clause), params
@@ -1053,7 +1067,7 @@ def historial_cliente():
         r['ultima_actualizacion'] = ultima
         reparaciones_enriquecidas.append(r)
 
-    estados = s.execute(_text("SELECT DISTINCT estado FROM reparaciones ORDER BY estado")).all()
+    estados = s.execute(_text("SELECT DISTINCT estado FROM reparaciones WHERE taller_id = :tid ORDER BY estado"), tp).all()
     clientes = s.scalars(select(Cliente).order_by(Cliente.nombre)).all()
 
     s.close()
@@ -1309,7 +1323,7 @@ def _csv_empresa_header(writer, titulo):
 @login_required
 @permiso_requerido('reparaciones_exportar')
 def exportar_reparaciones_csv():
-    # ⚠️ Fase 2: raw SQL — necesitará AND r.taller_id=? manual.
+    # Fase 2.4: filtro MANUAL de taller (raw SQL con subqueries).
     from sqlalchemy import text as _text
     with get_session() as s:
         rows = s.execute(_text('''
@@ -1322,8 +1336,9 @@ def exportar_reparaciones_csv():
                    CASE WHEN r.firma IS NOT NULL AND r.firma != '' THEN 'Si' ELSE 'No' END as firmado
             FROM reparaciones r
             LEFT JOIN clientes c ON r.cliente_id = c.id
+            WHERE r.taller_id = :tid
             ORDER BY r.id DESC
-        ''')).mappings().all()
+        '''), {"tid": g.taller_id}).mappings().all()
 
     total = len(rows)
     total_facturado  = sum(r['precio'] or 0 for r in rows)
@@ -1402,9 +1417,8 @@ def exportar_reparaciones_csv():
 @login_required
 @permiso_requerido('clientes_exportar')
 def exportar_clientes_csv():
-    # Fase 1.4: la agregación con JOIN va por la capa SQLAlchemy (text() +
-    # mappings() para mantener el acceso por clave). SQL idéntico al previo.
-    # ⚠️ Fase 2: esta query es raw SQL — necesitará AND taller_id=? manual.
+    # Fase 2.4: filtro MANUAL de taller. El JOIN a reparaciones lleva también
+    # el filtro (r.taller_id = c.taller_id) como red de seguridad adicional.
     from sqlalchemy import text as _text
     with get_session() as s:
         rows = s.execute(_text('''
@@ -1417,10 +1431,11 @@ def exportar_clientes_csv():
                    COALESCE(SUM(CASE WHEN r.estado_pago = 'Pendiente' THEN r.precio ELSE 0 END), 0) as total_pendiente,
                    MAX(r.fecha_entrada) as ultima_visita
             FROM clientes c
-            LEFT JOIN reparaciones r ON r.cliente_id = c.id
+            LEFT JOIN reparaciones r ON r.cliente_id = c.id AND r.taller_id = c.taller_id
+            WHERE c.taller_id = :tid
             GROUP BY c.id
             ORDER BY c.nombre
-        ''')).mappings().all()
+        '''), {"tid": g.taller_id}).mappings().all()
 
     total_clientes   = len(rows)
     total_facturado  = sum(r['total_facturado'] or 0 for r in rows)
@@ -1509,14 +1524,14 @@ def reparaciones():
     per_page = 10
     offset = (page - 1) * per_page
 
-    # Fase 1.5: SQL dinámico con binds con nombre, ejecutado vía Session.
-    # ⚠️ Fase 2: raw SQL — necesitará AND reparaciones.taller_id=? manual.
+    # Fase 2.4: SQL dinámico con filtro de taller SIEMPRE presente (raw SQL).
     from sqlalchemy import text as _text
 
     sql_base = "FROM reparaciones LEFT JOIN clientes ON clientes.id = reparaciones.cliente_id"
 
-    where_clauses = []
-    params = {}
+    # El filtro de taller es la primera cláusula y nunca falta.
+    where_clauses = ["reparaciones.taller_id = :tid"]
+    params = {"tid": g.taller_id}
 
     if cliente_id:
         where_clauses.append("reparaciones.cliente_id = :cliente_id")
@@ -1561,7 +1576,7 @@ def reparaciones():
         except ValueError:
             pass
 
-    where_sql = (" WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+    where_sql = " WHERE " + " AND ".join(where_clauses)
 
     with get_session() as s:
         # Total para paginación
@@ -2571,16 +2586,19 @@ def generar_pdf_presupuesto(id):
 @login_required
 @permiso_requerido('usuarios_ver')
 def admin_usuarios():
-    # Fase 1.7: listado con subquery de intervenciones vía capa SQLAlchemy
+    # Fase 2.4: listado de usuarios del taller activo. La subquery de
+    # intervenciones también filtra por taller (mismo nombre de técnico podría
+    # existir en otro taller).
     from sqlalchemy import text as _text
     with get_session() as s:
         usuarios = s.execute(_text("""
             SELECT id, usuario, rol,
                    (SELECT COUNT(*) FROM reparaciones_historial
-                    WHERE usuario = usuarios.usuario) AS intervenciones
+                    WHERE usuario = usuarios.usuario AND taller_id = :tid) AS intervenciones
             FROM usuarios
+            WHERE taller_id = :tid
             ORDER BY usuario ASC
-        """)).mappings().all()
+        """), {"tid": g.taller_id}).mappings().all()
     
     try:
         logger.info(json.dumps({
@@ -3279,9 +3297,11 @@ def admin_seed_demo():
     updated = {"clientes": 0}
     skipped = {"reparaciones": 0, "piezas": 0, "notas": 0}
 
-    # Fase 1.8: el seeding usa exec_driver_sql (placeholders ? nativos) sobre
-    # la conexión del engine SQLAlchemy. Ruta one-shot de demo del TFG;
-    # ⚠️ Fase 2: PELIGROSA en multi-tenant — deberá sembrar solo el taller actual.
+    # Fase 2.4: el seeding usa exec_driver_sql (placeholders ? nativos) sobre
+    # la conexión del engine SQLAlchemy. SIEMBRA SOLO EL TALLER ACTIVO: todas
+    # las búsquedas de existencia filtran por taller_id y todos los INSERT lo
+    # fijan. Así un admin del taller B no contamina ni ve los datos del A.
+    tid = g.taller_id
     s = get_session()
     dconn = s.connection()
 
@@ -3289,8 +3309,8 @@ def admin_seed_demo():
     cliente_ids = {}
     for nombre, tel, email, dirc in CLIENTES:
         existing = dconn.exec_driver_sql(
-            "SELECT id, telefono, email, direccion FROM clientes WHERE nombre = ?",
-            (nombre,),
+            "SELECT id, telefono, email, direccion FROM clientes WHERE nombre = ? AND taller_id = ?",
+            (nombre, tid),
         ).mappings().first()
         if existing:
             cid = existing["id"]
@@ -3302,14 +3322,14 @@ def admin_seed_demo():
             )
             if needs_update:
                 dconn.exec_driver_sql(
-                    "UPDATE clientes SET telefono=?, email=?, direccion=? WHERE id=?",
-                    (tel, email, dirc, cid),
+                    "UPDATE clientes SET telefono=?, email=?, direccion=? WHERE id=? AND taller_id=?",
+                    (tel, email, dirc, cid, tid),
                 )
                 updated["clientes"] += 1
         else:
             res = dconn.exec_driver_sql(
-                "INSERT INTO clientes (nombre, telefono, email, direccion) VALUES (?, ?, ?, ?)",
-                (nombre, tel, email, dirc),
+                "INSERT INTO clientes (nombre, telefono, email, direccion, taller_id) VALUES (?, ?, ?, ?, ?)",
+                (nombre, tel, email, dirc, tid),
             )
             cid = res.lastrowid
             inserted["clientes"] += 1
@@ -3322,8 +3342,8 @@ def admin_seed_demo():
         if cid is None:
             continue
         dup = dconn.exec_driver_sql(
-            "SELECT id FROM reparaciones WHERE cliente_id=? AND dispositivo=? AND descripcion=?",
-            (cid, disp, desc),
+            "SELECT id FROM reparaciones WHERE cliente_id=? AND dispositivo=? AND descripcion=? AND taller_id=?",
+            (cid, disp, desc, tid),
         ).first()
         if dup:
             skipped["reparaciones"] += 1
@@ -3336,10 +3356,10 @@ def admin_seed_demo():
         res = dconn.exec_driver_sql(
             """INSERT INTO reparaciones
                (cliente_id, dispositivo, descripcion, estado, fecha_entrada, fecha_salida,
-                precio, tipo_documento, estado_pago, fecha_pago, metodo_pago)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                precio, tipo_documento, estado_pago, fecha_pago, metodo_pago, taller_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (cid, disp, desc, estado, fecha_entrada, fecha_salida,
-             precio, "presupuesto", estado_pago, fecha_pago, metodo),
+             precio, "presupuesto", estado_pago, fecha_pago, metodo, tid),
         )
         rid = res.lastrowid
         inserted["reparaciones"] += 1
@@ -3359,9 +3379,9 @@ def admin_seed_demo():
             fecha_paso = fecha_entrada if i == 0 else fmt(t_inicio + paso * i)
             dconn.exec_driver_sql(
                 """INSERT INTO reparaciones_historial
-                   (reparacion_id, estado_anterior, estado_nuevo, fecha_cambio, usuario)
-                   VALUES (?, ?, ?, ?, ?)""",
-                (rid, anterior, estado_paso, fecha_paso, "admin"),
+                   (reparacion_id, estado_anterior, estado_nuevo, fecha_cambio, usuario, taller_id)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (rid, anterior, estado_paso, fecha_paso, "admin", tid),
             )
             inserted["historial"] += 1
             anterior = estado_paso
@@ -3370,7 +3390,7 @@ def admin_seed_demo():
     fecha_act = fmt(now)
     for nombre, cat, cant, cmin, coste, venta, prov in PIEZAS:
         existing = dconn.exec_driver_sql(
-            "SELECT id FROM inventario_piezas WHERE nombre = ?", (nombre,)
+            "SELECT id FROM inventario_piezas WHERE nombre = ? AND taller_id = ?", (nombre, tid)
         ).first()
         if existing:
             skipped["piezas"] += 1
@@ -3378,9 +3398,9 @@ def admin_seed_demo():
         dconn.exec_driver_sql(
             """INSERT INTO inventario_piezas
                (nombre, categoria, cantidad, cantidad_minima, precio_coste,
-                precio_venta, proveedor, fecha_actualizacion)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            (nombre, cat, cant, cmin, coste, venta, prov, fecha_act),
+                precio_venta, proveedor, fecha_actualizacion, taller_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (nombre, cat, cant, cmin, coste, venta, prov, fecha_act, tid),
         )
         inserted["piezas"] += 1
 
@@ -3390,24 +3410,24 @@ def admin_seed_demo():
         if cid is None:
             continue
         rep = dconn.exec_driver_sql(
-            "SELECT id FROM reparaciones WHERE cliente_id=? AND dispositivo=? ORDER BY id DESC LIMIT 1",
-            (cid, disp),
+            "SELECT id FROM reparaciones WHERE cliente_id=? AND dispositivo=? AND taller_id=? ORDER BY id DESC LIMIT 1",
+            (cid, disp, tid),
         ).mappings().first()
         if not rep:
             continue
         rid = rep["id"]
         dup = dconn.exec_driver_sql(
-            "SELECT id FROM notas_reparacion WHERE reparacion_id=? AND contenido=?",
-            (rid, contenido),
+            "SELECT id FROM notas_reparacion WHERE reparacion_id=? AND contenido=? AND taller_id=?",
+            (rid, contenido, tid),
         ).first()
         if dup:
             skipped["notas"] += 1
             continue
         dconn.exec_driver_sql(
             """INSERT INTO notas_reparacion
-               (reparacion_id, usuario, contenido, fecha_creacion, es_importante)
-               VALUES (?, ?, ?, ?, ?)""",
-            (rid, usuario, contenido, fecha_act, imp),
+               (reparacion_id, usuario, contenido, fecha_creacion, es_importante, taller_id)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (rid, usuario, contenido, fecha_act, imp, tid),
         )
         inserted["notas"] += 1
 
@@ -3494,24 +3514,27 @@ def admin_sistema():
     except OSError:
         db_size_kb = 0
 
-    # Conteo de registros por tabla (nombres fijos del bucle, no input externo)
+    # Conteo de registros por tabla del TALLER ACTIVO (Fase 2.4: filtro manual;
+    # nombres de tabla fijos del bucle, no input externo). Las 4 tablas tienen
+    # taller_id, así que el conteo es por taller.
     from sqlalchemy import text as _text
+    tp = {"tid": g.taller_id}
     tablas_conteo = {}
     with get_session() as s:
         for tabla in ('clientes', 'reparaciones', 'usuarios', 'audit_log'):
             try:
                 tablas_conteo[tabla] = s.execute(
-                    _text(f"SELECT COUNT(*) FROM {tabla}")
+                    _text(f"SELECT COUNT(*) FROM {tabla} WHERE taller_id = :tid"), tp
                 ).scalar()
             except Exception:
                 tablas_conteo[tabla] = None
 
-        # Ultimo evento del audit_log
+        # Ultimo evento del audit_log del taller
         ultimo_evento = None
         try:
             row = s.execute(_text(
-                "SELECT event_type, timestamp FROM audit_log ORDER BY id DESC LIMIT 1"
-            )).mappings().first()
+                "SELECT event_type, timestamp FROM audit_log WHERE taller_id = :tid ORDER BY id DESC LIMIT 1"
+            ), tp).mappings().first()
             if row:
                 ultimo_evento = {
                     'event_type': row['event_type'],
@@ -3772,9 +3795,19 @@ def borrar_solicitud(id):
 
 
 @app.route('/publico/pagar/<int:id>', methods=['POST'])
+@app.route('/t/<slug>/publico/pagar/<int:id>', methods=['POST'])
 @csrf_protect
-def publico_pagar(id):
+def publico_pagar(id, slug=None):
     """Endpoint de pago público. Verificación por email antes de crear sesión Stripe."""
+    # Fase 2.4 (riesgo 🔴 #2): el pago opera sobre UNA reparación concreta (id).
+    # Resolvemos su taller desde el id y fijamos g.taller_id para que el filtro
+    # ORM trabaje en el taller correcto y la metadata de Stripe lo lleve. Así un
+    # pago jamás puede cruzar de taller.
+    from tenancy import _taller_de_reparacion
+    _tid_rep = _taller_de_reparacion(id)
+    if _tid_rep:
+        g.taller_id = _tid_rep
+
     # 1. Validar email
     cliente_email = request.form.get('cliente_email', '').strip().lower()
     if not cliente_email or '@' not in cliente_email:
@@ -3857,6 +3890,7 @@ def publico_pagar(id):
             cancel_url=url_for('consulta', _external=True),
             metadata={
                 'reparacion_id': str(id),
+                'taller_id': str(g.taller_id),  # Fase 2.4: el webhook lo verifica
                 'cliente_email': cliente_email,
                 'cliente_nombre': cliente_nombre
             }
@@ -3945,6 +3979,7 @@ def stripe_webhook():
         session_obj = event['data']['object']
         metadata = session_obj.get('metadata', {})
         reparacion_id = metadata.get('reparacion_id')
+        meta_taller_id = metadata.get('taller_id')
         cliente_email = metadata.get('cliente_email', 'unknown')
         session_id = session_obj.get('id')
 
@@ -3977,6 +4012,26 @@ def stripe_webhook():
                     "session_id": session_id
                 }, ensure_ascii=False))
                 return jsonify({'error': f'Repair #{reparacion_id} not found'}), 404
+
+            # Fase 2.4 (riesgo 🔴 #2): el taller de la metadata DEBE coincidir
+            # con el de la reparación. Un pago de un taller jamás puede marcar
+            # como pagada una reparación de otro. (El webhook es ruta de
+            # plataforma: el ORM no filtra; esta verificación es la barrera.)
+            if meta_taller_id is not None and str(rep.taller_id) != str(meta_taller_id):
+                logger.error(json.dumps({
+                    "event": "webhook_taller_mismatch",
+                    "reparacion_id": reparacion_id,
+                    "reparacion_taller": rep.taller_id,
+                    "metadata_taller": meta_taller_id,
+                    "session_id": session_id
+                }, ensure_ascii=False))
+                return jsonify({'error': 'Taller mismatch'}), 400
+
+            # Verificado: a partir de aquí scopear el resto del webhook al taller
+            # de la reparación (auditoría del pago, query email/PDF, slug del QR).
+            from tenancy import _slug_por_taller_id
+            g.taller_id = rep.taller_id
+            g.taller_slug = _slug_por_taller_id(rep.taller_id)
 
             # Verificar que NO está ya pagada
             if rep.estado_pago == 'Pagado':
