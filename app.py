@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify, send_from_directory, g
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify, send_from_directory, g, abort
 import os
 import socket
 from datetime import datetime, timedelta
@@ -1105,9 +1105,12 @@ def exportar_historial_cliente_pdf(id):
         return redirect(url_for('clientes'))
 
     with get_session() as s:
+        # ⚠️ select(Model.__table__) es Core → el filtro automático NO se aplica.
+        # Filtro de taller MANUAL obligatorio (Fase 2.5).
         reparaciones = s.execute(
             select(Reparacion.__table__)
             .where(Reparacion.__table__.c.cliente_id == id)
+            .where(Reparacion.__table__.c.taller_id == g.taller_id)
             .order_by(Reparacion.__table__.c.fecha_entrada.desc())
         ).mappings().all()
 
@@ -1823,9 +1826,15 @@ def editar_reparacion(id):
     with get_session() as s:
         # mappings() devuelve filas dict-like: compatible con la plantilla y
         # con calcular_alertas_reparacion (que hace dict(reparacion)).
+        # ⚠️ Core select → filtro de taller MANUAL (Fase 2.5).
         reparacion = s.execute(
-            select(Reparacion.__table__).where(Reparacion.__table__.c.id == id)
+            select(Reparacion.__table__)
+            .where(Reparacion.__table__.c.id == id)
+            .where(Reparacion.__table__.c.taller_id == g.taller_id)
         ).mappings().first()
+        if not reparacion:
+            # id de otro taller (IDOR) o inexistente → 404 limpio, nunca datos.
+            abort(404)
         clientes = s.scalars(select(Cliente)).all()
 
         # Historial completo de estados para timeline
@@ -1855,7 +1864,8 @@ def editar_reparacion(id):
             .order_by(NotaReparacion.fecha_creacion.desc())
         ).all()
 
-        # Obtener piezas usadas en esta reparación (JOIN con inventario)
+        # Obtener piezas usadas en esta reparación (JOIN con inventario).
+        # ⚠️ PiezaReparacion.__table__ es Core → filtro de taller MANUAL.
         piezas_rows = s.execute(
             select(
                 PiezaReparacion.__table__,
@@ -1863,6 +1873,7 @@ def editar_reparacion(id):
                 InventarioPieza.precio_venta,
             )
             .join(InventarioPieza, PiezaReparacion.pieza_id == InventarioPieza.id)
+            .where(PiezaReparacion.__table__.c.taller_id == g.taller_id)
             .where(PiezaReparacion.reparacion_id == id)
             .order_by(PiezaReparacion.fecha_uso.desc())
         ).mappings().all()
@@ -2007,6 +2018,7 @@ def firmar_reparacion(id):
         reparacion = s.execute(
             select(Reparacion.__table__, Cliente.nombre.label('cliente_nombre'))
             .join(Cliente, Reparacion.cliente_id == Cliente.id)
+            .where(Reparacion.__table__.c.taller_id == g.taller_id)  # ⚠️ Core → filtro manual
             .where(Reparacion.id == id)
         ).mappings().first()
     if not reparacion:
@@ -2123,7 +2135,11 @@ def inventario():
     buscar = request.args.get('q', '').strip()
     categoria = request.args.get('categoria', '').strip()
 
-    stmt = select(InventarioPieza.__table__)
+    # ⚠️ select(Model.__table__) es Core → el filtro automático NO se aplica.
+    # Filtro de taller MANUAL como primera cláusula (Fase 2.5).
+    stmt = select(InventarioPieza.__table__).where(
+        InventarioPieza.__table__.c.taller_id == g.taller_id
+    )
     if buscar:
         like = f"%{buscar}%"
         stmt = stmt.where(
@@ -2359,6 +2375,7 @@ def ticket_recogida(id):
                 Cliente.telefono.label('cliente_telefono'),
                 Cliente.email.label('cliente_email'),
             ).join(Cliente, Reparacion.cliente_id == Cliente.id)
+            .where(Reparacion.__table__.c.taller_id == g.taller_id)  # ⚠️ Core → filtro manual
             .where(Reparacion.id == id)
         ).mappings().first()
 
@@ -2528,6 +2545,7 @@ def generar_pdf_presupuesto(id):
                 Cliente.email.label('cliente_email'),
                 Cliente.direccion.label('cliente_direccion'),
             ).outerjoin(Cliente, Cliente.id == Reparacion.cliente_id)
+            .where(Reparacion.__table__.c.taller_id == g.taller_id)  # ⚠️ Core → filtro manual
             .where(Reparacion.id == id)
         ).mappings().first()
 
@@ -3668,7 +3686,11 @@ def admin_solicitudes():
     from sqlalchemy import func as _func
 
     with get_session() as s:
-        stmt = select(SolicitudReparacion.__table__)
+        # ⚠️ select(Model.__table__) es Core → el filtro automático NO se aplica.
+        # Filtro de taller MANUAL (Fase 2.5).
+        stmt = select(SolicitudReparacion.__table__).where(
+            SolicitudReparacion.__table__.c.taller_id == g.taller_id
+        )
         if estado_filtro and estado_filtro != "todas":
             stmt = stmt.where(SolicitudReparacion.__table__.c.estado == estado_filtro)
         stmt = stmt.order_by(SolicitudReparacion.__table__.c.fecha_solicitud.desc())
@@ -4094,6 +4116,9 @@ def stripe_webhook():
                         Reparacion.__table__,
                         Cliente.nombre, Cliente.email, Cliente.telefono,
                     ).join(Cliente, Reparacion.cliente_id == Cliente.id)
+                    # ⚠️ Core → filtro manual; g.taller_id ya es el de la reparación
+                    # (fijado tras verificar la metadata más arriba).
+                    .where(Reparacion.__table__.c.taller_id == g.taller_id)
                     .where(Reparacion.id == reparacion_id)
                 ).mappings().first()
 
