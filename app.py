@@ -252,6 +252,12 @@ _init_conn.close()
 # Inicializar sistema de roles y permisos
 init_permisos_db()
 
+# Migración multi-tenant (Fase 2.1): crea la tabla `talleres`, el taller 1
+# y añade `taller_id` a las tablas de scope. Idempotente — se ejecuta en cada
+# arranque tras crear las tablas base, igual que el DDL defensivo de arriba.
+from migrations import aplicar_migracion_multitenant
+aplicar_migracion_multitenant()
+
 # Configuración de subida de fotos
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads', 'reparaciones')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)

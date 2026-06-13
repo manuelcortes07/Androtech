@@ -1,13 +1,14 @@
-"""Modelos ORM — Fase 1.1 (auth + audit).
+"""Modelos ORM de AndroTech.
 
-Reflejan EXACTAMENTE el esquema SQLite actual. Cero cambios de esquema.
-Las columnas, defaults, NOT NULL y constraints coinciden con lo que
-extraje vía `PRAGMA table_info` en el informe de auditoría.
+Multi-tenant (Fase 2): las 9 tablas de scope llevan `taller_id NOT NULL`
+con `server_default="1"` (los datos existentes son el taller 1; los inserts
+que no fijan taller_id lo reciben de la BD). `audit_log` lo lleva nullable
+(eventos de plataforma → NULL). `roles` y `permisos_rol` NO lo llevan
+(decisión de producto: roles globales del sistema).
 
-Cuando se añadan más modelos en futuras fases (clientes, reparaciones,
-inventario, etc.), van aquí. Cuando llegue Fase 2 multi-tenant, se
-añadirá la columna `taller_id` en este fichero y se generará la
-migración correspondiente.
+El `taller_id` se asigna automáticamente al taller activo en la Fase 2.3
+(event listener `before_flush`) y se FILTRA automáticamente vía
+`with_loader_criteria` — ver `database.py`.
 
 Detalle Python sutil: la columna `usuarios.contraseña` lleva ñ en SQL.
 Para no obligar a escribir `user.contraseña` en código Python (válido
@@ -30,6 +31,34 @@ from sqlalchemy import (
 from database import Base
 
 
+class Taller(Base):
+    """El tenant: un taller de reparación que usa la plataforma.
+
+    Todo lo demás (usuarios, clientes, reparaciones, inventario, …) cuelga
+    de aquí vía `taller_id`. El `slug` (UNIQUE) aparece en las URLs
+    `/t/{slug}/...` (decisión de producto: identificación por path).
+    """
+
+    __tablename__ = "talleres"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    nombre = Column(Text, nullable=False)
+    slug = Column(Text, nullable=False, unique=True)
+    email_contacto = Column(Text)
+    telefono = Column(Text)
+    direccion = Column(Text)
+    fecha_alta = Column(Text, nullable=False)
+    estado = Column(Text, nullable=False, default="activo")   # trial|activo|suspendido|cancelado
+    plan = Column(Text, nullable=False, default="basico")
+    stripe_customer_id = Column(Text)
+    stripe_sub_id = Column(Text)
+    fecha_fin_periodo = Column(Text)
+    config = Column(Text)  # JSON serializado: iva_rate, moneda, logo_url, branding…
+
+    def __repr__(self) -> str:
+        return f"<Taller(id={self.id}, slug={self.slug!r}, estado={self.estado!r})>"
+
+
 class Usuario(Base):
     """Cuentas de técnicos y administradores del taller.
 
@@ -40,12 +69,21 @@ class Usuario(Base):
     __tablename__ = "usuarios"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    usuario = Column(Text, nullable=False, unique=True)
+    taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
+                       server_default="1")
+    # El UNIQUE pasa de (usuario) a (taller_id, usuario): cada taller puede
+    # tener su propio "admin".
+    usuario = Column(Text, nullable=False)
     password = Column("contraseña", Text, nullable=False)
     rol = Column(Text, default="tecnico")
 
+    __table_args__ = (
+        UniqueConstraint("taller_id", "usuario", name="uq_usuarios_taller_usuario"),
+    )
+
     def __repr__(self) -> str:
-        return f"<Usuario(id={self.id}, usuario={self.usuario!r}, rol={self.rol!r})>"
+        return (f"<Usuario(id={self.id}, taller_id={self.taller_id}, "
+                f"usuario={self.usuario!r}, rol={self.rol!r})>")
 
 
 class Rol(Base):
@@ -99,6 +137,9 @@ class AuditLog(Base):
     __tablename__ = "audit_log"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    # NULLABLE a propósito: eventos del superadmin de plataforma llevan NULL;
+    # los eventos de un taller llevan su taller_id.
+    taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=True)
     event_type = Column(Text, nullable=False)
     usuario = Column(Text)
     evento_datos = Column(Text)  # JSON serializado a string
@@ -130,6 +171,8 @@ class Cliente(Base):
     __tablename__ = "clientes"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
+                       server_default="1")
     nombre = Column(Text, nullable=False)
     telefono = Column(Text)
     email = Column(Text)
@@ -150,6 +193,8 @@ class Reparacion(Base):
     __tablename__ = "reparaciones"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
+                       server_default="1")
     cliente_id = Column(Integer, ForeignKey("clientes.id"))
     dispositivo = Column(Text, nullable=False)
     descripcion = Column(Text)
@@ -174,6 +219,8 @@ class FotoReparacion(Base):
     __tablename__ = "fotos_reparacion"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
+                       server_default="1")
     reparacion_id = Column(Integer, ForeignKey("reparaciones.id"), nullable=False)
     filename = Column(Text, nullable=False)
     descripcion = Column(Text)
@@ -190,6 +237,8 @@ class NotaReparacion(Base):
     __tablename__ = "notas_reparacion"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
+                       server_default="1")
     reparacion_id = Column(Integer, ForeignKey("reparaciones.id"), nullable=False)
     usuario = Column(Text, nullable=False)
     contenido = Column(Text, nullable=False)
@@ -210,6 +259,8 @@ class InventarioPieza(Base):
     __tablename__ = "inventario_piezas"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
+                       server_default="1")
     nombre = Column(Text, nullable=False)
     categoria = Column(Text, default="General")
     descripcion = Column(Text)
@@ -231,6 +282,8 @@ class PiezaReparacion(Base):
     __tablename__ = "piezas_reparacion"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
+                       server_default="1")
     reparacion_id = Column(Integer, ForeignKey("reparaciones.id"), nullable=False)
     pieza_id = Column(Integer, ForeignKey("inventario_piezas.id"), nullable=False)
     cantidad = Column(Integer, default=1)
@@ -252,6 +305,8 @@ class SolicitudReparacion(Base):
     __tablename__ = "solicitudes_reparacion"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
+                       server_default="1")
     nombre = Column(Text, nullable=False)
     telefono = Column(Text, nullable=False)
     email = Column(Text)
@@ -293,6 +348,10 @@ class RepairHistorial(Base):
     __tablename__ = "reparaciones_historial"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    # Desnormalizado: hereda el taller vía reparacion_id pero lleva taller_id
+    # propio para que el filtro automático no tenga que hacer JOIN.
+    taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
+                       server_default="1")
     reparacion_id = Column(Integer, ForeignKey("reparaciones.id"), nullable=False)
     estado_anterior = Column(Text)
     estado_nuevo = Column(Text, nullable=False)
