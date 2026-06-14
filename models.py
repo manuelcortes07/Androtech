@@ -54,12 +54,38 @@ class Taller(Base):
     plan = Column(Text, nullable=False, default="basico",
                   server_default=text("'basico'"))
     stripe_customer_id = Column(Text)
-    stripe_sub_id = Column(Text)
+    stripe_sub_id = Column(Text)        # id de la Subscription del SaaS (Fase 3b)
     fecha_fin_periodo = Column(Text)
+    trial_fin = Column(Text)            # Fase 3b: fin de la prueba de 14 días (ISO)
     config = Column(Text)  # JSON serializado: iva_rate, moneda, logo_url, branding…
 
     def __repr__(self) -> str:
         return f"<Taller(id={self.id}, slug={self.slug!r}, estado={self.estado!r})>"
+
+
+class StripeEvento(Base):
+    """Ledger de idempotencia de webhooks de SUSCRIPCIÓN del SaaS (Fase 3b).
+
+    Cada evento de Stripe que procesamos deja aquí su `event_id` (UNIQUE). Si
+    Stripe reenvía el mismo evento, el INSERT choca con el UNIQUE y el webhook
+    lo trata como duplicado (no repite efectos).
+
+    NO es una tabla con scope de taller: es de PLATAFORMA (yo cobrando a los
+    talleres), por eso NO está en `tenancy._MODELOS_SCOPED` y `taller_id` es
+    sólo informativo (nullable). Pertenece al flujo Stripe del SaaS, separado
+    del flujo de pago de reparaciones (que NO toca esta tabla).
+    """
+
+    __tablename__ = "stripe_eventos"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    event_id = Column(Text, nullable=False, unique=True)
+    tipo = Column(Text)
+    taller_id = Column(Integer)  # informativo; NO es FK con scope
+    recibido_en = Column(Text, nullable=False)
+
+    def __repr__(self) -> str:
+        return f"<StripeEvento(event_id={self.event_id!r}, tipo={self.tipo!r})>"
 
 
 class Usuario(Base):

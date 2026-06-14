@@ -97,7 +97,27 @@ def _crear_tabla_talleres(conn) -> None:
             stripe_customer_id TEXT,
             stripe_sub_id TEXT,
             fecha_fin_periodo TEXT,
+            trial_fin TEXT,
             config TEXT
+        )
+    """)
+
+
+def _anadir_columna_trial_fin(conn) -> None:
+    """Fase 3b: añade talleres.trial_fin a BD que ya tenían `talleres` sin ella."""
+    if _table_exists(conn, "talleres") and not _has_column(conn, "talleres", "trial_fin"):
+        conn.exec_driver_sql("ALTER TABLE talleres ADD COLUMN trial_fin TEXT")
+
+
+def _crear_tabla_stripe_eventos(conn) -> None:
+    """Fase 3b: ledger de idempotencia de los webhooks de suscripción del SaaS."""
+    conn.exec_driver_sql("""
+        CREATE TABLE IF NOT EXISTS stripe_eventos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id TEXT NOT NULL UNIQUE,
+            tipo TEXT,
+            taller_id INTEGER,
+            recibido_en TEXT NOT NULL
         )
     """)
 
@@ -240,6 +260,8 @@ def aplicar_migracion_multitenant() -> dict:
 
     with engine.begin() as conn:
         _crear_tabla_talleres(conn)
+        _anadir_columna_trial_fin(conn)        # Fase 3b
+        _crear_tabla_stripe_eventos(conn)      # Fase 3b
         resumen["talleres_creada"] = True
 
         antes = conn.exec_driver_sql("SELECT 1 FROM talleres WHERE id=1").first()

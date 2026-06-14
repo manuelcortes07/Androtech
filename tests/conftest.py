@@ -201,6 +201,7 @@ def db_conn():
 # Reset de datos entre tests
 # ───────────────────────────────────────────────────────────────────
 _DATA_TABLES = (
+    "stripe_eventos",
     "audit_log",
     "reparaciones_historial",
     "piezas_reparacion",
