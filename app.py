@@ -39,11 +39,12 @@ import saas_billing
 # Capa de acceso a datos: SQLAlchemy (Fase 1 SaaS completada — todo el
 # proyecto usa get_session()/select(); sqlite3 directo eliminado).
 from sqlalchemy import select, text
-from database import get_session, get_engine, is_postgres, is_sqlite
+from database import (get_session, get_engine, is_postgres, is_sqlite,
+                      insert_or_ignore)
 from models import (
     Usuario, Cliente, Reparacion, FotoReparacion, NotaReparacion,
     InventarioPieza, PiezaReparacion, RepairHistorial, Rol, PermisoRol,
-    SolicitudReparacion,
+    SolicitudReparacion, StripeEvento,
 )
 from auth import (
     login_required, role_required, permiso_requerido, tiene_permiso,
@@ -799,6 +800,136 @@ def suscripcion_portal():
                                 ensure_ascii=False))
         flash("No se pudo abrir el portal de gestión. Inténtalo más tarde.", "danger")
         return redirect(url_for("suscripcion"))
+
+
+def _taller_por_customer(s, customer_id):
+    """taller_id cuyo stripe_customer_id coincide, o None. SQL crudo (talleres
+    no lleva scope de taller)."""
+    if not customer_id:
+        return None
+    row = s.execute(
+        text("SELECT id FROM talleres WHERE stripe_customer_id = :c"),
+        {"c": customer_id},
+    ).first()
+    return row[0] if row else None
+
+
+def _saas_aplicar_evento(s, etype, obj):
+    """Aplica un evento de suscripción al Taller. Devuelve (taller_id,
+    nuevo_estado, sub_id). NO toca reparaciones ni ningún dato de cliente."""
+    customer_id = obj.get("customer")
+    tid = _taller_por_customer(s, customer_id)
+    if tid is None and etype == "checkout.session.completed":
+        meta = obj.get("metadata") or {}
+        if meta.get("taller_id"):
+            try:
+                tid = int(meta["taller_id"])
+            except (TypeError, ValueError):
+                tid = None
+    if tid is None:
+        return None, None, None
+
+    nuevo_estado = None
+    sub_id = None
+    if etype == "checkout.session.completed":
+        sub_id = obj.get("subscription")
+        nuevo_estado = "trial"  # alta completada con tarjeta; sigue en prueba
+    elif etype == "customer.subscription.updated":
+        sub_id = obj.get("id")
+        nuevo_estado = saas_billing.estado_por_status_stripe(obj.get("status"))
+    elif etype == "customer.subscription.deleted":
+        sub_id = obj.get("id")
+        nuevo_estado = "cancelado"   # suscripción eliminada → acceso bloqueado
+    elif etype == "invoice.payment_failed":
+        nuevo_estado = "suspendido"  # política: impago → bloqueo (datos intactos)
+    elif etype == "invoice.paid":
+        # Reactivar SÓLO si estaba suspendido (no degrada un trial al pagar el
+        # invoice de 0 € del inicio de prueba).
+        cur = s.execute(text("SELECT estado FROM talleres WHERE id = :t"),
+                        {"t": tid}).scalar()
+        if cur == "suspendido":
+            nuevo_estado = "activo"
+    else:
+        return tid, None, None  # evento no manejado
+
+    if nuevo_estado is None:
+        return tid, None, sub_id
+
+    sets = ["estado = :est"]
+    params = {"t": tid, "est": nuevo_estado}
+    if sub_id:
+        sets.append("stripe_sub_id = :sub")
+        params["sub"] = sub_id
+    s.execute(text(f"UPDATE talleres SET {', '.join(sets)} WHERE id = :t"), params)
+    return tid, nuevo_estado, sub_id
+
+
+@app.route("/saas/webhook", methods=["POST"])
+def saas_webhook():
+    """Webhook de la SUSCRIPCIÓN del SaaS — SEPARADO del de reparaciones.
+
+    - Verifica la firma con STRIPE_SAAS_WEBHOOK_SECRET (saas_billing).
+    - Idempotente: el `event_id` se inserta en `stripe_eventos` dentro de la
+      MISMA transacción que el efecto; si Stripe reenvía el evento, el UNIQUE
+      choca y no se repite nada.
+    - Sincroniza Taller.estado. NUNCA toca reparaciones.
+    """
+    payload = request.data
+    sig = request.headers.get("Stripe-Signature")
+
+    if not saas_billing.STRIPE_SAAS_WEBHOOK_SECRET:
+        logger.error("[SAAS-WEBHOOK] STRIPE_SAAS_WEBHOOK_SECRET no configurado")
+        return jsonify({"error": "SaaS webhook secret not configured"}), 400
+    if not sig:
+        return jsonify({"error": "Missing Stripe-Signature header"}), 400
+
+    try:
+        event = saas_billing.construir_evento(payload, sig)
+    except Exception as e:
+        logger.error(json.dumps({"event": "saas_webhook_bad_signature",
+                                 "error": str(e)}, ensure_ascii=False))
+        return jsonify({"error": str(e)}), 400
+
+    etype = event.get("type")
+    eid = event.get("id")
+    obj = (event.get("data") or {}).get("object", {}) or {}
+
+    try:
+        with get_session() as s:
+            # Guarda de idempotencia + efecto en una sola transacción.
+            ins = s.execute(
+                insert_or_ignore(StripeEvento)
+                .values(event_id=eid, tipo=etype,
+                        recibido_en=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                .on_conflict_do_nothing()
+            )
+            if eid and ins.rowcount == 0:
+                s.rollback()
+                logger.info(json.dumps({"event": "saas_webhook_duplicate",
+                                        "stripe_event": eid}, ensure_ascii=False))
+                return jsonify({"status": "duplicate"}), 200
+
+            taller_id, nuevo_estado, sub_id = _saas_aplicar_evento(s, etype, obj)
+            if taller_id is not None:
+                s.execute(
+                    text("UPDATE stripe_eventos SET taller_id = :t WHERE event_id = :e"),
+                    {"t": taller_id, "e": eid},
+                )
+            s.commit()
+    except Exception as e:
+        logger.error(json.dumps({"event": "saas_webhook_error", "type": etype,
+                                 "error": str(e)}, ensure_ascii=False))
+        return jsonify({"error": str(e)}), 500
+
+    if taller_id is not None and nuevo_estado is not None:
+        registrar_auditoria(f"saas_{etype}", "stripe",
+                            {"taller_id": taller_id, "estado": nuevo_estado,
+                             "subscription": sub_id},
+                            taller_id=taller_id)
+        logger.info(json.dumps({"event": "saas_webhook_processed", "type": etype,
+                                "taller_id": taller_id, "estado": nuevo_estado},
+                               ensure_ascii=False))
+    return jsonify({"status": "ok"}), 200
 
 # =========================================
 # 🔸 PÁGINAS PROTEGIDAS

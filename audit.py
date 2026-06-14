@@ -20,7 +20,8 @@ from models import AuditLog
 logger = logging.getLogger("androtech")
 
 
-def registrar_auditoria(event_type, usuario, evento_datos, ip_address=None):
+def registrar_auditoria(event_type, usuario, evento_datos, ip_address=None,
+                        taller_id=None):
     """Registra un evento de auditoría en la tabla audit_log.
 
     Args:
@@ -31,6 +32,11 @@ def registrar_auditoria(event_type, usuario, evento_datos, ip_address=None):
         usuario: Nombre del usuario que generó el evento
         evento_datos: Dict con información del evento (se serializa a JSON)
         ip_address: Dirección IP del cliente (opcional)
+        taller_id: taller al que pertenece el evento (opcional). Si se omite, el
+            auto-stamp (`before_flush`) lo fija a `g.taller_id` cuando hay
+            request con scope. Se pasa EXPLÍCITO en eventos de PLATAFORMA fuera
+            de un request con taller (p. ej. webhook de suscripción del SaaS,
+            Fase 3b), donde `g.taller_id` no aplica.
 
     Returns:
         bool: True si se registró exitosamente, False en caso de error
@@ -45,7 +51,10 @@ def registrar_auditoria(event_type, usuario, evento_datos, ip_address=None):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         with get_session() as s:
+            # taller_id explícito gana al auto-stamp (before_flush sólo rellena
+            # cuando es None). Así el evento de plataforma queda con su taller.
             s.add(AuditLog(
+                taller_id=taller_id,
                 event_type=event_type,
                 usuario=usuario,
                 evento_datos=evento_json,

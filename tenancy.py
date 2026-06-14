@@ -53,6 +53,7 @@ _PLATFORM_PREFIXES = (
     "/manifest.json",
     "/sw.js",
     "/stripe/webhook",  # el webhook resuelve el taller desde la metadata (Fase 2.4)
+    "/saas/webhook",    # webhook de suscripción del SaaS (Fase 3b): plataforma
 )
 
 _SLUG_RE = re.compile(r"^/t/([^/]+)")
