@@ -66,8 +66,32 @@ from utils.email_service import EmailService
 app = Flask(__name__)
 # Trust Railway / Nginx reverse-proxy headers so request.host_url returns https://
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
-# Secret key should be provided via environment variable in production
-app.secret_key = os.environ.get('SECRET_KEY', secrets.token_urlsafe(32))
+
+# Entorno de ejecución: 'production' en Railway, 'development' en local.
+APP_ENV = os.environ.get('APP_ENV', 'development').strip().lower()
+IS_PRODUCTION = APP_ENV == 'production'
+
+# SECRET_KEY: en producción es OBLIGATORIA. Sin ella las sesiones/CSRF no son
+# seguras y se invalidarían en cada reinicio o worker de gunicorn. Falla
+# RUIDOSAMENTE si falta en producción; en local cae a un aleatorio para no
+# estorbar el desarrollo.
+_secret_key = os.environ.get('SECRET_KEY')
+if not _secret_key:
+    if IS_PRODUCTION:
+        raise RuntimeError(
+            "SECRET_KEY no está definida y APP_ENV=production. Define SECRET_KEY "
+            "en las variables de entorno antes de arrancar en producción."
+        )
+    _secret_key = secrets.token_urlsafe(32)  # solo desarrollo local
+app.secret_key = _secret_key
+
+# Endurecimiento de cookies de sesión. SECURE (solo HTTPS) únicamente en
+# producción; en local sobre http sigue funcionando porque SECURE=False.
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=IS_PRODUCTION,
+)
 
 # Rate limiter (protección contra fuerza bruta)
 limiter = Limiter(get_remote_address, app=app, storage_uri="memory://")
@@ -179,10 +203,19 @@ else:
     init_permisos_db()
     aplicar_migracion_multitenant()
 
-# Configuración de subida de fotos
-UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads', 'reparaciones')
+# Configuración de subida de fotos/firmas.
+# La ruta base sale de UPLOADS_DIR. En Railway se monta ahí un VOLUMEN
+# PERSISTENTE para que las imágenes sobrevivan a los redeploys (el disco del
+# contenedor es efímero). Por defecto, `static/uploads` del repo.
+# ⚠️ DEBE quedar bajo `static/` para que las sirva `url_for('static', ...)`
+# (las plantillas referencian uploads/reparaciones/... y uploads/firmas/...).
+# En Railway: monta el volumen en <app>/static/uploads y pon
+# UPLOADS_DIR=/app/static/uploads (ver DEPLOY.md).
+_DEFAULT_UPLOADS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
+UPLOADS_DIR = os.environ.get('UPLOADS_DIR') or _DEFAULT_UPLOADS
+UPLOAD_FOLDER = os.path.join(UPLOADS_DIR, 'reparaciones')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-SIGNATURES_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads', 'firmas')
+SIGNATURES_FOLDER = os.path.join(UPLOADS_DIR, 'firmas')
 os.makedirs(SIGNATURES_FOLDER, exist_ok=True)
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
 MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5 MB por archivo
@@ -3586,7 +3619,7 @@ def admin_seed_demo():
         flash('Acceso restringido al administrador.', 'danger')
         return redirect(url_for('dashboard'))
 
-    SEED_KEY = "demo2026"
+    SEED_KEY = os.environ.get("SEED_KEY", "demo2026")
     if request.args.get('key') != SEED_KEY:
         return ("<h3>Acceso denegado</h3>"
                 "<p>Falta la clave en la URL: "
