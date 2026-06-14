@@ -237,8 +237,55 @@ app.context_processor(inject_csrf_token)
 
 # Multi-tenancy (Fase 2.2): resolver el taller activo (g.taller_id) en cada
 # petición. Debe correr antes de cualquier handler que consulte datos con scope.
-from tenancy import resolver_taller, DEFAULT_TALLER_ID, DEFAULT_TALLER_SLUG
+from tenancy import (resolver_taller, es_ruta_plataforma,
+                     DEFAULT_TALLER_ID, DEFAULT_TALLER_SLUG)
 app.before_request(resolver_taller)
+
+# Puerta de acceso por suscripción (Fase 3b.3): tras resolver el taller,
+# bloquea el acceso INTERNO de un taller cuya suscripción no está activa.
+# Bloquear NUNCA borra datos: solo corta el acceso. El portal público (clientes
+# finales) NO pasa por aquí (sólo actúa sobre usuarios con sesión).
+_GATE_EXENTAS = frozenset({
+    # Auth y alta
+    "login", "logout", "signup",
+    # Facturación: un taller bloqueado DEBE poder llegar a pagar/gestionar
+    "suscripcion", "suscripcion_portal", "suscripcion_bloqueado",
+    # Webhooks (sin sesión, pero exentos por claridad)
+    "saas_webhook", "stripe_webhook",
+    "static", "health",
+    # Portal público del taller: SIEMPRE visible (decisión de producto) — un
+    # taller bloqueado no perjudica a sus clientes finales.
+    "consulta", "mis_reparaciones", "solicitar_reparacion",
+    "publico_pagar", "pago_exito",
+})
+
+
+def puerta_suscripcion():
+    """before_request: corta el acceso interno si la suscripción no está activa."""
+    # Sólo afecta a usuarios autenticados (staff del taller). Los clientes
+    # finales del portal público no tienen sesión → nunca se bloquean.
+    if not session.get("usuario"):
+        return
+    if request.endpoint in _GATE_EXENTAS:
+        return
+    if es_ruta_plataforma(request.path):
+        return
+    tid = session.get("taller_id")
+    if not tid:
+        return
+    with get_session() as s:
+        row = s.execute(
+            text("SELECT estado, trial_fin FROM talleres WHERE id = :t"),
+            {"t": tid},
+        ).first()
+    if not row:
+        return
+    if saas_billing.acceso_bloqueado(row[0], row[1]):
+        # No se toca ningún dato: sólo se redirige a la página de bloqueo.
+        return redirect(url_for("suscripcion_bloqueado"))
+
+
+app.before_request(puerta_suscripcion)
 
 # Exponer el taller activo a las plantillas (para construir URLs /t/{slug}/...).
 @app.context_processor
@@ -709,6 +756,24 @@ def suscripcion():
             {"tid": session.get("taller_id")},
         ).mappings().first()
     return render_template("suscripcion.html", taller=taller)
+
+
+@app.route("/suscripcion/bloqueado")
+def suscripcion_bloqueado():
+    """Página mostrada cuando la suscripción del taller no está activa.
+
+    NO borra ni expone datos: sólo informa y enlaza al pago/gestión. Los datos
+    del taller siguen intactos y se recuperan en cuanto regulariza el pago.
+    """
+    estado = None
+    tid = session.get("taller_id")
+    if tid:
+        with get_session() as s:
+            row = s.execute(
+                text("SELECT estado FROM talleres WHERE id = :t"), {"t": tid}
+            ).first()
+            estado = row[0] if row else None
+    return render_template("suscripcion_bloqueado.html", estado=estado), 402
 
 
 @app.route("/suscripcion/portal")
