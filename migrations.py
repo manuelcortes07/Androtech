@@ -28,6 +28,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from sqlalchemy import text as _text
+
 from database import get_engine
 
 # Tablas que reciben `taller_id NOT NULL DEFAULT 1` vía ALTER TABLE simple.
@@ -267,6 +269,119 @@ def aplicar_migracion_multitenant() -> dict:
         resumen["usuarios_rebuild"] = necesita_rebuild
 
     return resumen
+
+
+# ───────────────────────────────────────────────────────────────────
+# Esquema defensivo SQLite (extraído del arranque de app.py en Fase 3a)
+# ───────────────────────────────────────────────────────────────────
+def crear_esquema_sqlite_defensivo() -> None:
+    """Crea las tablas base que no crean ni `scripts/create_db.py` ni el ORM,
+    con el DDL byte-idéntico al original (incluye los ON DELETE CASCADE).
+
+    Solo para el camino SQLite. En Postgres el esquema lo crea
+    `Base.metadata.create_all()` desde los modelos.
+    """
+    conn = get_engine().connect()
+    conn.execute(_text("""
+        CREATE TABLE IF NOT EXISTS fotos_reparacion (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            reparacion_id INTEGER NOT NULL,
+            filename TEXT NOT NULL,
+            descripcion TEXT,
+            fecha_subida TEXT NOT NULL,
+            subido_por TEXT,
+            FOREIGN KEY (reparacion_id) REFERENCES reparaciones(id) ON DELETE CASCADE
+        )
+    """))
+    # Añadir columna firma si no existe (BD viejas).
+    try:
+        conn.execute(_text("ALTER TABLE reparaciones ADD COLUMN firma TEXT"))
+        conn.commit()
+    except Exception:
+        pass  # columna ya existe
+    conn.execute(_text("""
+        CREATE TABLE IF NOT EXISTS notas_reparacion (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            reparacion_id INTEGER NOT NULL,
+            usuario TEXT NOT NULL,
+            contenido TEXT NOT NULL,
+            fecha_creacion TEXT NOT NULL,
+            es_importante INTEGER DEFAULT 0,
+            FOREIGN KEY (reparacion_id) REFERENCES reparaciones(id) ON DELETE CASCADE
+        )
+    """))
+    conn.commit()
+    conn.execute(_text("""
+        CREATE TABLE IF NOT EXISTS inventario_piezas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL,
+            categoria TEXT DEFAULT 'General',
+            descripcion TEXT,
+            cantidad INTEGER DEFAULT 0,
+            cantidad_minima INTEGER DEFAULT 5,
+            precio_coste REAL DEFAULT 0,
+            precio_venta REAL DEFAULT 0,
+            proveedor TEXT,
+            ubicacion TEXT,
+            fecha_actualizacion TEXT
+        )
+    """))
+    conn.execute(_text("""
+        CREATE TABLE IF NOT EXISTS piezas_reparacion (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            reparacion_id INTEGER NOT NULL,
+            pieza_id INTEGER NOT NULL,
+            cantidad INTEGER DEFAULT 1,
+            fecha_uso TEXT NOT NULL,
+            usuario TEXT,
+            FOREIGN KEY (reparacion_id) REFERENCES reparaciones(id),
+            FOREIGN KEY (pieza_id) REFERENCES inventario_piezas(id)
+        )
+    """))
+    conn.commit()
+    conn.execute(_text("""
+        CREATE TABLE IF NOT EXISTS solicitudes_reparacion (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL,
+            telefono TEXT NOT NULL,
+            email TEXT,
+            dispositivo TEXT NOT NULL,
+            marca TEXT,
+            modelo TEXT,
+            descripcion TEXT NOT NULL,
+            urgencia TEXT DEFAULT 'normal',
+            fecha_preferida TEXT,
+            horario_preferido TEXT,
+            estado TEXT DEFAULT 'pendiente',
+            notas_admin TEXT,
+            fecha_solicitud TEXT NOT NULL,
+            fecha_gestion TEXT
+        )
+    """))
+    conn.commit()
+    conn.close()
+
+
+def asegurar_taller_1() -> bool:
+    """Inserta el taller 1 ("androtech") si no existe. Dialect-agnóstico (ORM).
+
+    Para Postgres (donde no corre el rebuild SQLite). En SQLite el taller 1 lo
+    crea `aplicar_migracion_multitenant`. Devuelve True si lo insertó.
+    """
+    from database import get_session
+    from models import Taller
+    with get_session() as s:
+        if s.get(Taller, 1) is not None:
+            return False
+        s.add(Taller(
+            id=1, nombre=_TALLER_1["nombre"], slug=_TALLER_1["slug"],
+            email_contacto=_TALLER_1["email_contacto"],
+            telefono=_TALLER_1["telefono"], direccion=_TALLER_1["direccion"],
+            fecha_alta=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            estado="activo", plan="basico",
+        ))
+        s.commit()
+    return True
 
 
 if __name__ == "__main__":

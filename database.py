@@ -87,6 +87,21 @@ def is_sqlite() -> bool:
     return get_engine().dialect.name == "sqlite"
 
 
+def insert_or_ignore(model):
+    """Devuelve un INSERT con `.on_conflict_do_nothing()` del dialecto activo.
+
+    `sqlite_insert(...).on_conflict_do_nothing()` solo vale en SQLite y
+    `postgresql_insert(...)` solo en Postgres. Este helper elige el correcto
+    según el motor (pincho B de la Fase 3a). Uso:
+        s.execute(insert_or_ignore(PermisoRol).values(...).on_conflict_do_nothing())
+    """
+    if is_postgres():
+        from sqlalchemy.dialects.postgresql import insert as _pg_insert
+        return _pg_insert(model)
+    from sqlalchemy.dialects.sqlite import insert as _sqlite_insert
+    return _sqlite_insert(model)
+
+
 def get_session() -> Session:
     """Crea una nueva `Session` lista para usar con `with get_session() as s:`."""
     global _SessionFactory

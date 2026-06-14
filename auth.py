@@ -13,9 +13,8 @@ ignora internamente — cada función abre su propia `Session`.
 from functools import wraps
 from flask import session, redirect, url_for, flash
 from sqlalchemy import select
-from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
-from database import get_engine, get_session, Base
+from database import get_engine, get_session, Base, insert_or_ignore
 from models import Rol, PermisoRol
 
 # ─── Definicion de permisos disponibles ──────────────────────────────
@@ -101,7 +100,7 @@ def init_permisos_db():
             # existiera por alguna razón).
             for p in PERMISOS_ADMIN:
                 stmt = (
-                    sqlite_insert(PermisoRol)
+                    insert_or_ignore(PermisoRol)
                     .values(rol_nombre='admin', permiso=p)
                     .on_conflict_do_nothing()
                 )
@@ -116,7 +115,7 @@ def init_permisos_db():
             ))
             for p in PERMISOS_TECNICO:
                 stmt = (
-                    sqlite_insert(PermisoRol)
+                    insert_or_ignore(PermisoRol)
                     .values(rol_nombre='tecnico', permiso=p)
                     .on_conflict_do_nothing()
                 )

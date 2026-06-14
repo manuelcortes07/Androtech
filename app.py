@@ -37,7 +37,7 @@ from utils.pdf_generator import generar_presupuesto_pdf
 # Capa de acceso a datos: SQLAlchemy (Fase 1 SaaS completada — todo el
 # proyecto usa get_session()/select(); sqlite3 directo eliminado).
 from sqlalchemy import select
-from database import get_session, get_engine
+from database import get_session, get_engine, is_postgres, is_sqlite
 from models import (
     Usuario, Cliente, Reparacion, FotoReparacion, NotaReparacion,
     InventarioPieza, PiezaReparacion, RepairHistorial, Rol, PermisoRol,
@@ -151,112 +151,30 @@ if STRIPE_SECRET_KEY and not STRIPE_SECRET_KEY.startswith('sk_'):
         _mask_key(STRIPE_SECRET_KEY)
     )
 
-# Inicialización defensiva del esquema al arrancar (Fase 1.9: vía engine
-# SQLAlchemy, sin sqlite3 directo). El DDL se conserva byte-idéntico al
-# original para que una instalación desde cero genere el mismo esquema
-# (p. ej. los ON DELETE CASCADE que los modelos ORM no declaran).
-from sqlalchemy import text as _ddl_text
+# ─────────────────────────────────────────────────────────────────────
+# Inicialización del esquema al arrancar — RAMIFICADA POR DIALECTO (Fase 3a)
+# ─────────────────────────────────────────────────────────────────────
+import models as _models  # noqa: F401  (registra todos los modelos en Base.metadata)
+from database import Base as _Base
+from migrations import (
+    crear_esquema_sqlite_defensivo, aplicar_migracion_multitenant,
+    asegurar_taller_1,
+)
 
-crear_tabla_auditoria()
-
-_init_conn = get_engine().connect()
-
-# Inicializar tabla de fotos de reparaciones
-_init_conn.execute(_ddl_text("""
-    CREATE TABLE IF NOT EXISTS fotos_reparacion (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        reparacion_id INTEGER NOT NULL,
-        filename TEXT NOT NULL,
-        descripcion TEXT,
-        fecha_subida TEXT NOT NULL,
-        subido_por TEXT,
-        FOREIGN KEY (reparacion_id) REFERENCES reparaciones(id) ON DELETE CASCADE
-    )
-"""))
-# Añadir columna firma si no existe
-try:
-    _init_conn.execute(_ddl_text("ALTER TABLE reparaciones ADD COLUMN firma TEXT"))
-    _init_conn.commit()
-except Exception:
-    pass  # columna ya existe
-
-# Tabla de notas internas
-_init_conn.execute(_ddl_text("""
-    CREATE TABLE IF NOT EXISTS notas_reparacion (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        reparacion_id INTEGER NOT NULL,
-        usuario TEXT NOT NULL,
-        contenido TEXT NOT NULL,
-        fecha_creacion TEXT NOT NULL,
-        es_importante INTEGER DEFAULT 0,
-        FOREIGN KEY (reparacion_id) REFERENCES reparaciones(id) ON DELETE CASCADE
-    )
-"""))
-_init_conn.commit()
-
-# Tabla de inventario de piezas
-_init_conn.execute(_ddl_text("""
-    CREATE TABLE IF NOT EXISTS inventario_piezas (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nombre TEXT NOT NULL,
-        categoria TEXT DEFAULT 'General',
-        descripcion TEXT,
-        cantidad INTEGER DEFAULT 0,
-        cantidad_minima INTEGER DEFAULT 5,
-        precio_coste REAL DEFAULT 0,
-        precio_venta REAL DEFAULT 0,
-        proveedor TEXT,
-        ubicacion TEXT,
-        fecha_actualizacion TEXT
-    )
-"""))
-
-# Tabla de piezas usadas en reparaciones
-_init_conn.execute(_ddl_text("""
-    CREATE TABLE IF NOT EXISTS piezas_reparacion (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        reparacion_id INTEGER NOT NULL,
-        pieza_id INTEGER NOT NULL,
-        cantidad INTEGER DEFAULT 1,
-        fecha_uso TEXT NOT NULL,
-        usuario TEXT,
-        FOREIGN KEY (reparacion_id) REFERENCES reparaciones(id),
-        FOREIGN KEY (pieza_id) REFERENCES inventario_piezas(id)
-    )
-"""))
-_init_conn.commit()
-
-# Tabla de solicitudes de reparacion (formulario publico)
-_init_conn.execute(_ddl_text("""
-    CREATE TABLE IF NOT EXISTS solicitudes_reparacion (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nombre TEXT NOT NULL,
-        telefono TEXT NOT NULL,
-        email TEXT,
-        dispositivo TEXT NOT NULL,
-        marca TEXT,
-        modelo TEXT,
-        descripcion TEXT NOT NULL,
-        urgencia TEXT DEFAULT 'normal',
-        fecha_preferida TEXT,
-        horario_preferido TEXT,
-        estado TEXT DEFAULT 'pendiente',
-        notas_admin TEXT,
-        fecha_solicitud TEXT NOT NULL,
-        fecha_gestion TEXT
-    )
-"""))
-_init_conn.commit()
-_init_conn.close()
-
-# Inicializar sistema de roles y permisos
-init_permisos_db()
-
-# Migración multi-tenant (Fase 2.1): crea la tabla `talleres`, el taller 1
-# y añade `taller_id` a las tablas de scope. Idempotente — se ejecuta en cada
-# arranque tras crear las tablas base, igual que el DDL defensivo de arriba.
-from migrations import aplicar_migracion_multitenant
-aplicar_migracion_multitenant()
+if is_postgres():
+    # PostgreSQL: esquema FINAL directo desde los modelos (pincho F). Crea
+    # TODAS las tablas con taller_id, UNIQUE(taller_id, usuario), FKs, índices
+    # y ON DELETE CASCADE. NO se usa el rebuild 12-step (es SQLite-only).
+    _Base.metadata.create_all(get_engine())
+    init_permisos_db()
+    asegurar_taller_1()
+else:
+    # SQLite: camino de siempre (DDL defensivo byte-idéntico + migración
+    # 12-step in-place para BD existentes con esquema viejo).
+    crear_tabla_auditoria()
+    crear_esquema_sqlite_defensivo()
+    init_permisos_db()
+    aplicar_migracion_multitenant()
 
 # Configuración de subida de fotos
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads', 'reparaciones')
@@ -685,7 +603,7 @@ def dashboard():
 
     # Ingresos totales
     ingresos_total = s.execute(_text("""
-        SELECT IFNULL(SUM(precio), 0) FROM reparaciones
+        SELECT COALESCE(SUM(precio), 0) FROM reparaciones
         WHERE taller_id = :tid AND precio IS NOT NULL
     """), tp).scalar()
 
@@ -694,7 +612,7 @@ def dashboard():
     inicio_mes = datetime(hoy.year, hoy.month, 1)
 
     ingresos_mes = s.execute(_text("""
-        SELECT IFNULL(SUM(precio), 0) FROM reparaciones
+        SELECT COALESCE(SUM(precio), 0) FROM reparaciones
         WHERE taller_id = :tid AND fecha_entrada >= :inicio AND precio IS NOT NULL
     """), {**tp, "inicio": inicio_mes.strftime("%Y-%m-%d")}).scalar()
 
@@ -711,7 +629,7 @@ def dashboard():
 
     # ========== ESTADÍSTICAS DE PAGOS ==========
     dinero_cobrado = s.execute(_text("""
-        SELECT IFNULL(SUM(precio), 0) FROM reparaciones
+        SELECT COALESCE(SUM(precio), 0) FROM reparaciones
         WHERE taller_id = :tid AND estado_pago = 'Pagado' AND precio IS NOT NULL
     """), tp).scalar()
 
@@ -835,7 +753,7 @@ def dashboard():
                 fin = datetime(fecha.year, fecha.month + 1, 1) - __import__('datetime').timedelta(seconds=1)
         
         ingreso_mes_i = s.execute(_text("""
-            SELECT IFNULL(SUM(precio), 0) FROM reparaciones
+            SELECT COALESCE(SUM(precio), 0) FROM reparaciones
             WHERE taller_id = :tid AND fecha_entrada >= :ini AND fecha_entrada <= :fin AND precio IS NOT NULL
         """), {**tp, "ini": inicio.strftime("%Y-%m-%d"), "fin": fin.strftime("%Y-%m-%d")}).scalar()
         
@@ -852,16 +770,21 @@ def dashboard():
     """), tp).scalar()
 
     if reparaciones_completadas > 0:
-        # Calcular promedio de días entre entrada y última actualización
-        tiempo_promedio = s.execute(_text("""
-            SELECT AVG(
-                CAST((julianday(COALESCE(
-                    (SELECT fecha_cambio FROM reparaciones_historial
-                     WHERE reparacion_id = reparaciones.id
-                     ORDER BY fecha_cambio DESC LIMIT 1),
-                    reparaciones.fecha_entrada
-                )) - julianday(reparaciones.fecha_entrada)) AS REAL)
-            )
+        # Calcular promedio de días entre entrada y última actualización.
+        # ⚠️ Pincho A: julianday() es SQLite-only. Las fechas son TEXT en ambos
+        # motores; el cálculo de "días entre" se ramifica por dialecto:
+        #   SQLite   → julianday(a) - julianday(b)
+        #   Postgres → EXTRACT(EPOCH FROM (a::timestamp - b::timestamp)) / 86400
+        if is_postgres():
+            _dif_dias = ("EXTRACT(EPOCH FROM (CAST({a} AS timestamp) "
+                         "- CAST(reparaciones.fecha_entrada AS timestamp))) / 86400.0")
+        else:
+            _dif_dias = "julianday({a}) - julianday(reparaciones.fecha_entrada)"
+        _ultima = ("COALESCE((SELECT fecha_cambio FROM reparaciones_historial "
+                   "WHERE reparacion_id = reparaciones.id "
+                   "ORDER BY fecha_cambio DESC LIMIT 1), reparaciones.fecha_entrada)")
+        tiempo_promedio = s.execute(_text(f"""
+            SELECT AVG(CAST(({_dif_dias.format(a=_ultima)}) AS REAL))
             FROM reparaciones
             WHERE taller_id = :tid AND (estado = 'Terminado' OR estado = 'Entregado')
         """), tp).scalar()
@@ -1013,8 +936,8 @@ def historial_cliente():
     total_reparaciones = s.execute(_text("SELECT COUNT(*) FROM reparaciones WHERE taller_id = :tid"), tp).scalar()
     pagadas = s.execute(_text("SELECT COUNT(*) FROM reparaciones WHERE taller_id = :tid AND estado_pago = 'Pagado'"), tp).scalar()
     pendientes = s.execute(_text("SELECT COUNT(*) FROM reparaciones WHERE taller_id = :tid AND estado_pago != 'Pagado'"), tp).scalar()
-    total_invertido = s.execute(_text("SELECT IFNULL(SUM(precio), 0) FROM reparaciones WHERE taller_id = :tid AND precio IS NOT NULL"), tp).scalar()
-    promedio_precio = s.execute(_text("SELECT IFNULL(AVG(precio), 0) FROM reparaciones WHERE taller_id = :tid AND precio IS NOT NULL"), tp).scalar()
+    total_invertido = s.execute(_text("SELECT COALESCE(SUM(precio), 0) FROM reparaciones WHERE taller_id = :tid AND precio IS NOT NULL"), tp).scalar()
+    promedio_precio = s.execute(_text("SELECT COALESCE(AVG(precio), 0) FROM reparaciones WHERE taller_id = :tid AND precio IS NOT NULL"), tp).scalar()
     total_completadas = s.execute(_text("SELECT COUNT(*) FROM reparaciones WHERE taller_id = :tid AND (estado = 'Terminado' OR estado = 'Entregado')"), tp).scalar()
 
     # Filtro por estado y cliente
@@ -2876,14 +2799,14 @@ def nuevo_rol():
             flash("No puedes crear un rol con ese nombre reservado.", "danger")
             return redirect(url_for('nuevo_rol'))
 
-        from sqlalchemy.dialects.sqlite import insert as _sqlite_insert
+        from database import insert_or_ignore
         with get_session() as s:
             try:
                 s.add(Rol(nombre=nombre, descripcion=descripcion,
                           es_sistema=0, color=color))
                 for p in permisos:
                     s.execute(
-                        _sqlite_insert(PermisoRol)
+                        insert_or_ignore(PermisoRol)
                         .values(rol_nombre=nombre, permiso=p)
                         .on_conflict_do_nothing()
                     )

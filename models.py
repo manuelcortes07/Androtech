@@ -225,7 +225,10 @@ class FotoReparacion(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
                        server_default="1")
-    reparacion_id = Column(Integer, ForeignKey("reparaciones.id"), nullable=False)
+    # ON DELETE CASCADE: igual que el DDL SQLite original (en Postgres SÍ se
+    # aplica; en SQLite es cosmético porque las FKs están OFF).
+    reparacion_id = Column(Integer, ForeignKey("reparaciones.id", ondelete="CASCADE"),
+                           nullable=False)
     filename = Column(Text, nullable=False)
     descripcion = Column(Text)
     fecha_subida = Column(Text, nullable=False)
@@ -243,7 +246,9 @@ class NotaReparacion(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
                        server_default="1")
-    reparacion_id = Column(Integer, ForeignKey("reparaciones.id"), nullable=False)
+    # ON DELETE CASCADE: igual que el DDL SQLite original.
+    reparacion_id = Column(Integer, ForeignKey("reparaciones.id", ondelete="CASCADE"),
+                           nullable=False)
     usuario = Column(Text, nullable=False)
     contenido = Column(Text, nullable=False)
     fecha_creacion = Column(Text, nullable=False)
