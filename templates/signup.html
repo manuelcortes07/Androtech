@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AndroTech - Crear cuenta</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body style="background-color:#EBF5FB;">
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+
+            <div class="text-center mb-4">
+                <i class="bi bi-phone" style="font-size:2.25rem;color:#2B8AC4;"></i>
+                <h1 class="h3 fw-bold mt-2 mb-1" style="color:#0F1923;">Crea tu taller en AndroTech</h1>
+                <p class="text-muted mb-0">
+                    14 días de prueba gratis. Luego 24,99 €/mes. Cancela cuando quieras.
+                </p>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4 p-md-5">
+
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show py-2" role="alert">
+                                    <small>{{ message }}</small>
+                                    <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form method="POST" class="needs-validation" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                        <div class="mb-3">
+                            <label for="nombre_taller" class="form-label">
+                                <i class="bi bi-shop me-1"></i>Nombre del taller
+                            </label>
+                            <input type="text" class="form-control" id="nombre_taller"
+                                   name="nombre_taller" required
+                                   value="{{ nombre or '' }}"
+                                   placeholder="Ej: Reparaciones Pérez">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">
+                                <i class="bi bi-envelope-fill me-1"></i>Email de contacto
+                            </label>
+                            <input type="email" class="form-control" id="email"
+                                   name="email" required
+                                   value="{{ email or '' }}"
+                                   placeholder="tu@taller.com">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="usuario" class="form-label">
+                                <i class="bi bi-person-fill me-1"></i>Usuario administrador
+                            </label>
+                            <input type="text" class="form-control" id="usuario"
+                                   name="usuario" required
+                                   value="{{ usuario or '' }}"
+                                   autocomplete="username"
+                                   placeholder="admin">
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="password" class="form-label">
+                                <i class="bi bi-lock-fill me-1"></i>Contraseña
+                            </label>
+                            <input type="password" class="form-control" id="password"
+                                   name="password" required minlength="8"
+                                   autocomplete="new-password"
+                                   placeholder="Mínimo 8 caracteres">
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-credit-card me-2"></i>Empezar prueba de 14 días
+                            </button>
+                        </div>
+                        <p class="text-muted text-center mt-3 mb-0" style="font-size:.8rem;">
+                            <i class="bi bi-shield-check me-1"></i>
+                            Se requiere tarjeta. No se cobra hasta el día 15.
+                        </p>
+                    </form>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="{{ url_for('login') }}" class="text-decoration-none">
+                    ¿Ya tienes cuenta? Inicia sesión
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

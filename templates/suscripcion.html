@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Suscripción{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4"><i class="bi bi-credit-card-2-front me-2"></i>Suscripción</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card shadow-sm border-0" style="max-width:560px;">
+        <div class="card-body p-4">
+            <h5 class="card-title mb-3">{{ taller.nombre if taller else 'Tu taller' }}</h5>
+
+            {% set estado = taller.estado if taller else 'desconocido' %}
+            <p class="mb-2">
+                Estado:
+                {% if estado == 'activo' %}
+                    <span class="badge bg-success">Activo</span>
+                {% elif estado == 'trial' %}
+                    <span class="badge bg-info text-dark">Prueba</span>
+                {% elif estado == 'suspendido' %}
+                    <span class="badge bg-danger">Suspendido</span>
+                {% elif estado == 'cancelado' %}
+                    <span class="badge bg-secondary">Cancelado</span>
+                {% else %}
+                    <span class="badge bg-secondary">{{ estado }}</span>
+                {% endif %}
+            </p>
+
+            {% if estado == 'trial' and taller and taller.trial_fin %}
+                <p class="text-muted mb-3">
+                    <i class="bi bi-clock-history me-1"></i>
+                    Prueba hasta el {{ taller.trial_fin }}. Plan: 24,99 €/mes.
+                </p>
+            {% else %}
+                <p class="text-muted mb-3">Plan AndroTech: 24,99 €/mes.</p>
+            {% endif %}
+
+            {# El botón al Stripe Customer Portal se añade en 3b.5. #}
+            {% if taller and taller.stripe_customer_id %}
+                <a href="{{ url_for('suscripcion_portal') }}" class="btn btn-primary">
+                    <i class="bi bi-gear me-1"></i>Gestionar suscripción y pago
+                </a>
+            {% else %}
+                <p class="text-muted mb-0"><small>Sin método de pago asociado.</small></p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

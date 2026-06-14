@@ -34,6 +34,8 @@ from flask_limiter.util import get_remote_address
 
 # local modules (split responsibilities)
 from utils.pdf_generator import generar_presupuesto_pdf
+# Suscripción del SaaS (Fase 3b) — flujo Stripe SEPARADO del de reparaciones.
+import saas_billing
 # Capa de acceso a datos: SQLAlchemy (Fase 1 SaaS completada — todo el
 # proyecto usa get_session()/select(); sqlite3 directo eliminado).
 from sqlalchemy import select, text
@@ -533,6 +535,205 @@ def logout():
     session.clear()
     flash("Has cerrado sesión correctamente.", "info")
     return redirect(url_for("login"))
+
+
+# =========================================
+# 🔸 SUSCRIPCIÓN DEL SaaS (Fase 3b) — registro self-service + facturación
+# =========================================
+# ⚠️ Flujo SEPARADO del pago de reparaciones (publico_pagar + /stripe/webhook).
+# Aquí YO cobro a los talleres (suscripción 24,99 €/mes, trial 14 días con
+# tarjeta requerida). Claves/price/webhook propios (módulo saas_billing).
+import re as _re
+
+
+def _slugify(nombre: str) -> str:
+    """Convierte el nombre del taller en un slug URL-safe."""
+    base = nombre.strip().lower()
+    base = base.replace("ñ", "n")
+    # quita acentos básicos
+    for a, b in (("á", "a"), ("é", "e"), ("í", "i"), ("ó", "o"), ("ú", "u")):
+        base = base.replace(a, b)
+    base = _re.sub(r"[^a-z0-9]+", "-", base).strip("-")
+    return base or "taller"
+
+
+def _slug_unico(base: str) -> str:
+    """Devuelve un slug que no colisiona con otro taller (base, base-2, …)."""
+    with get_session() as s:
+        existentes = set(s.execute(text("SELECT slug FROM talleres")).scalars().all())
+    if base not in existentes:
+        return base
+    i = 2
+    while f"{base}-{i}" in existentes:
+        i += 1
+    return f"{base}-{i}"
+
+
+def _email_valido(email: str) -> bool:
+    return bool(_re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email or ""))
+
+
+def _sval(obj, key):
+    """Lee un campo de un objeto Stripe (atributo) o de un dict (mock/test)."""
+    if isinstance(obj, dict):
+        return obj.get(key)
+    return getattr(obj, key, None)
+
+
+@app.route("/signup", methods=["GET", "POST"])
+@limiter.limit("5 per hour", methods=["POST"])
+@csrf_protect
+def signup():
+    """Alta self-service de un taller nuevo: crea Taller + admin + Stripe
+    Customer y arranca un Checkout de suscripción (trial 14 días, tarjeta
+    requerida). Transacción: si Stripe falla, NO quedan talleres a medias.
+    """
+    if request.method == "GET":
+        return render_template("signup.html")
+
+    nombre = request.form.get("nombre_taller", "").strip()
+    email = request.form.get("email", "").strip().lower()
+    admin_user = request.form.get("usuario", "").strip()
+    password = request.form.get("password", "")
+
+    errores = []
+    if not nombre:
+        errores.append("El nombre del taller es obligatorio.")
+    if not _email_valido(email):
+        errores.append("Introduce un email válido.")
+    if not admin_user:
+        errores.append("El usuario administrador es obligatorio.")
+    if len(password) < 8:
+        errores.append("La contraseña debe tener al menos 8 caracteres.")
+    if errores:
+        for e in errores:
+            flash(e, "danger")
+        return render_template("signup.html", nombre=nombre, email=email,
+                               usuario=admin_user), 400
+
+    # Email único a nivel PLATAFORMA (talleres no lleva scope de taller).
+    with get_session() as s:
+        ya = s.execute(
+            text("SELECT 1 FROM talleres WHERE lower(email_contacto) = :e"),
+            {"e": email},
+        ).first()
+    if ya:
+        flash("Ya existe una cuenta con ese email.", "danger")
+        return render_template("signup.html", nombre=nombre, usuario=admin_user), 400
+
+    slug = _slug_unico(_slugify(nombre))
+
+    # 1) Stripe Customer PRIMERO (si falla, no se crea nada en BD).
+    customer_id = None
+    if saas_billing.is_configured():
+        try:
+            cust = saas_billing.crear_customer(email, nombre)
+            customer_id = _sval(cust, "id")
+        except Exception as e:
+            logger.error(json.dumps({"event": "signup_stripe_customer_error",
+                                     "error": str(e)}, ensure_ascii=False))
+            flash("No se pudo iniciar el alta con la pasarela de pago. "
+                  "Inténtalo de nuevo en unos minutos.", "danger")
+            return render_template("signup.html", nombre=nombre, email=email,
+                                   usuario=admin_user), 502
+
+    # 2) Taller + admin + (opcional) Checkout en UNA transacción. Si el Checkout
+    #    falla, el `with` sale por excepción SIN commit → rollback total.
+    trial_fin = saas_billing.trial_fin_str()
+    checkout_url = None
+    nuevo_tid = None
+    try:
+        with get_session() as s:
+            nuevo_tid = s.execute(
+                text("""INSERT INTO talleres
+                        (nombre, slug, email_contacto, fecha_alta, estado, plan,
+                         stripe_customer_id, trial_fin)
+                        VALUES (:n, :sl, :e, :fa, 'trial', 'basico', :cust, :tf)
+                        RETURNING id"""),
+                {"n": nombre, "sl": slug, "e": email,
+                 "fa": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                 "cust": customer_id, "tf": trial_fin},
+            ).scalar()
+            s.execute(
+                text('INSERT INTO usuarios (taller_id, usuario, "contraseña", rol) '
+                     'VALUES (:tid, :u, :p, \'admin\')'),
+                {"tid": nuevo_tid, "u": admin_user,
+                 "p": generate_password_hash(password)},
+            )
+            s.flush()
+            if saas_billing.is_configured():
+                checkout = saas_billing.crear_checkout_suscripcion(
+                    customer_id, nuevo_tid,
+                    success_url=url_for("dashboard", _external=True),
+                    cancel_url=url_for("suscripcion", _external=True),
+                )
+                checkout_url = _sval(checkout, "url")
+            s.commit()
+    except Exception as e:
+        logger.error(json.dumps({"event": "signup_error", "slug": slug,
+                                 "error": str(e)}, ensure_ascii=False))
+        flash("No se pudo completar el alta. No se ha creado ninguna cuenta; "
+              "inténtalo de nuevo.", "danger")
+        return render_template("signup.html", nombre=nombre, email=email,
+                               usuario=admin_user), 502
+
+    # Auditoría de plataforma (taller_id explícito; evento del nuevo taller).
+    registrar_auditoria("signup_taller", admin_user,
+                        {"taller_id": nuevo_tid, "slug": slug, "email": email})
+
+    # Log in inmediato: el taller entra en 'trial' y puede usar la app.
+    session["usuario"] = admin_user
+    session["rol"] = "admin"
+    session["permisos"] = obtener_permisos_usuario("admin")
+    session["taller_id"] = nuevo_tid
+    session["taller_slug"] = slug
+
+    if checkout_url:
+        # A Stripe Checkout a por la tarjeta (requerida durante el trial).
+        return redirect(checkout_url)
+    flash("¡Bienvenido a AndroTech! Tu prueba de 14 días está activa.", "success")
+    return redirect(url_for("dashboard"))
+
+
+@app.route("/suscripcion")
+@login_required
+def suscripcion():
+    """Hub de facturación del taller: estado de la suscripción y gestión.
+
+    El botón al Stripe Customer Portal se añade en 3b.5.
+    """
+    with get_session() as s:
+        taller = s.execute(
+            text("SELECT id, nombre, estado, trial_fin, stripe_customer_id "
+                 "FROM talleres WHERE id = :tid"),
+            {"tid": session.get("taller_id")},
+        ).mappings().first()
+    return render_template("suscripcion.html", taller=taller)
+
+
+@app.route("/suscripcion/portal")
+@login_required
+def suscripcion_portal():
+    """Redirige al Stripe Customer Portal para gestionar pago/cancelación (3b.5)."""
+    with get_session() as s:
+        row = s.execute(
+            text("SELECT stripe_customer_id FROM talleres WHERE id = :tid"),
+            {"tid": session.get("taller_id")},
+        ).first()
+    customer_id = row[0] if row else None
+    if not customer_id or not saas_billing.is_configured():
+        flash("Aún no hay un método de pago asociado a tu cuenta.", "info")
+        return redirect(url_for("suscripcion"))
+    try:
+        portal = saas_billing.crear_portal(
+            customer_id, return_url=url_for("suscripcion", _external=True)
+        )
+        return redirect(_sval(portal, "url"))
+    except Exception as e:
+        logger.error(json.dumps({"event": "portal_error", "error": str(e)},
+                                ensure_ascii=False))
+        flash("No se pudo abrir el portal de gestión. Inténtalo más tarde.", "danger")
+        return redirect(url_for("suscripcion"))
 
 # =========================================
 # 🔸 PÁGINAS PROTEGIDAS
