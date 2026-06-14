@@ -1,11 +1,16 @@
 """Pytest infrastructure for AndroTech smoke tests.
 
-Diseño:
-- Una BD temporal en disco se crea UNA vez por sesión (session-scoped).
-- `app.py` se importa una sola vez tras setear DATABASE_PATH y las claves
-  dummy del entorno. Como app.py crea 8 de las 12 tablas al importarse y el
-  resto (usuarios, clientes, reparaciones, reparaciones_historial) las crea
-  `scripts/create_db.py`, las añadimos a mano antes de importar app.
+Diseño (DUAL-ENGINE, Fase 3a.5):
+- Por defecto (sin `TEST_DATABASE_URL`) corre sobre **SQLite** en una BD
+  temporal en disco — comportamiento rápido de siempre.
+- Si `TEST_DATABASE_URL` está definida → corre la MISMA suite sobre
+  **PostgreSQL** (p. ej. un contenedor Docker). El esquema se recrea limpio
+  desde los modelos (`Base.metadata.create_all`) y `db_conn` se envuelve en
+  `DualConn`, que traduce `?`→`%s` y emula `lastrowid` con `RETURNING id`,
+  para no reescribir ni un test.
+- `app.py` se importa una sola vez tras fijar el entorno. En SQLite se
+  bootstrappean a mano las 4 tablas core que app.py no crea; en Postgres el
+  arranque de la app crea todo el esquema desde los modelos.
 - Cada test corre con `DELETE FROM` previo en las tablas mutables (autouse).
 - Stripe y SMTP están mockeados para que ningún test toque APIs externas.
 """
@@ -22,13 +27,28 @@ import pytest
 # ───────────────────────────────────────────────────────────────────
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # tests/ (DualConn)
+
+from _dbadapter import DualConn  # noqa: E402
+
+# ¿Postgres o SQLite? Si TEST_DATABASE_URL está definida, corremos sobre
+# Postgres; si no, sobre una BD SQLite temporal.
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "").strip()
+USE_POSTGRES = bool(TEST_DATABASE_URL)
 
 # BD temporal en disco (no :memory: porque cada conexión vería una BD
 # distinta y app.py abre/cierra conexiones constantemente).
 _tmp_fd, TEST_DB_PATH = tempfile.mkstemp(suffix=".db", prefix="androtech_test_")
 os.close(_tmp_fd)
 
-os.environ["DATABASE_PATH"] = TEST_DB_PATH
+if USE_POSTGRES:
+    # database.py prefiere DATABASE_URL sobre DATABASE_PATH y normaliza el
+    # scheme a postgresql+psycopg://. No fijamos DATABASE_PATH.
+    os.environ["DATABASE_URL"] = TEST_DATABASE_URL
+    os.environ.pop("DATABASE_PATH", None)
+else:
+    os.environ.pop("DATABASE_URL", None)
+    os.environ["DATABASE_PATH"] = TEST_DB_PATH
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-pytest-only")
 os.environ.setdefault("STRIPE_SECRET_KEY", "sk_test_dummy")
 os.environ.setdefault("STRIPE_PUBLISHABLE_KEY", "pk_test_dummy")
@@ -93,11 +113,44 @@ def _bootstrap_core_schema(db_path: str) -> None:
     conn.close()
 
 
-_bootstrap_core_schema(TEST_DB_PATH)
+# URL Postgres en formato psycopg puro (sin el sufijo +psycopg de SQLAlchemy).
+def _pg_raw_url() -> str:
+    url = TEST_DATABASE_URL
+    if url.startswith("postgresql+psycopg://"):
+        return "postgresql://" + url[len("postgresql+psycopg://"):]
+    if url.startswith("postgres://"):
+        return "postgresql://" + url[len("postgres://"):]
+    return url
 
-# Ahora sí importar la app (esto crea las 8 tablas restantes y siembra roles).
+
+def _reset_postgres_schema() -> None:
+    """Deja el esquema `public` vacío para que el arranque de la app lo
+    reconstruya limpio desde los modelos (create_all)."""
+    import psycopg
+    with psycopg.connect(_pg_raw_url(), autocommit=True) as c:
+        c.execute("DROP SCHEMA IF EXISTS public CASCADE")
+        c.execute("CREATE SCHEMA public")
+
+
+if USE_POSTGRES:
+    _reset_postgres_schema()
+else:
+    _bootstrap_core_schema(TEST_DB_PATH)
+
+# Ahora sí importar la app. En SQLite crea las 8 tablas restantes y siembra
+# roles; en Postgres crea TODO el esquema desde los modelos + roles + taller 1.
 import app as app_module  # noqa: E402
 from werkzeug.security import generate_password_hash  # noqa: E402
+
+
+def _raw_conn():
+    """Conexión DBAPI cruda al motor activo (SQLite o Postgres)."""
+    if USE_POSTGRES:
+        import psycopg
+        return psycopg.connect(_pg_raw_url(), autocommit=False)
+    conn = sqlite3.connect(TEST_DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 # ───────────────────────────────────────────────────────────────────
 # Redirigir las subidas (fotos/firmas) a un tmpdir EFÍMERO.
@@ -133,9 +186,13 @@ def client(app):
 
 @pytest.fixture
 def db_conn():
-    """Conexión SQLite a la BD de tests, lista para queries directas."""
-    conn = sqlite3.connect(TEST_DB_PATH)
-    conn.row_factory = sqlite3.Row
+    """Conexión cruda a la BD de tests envuelta en DualConn (SQLite/Postgres).
+
+    DualConn da la misma API estilo sqlite3 (`?`, `cur.lastrowid`,
+    `row["col"]`/`row[0]`) sobre cualquiera de los dos motores, así que los
+    tests no cambian.
+    """
+    conn = DualConn(_raw_conn(), is_postgres=USE_POSTGRES)
     yield conn
     conn.close()
 
@@ -159,20 +216,25 @@ _DATA_TABLES = (
 
 @pytest.fixture(autouse=True)
 def _reset_data():
-    """Borra datos antes de cada test (mantiene esquema y roles/permisos)."""
-    conn = sqlite3.connect(TEST_DB_PATH)
+    """Borra datos antes de cada test (mantiene esquema y roles/permisos).
+
+    El orden de `_DATA_TABLES` es FK-seguro para el DELETE (hijos antes que
+    padres), necesario en Postgres donde las FKs se imponen.
+    """
+    conn = _raw_conn()
     for t in _DATA_TABLES:
         try:
             conn.execute(f"DELETE FROM {t}")
-        except sqlite3.OperationalError:
-            pass  # tabla no existe en este DB todavía
+            conn.commit()
+        except Exception:
+            conn.rollback()  # tabla aún no existe / nada que borrar
     # Mantener el taller 1 ("androtech"); borrar talleres extra de tests
     # (p. ej. el taller 2 'rival' de seed_taller_2) para no colisionar.
     try:
         conn.execute("DELETE FROM talleres WHERE id != 1")
-    except sqlite3.OperationalError:
-        pass
-    conn.commit()
+        conn.commit()
+    except Exception:
+        conn.rollback()
     conn.close()
     yield
 

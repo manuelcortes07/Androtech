@@ -26,6 +26,7 @@ from sqlalchemy import (
     Integer,
     Text,
     UniqueConstraint,
+    text,
 )
 
 from database import Base
@@ -48,8 +49,10 @@ class Taller(Base):
     telefono = Column(Text)
     direccion = Column(Text)
     fecha_alta = Column(Text, nullable=False)
-    estado = Column(Text, nullable=False, default="activo")   # trial|activo|suspendido|cancelado
-    plan = Column(Text, nullable=False, default="basico")
+    estado = Column(Text, nullable=False, default="activo",
+                    server_default=text("'activo'"))   # trial|activo|suspendido|cancelado
+    plan = Column(Text, nullable=False, default="basico",
+                  server_default=text("'basico'"))
     stripe_customer_id = Column(Text)
     stripe_sub_id = Column(Text)
     fecha_fin_periodo = Column(Text)
@@ -75,7 +78,7 @@ class Usuario(Base):
     # tener su propio "admin".
     usuario = Column(Text, nullable=False)
     password = Column("contraseña", Text, nullable=False)
-    rol = Column(Text, default="tecnico")
+    rol = Column(Text, default="tecnico", server_default=text("'tecnico'"))
 
     __table_args__ = (
         UniqueConstraint("taller_id", "usuario", name="uq_usuarios_taller_usuario"),
@@ -98,8 +101,8 @@ class Rol(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     nombre = Column(Text, nullable=False, unique=True)
     descripcion = Column(Text)
-    es_sistema = Column(Integer, default=0)
-    color = Column(Text, default="#6c757d")
+    es_sistema = Column(Integer, default=0, server_default=text("0"))
+    color = Column(Text, default="#6c757d", server_default=text("'#6c757d'"))
 
     def __repr__(self) -> str:
         return f"<Rol(id={self.id}, nombre={self.nombre!r})>"
@@ -202,12 +205,14 @@ class Reparacion(Base):
     cliente_id = Column(Integer, ForeignKey("clientes.id"))
     dispositivo = Column(Text, nullable=False)
     descripcion = Column(Text)
-    estado = Column(Text, default="Pendiente")
+    estado = Column(Text, default="Pendiente", server_default=text("'Pendiente'"))
     fecha_entrada = Column(Text)
     fecha_salida = Column(Text)
     precio = Column(Float)
-    tipo_documento = Column(Text, default="presupuesto")
-    estado_pago = Column(Text, default="Pendiente")
+    tipo_documento = Column(Text, default="presupuesto",
+                            server_default=text("'presupuesto'"))
+    estado_pago = Column(Text, default="Pendiente",
+                         server_default=text("'Pendiente'"))
     fecha_pago = Column(Text)
     metodo_pago = Column(Text)
     firma = Column(Text)
@@ -252,7 +257,7 @@ class NotaReparacion(Base):
     usuario = Column(Text, nullable=False)
     contenido = Column(Text, nullable=False)
     fecha_creacion = Column(Text, nullable=False)
-    es_importante = Column(Integer, default=0)
+    es_importante = Column(Integer, default=0, server_default=text("0"))
 
     def __repr__(self) -> str:
         return f"<NotaReparacion(id={self.id}, reparacion_id={self.reparacion_id})>"
@@ -271,12 +276,12 @@ class InventarioPieza(Base):
     taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
                        server_default="1")
     nombre = Column(Text, nullable=False)
-    categoria = Column(Text, default="General")
+    categoria = Column(Text, default="General", server_default=text("'General'"))
     descripcion = Column(Text)
-    cantidad = Column(Integer, default=0)
-    cantidad_minima = Column(Integer, default=5)
-    precio_coste = Column(Float, default=0)
-    precio_venta = Column(Float, default=0)
+    cantidad = Column(Integer, default=0, server_default=text("0"))
+    cantidad_minima = Column(Integer, default=5, server_default=text("5"))
+    precio_coste = Column(Float, default=0, server_default=text("0"))
+    precio_venta = Column(Float, default=0, server_default=text("0"))
     proveedor = Column(Text)
     ubicacion = Column(Text)
     fecha_actualizacion = Column(Text)
@@ -295,7 +300,7 @@ class PiezaReparacion(Base):
                        server_default="1")
     reparacion_id = Column(Integer, ForeignKey("reparaciones.id"), nullable=False)
     pieza_id = Column(Integer, ForeignKey("inventario_piezas.id"), nullable=False)
-    cantidad = Column(Integer, default=1)
+    cantidad = Column(Integer, default=1, server_default=text("1"))
     fecha_uso = Column(Text, nullable=False)
     usuario = Column(Text)
 
@@ -323,10 +328,10 @@ class SolicitudReparacion(Base):
     marca = Column(Text)
     modelo = Column(Text)
     descripcion = Column(Text, nullable=False)
-    urgencia = Column(Text, default="normal")
+    urgencia = Column(Text, default="normal", server_default=text("'normal'"))
     fecha_preferida = Column(Text)
     horario_preferido = Column(Text)
-    estado = Column(Text, default="pendiente")
+    estado = Column(Text, default="pendiente", server_default=text("'pendiente'"))
     notas_admin = Column(Text)
     fecha_solicitud = Column(Text, nullable=False)
     fecha_gestion = Column(Text)

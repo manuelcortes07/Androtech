@@ -14,9 +14,12 @@ resuelve en un `before_request` (`resolver_taller`) con esta prioridad:
 5. Resto de rutas legacy públicas sin slug (`/login`, `/mis-reparaciones`,
    `/solicitar-reparacion`, `/`): por defecto el taller 1 ("androtech").
 
-Las consultas de resolución usan `exec_driver_sql` (SQL crudo) a propósito:
-NO deben pasar por el filtro automático del ORM (Fase 2.3), porque resolver
-"a qué taller pertenece este id/slug" precede a saber el taller.
+Las consultas de resolución usan `Connection.execute(text(...))` (SQL crudo
+sobre el Engine, NO sobre la Session) a propósito: NO deben pasar por el
+filtro automático del ORM (Fase 2.3), porque resolver "a qué taller pertenece
+este id/slug" precede a saber el taller. Usan parámetros con nombre
+(`:slug`/`:id`) para ser agnósticas del motor (SQLite y Postgres) — los `?`
+nativos sólo valen en SQLite (Fase 3a.3).
 """
 
 from __future__ import annotations
@@ -27,7 +30,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 
 from flask import g, request, session, abort, has_request_context
-from sqlalchemy import event
+from sqlalchemy import event, text
 from sqlalchemy.orm import Session, with_loader_criteria
 
 from database import get_engine
@@ -69,16 +72,18 @@ def _extraer_slug(path: str) -> str | None:
 def _taller_por_slug(slug: str):
     """Devuelve (id, slug) del taller con ese slug, o None. SQL crudo."""
     with get_engine().connect() as conn:
-        row = conn.exec_driver_sql(
-            "SELECT id, slug FROM talleres WHERE slug = ?", (slug,)
+        row = conn.execute(
+            text("SELECT id, slug FROM talleres WHERE slug = :slug"),
+            {"slug": slug},
         ).first()
     return row
 
 
 def _slug_por_taller_id(taller_id: int) -> str | None:
     with get_engine().connect() as conn:
-        row = conn.exec_driver_sql(
-            "SELECT slug FROM talleres WHERE id = ?", (taller_id,)
+        row = conn.execute(
+            text("SELECT slug FROM talleres WHERE id = :id"),
+            {"id": taller_id},
         ).first()
     return row[0] if row else None
 
@@ -90,8 +95,9 @@ def _taller_de_reparacion(reparacion_id: str):
     except (TypeError, ValueError):
         return None
     with get_engine().connect() as conn:
-        row = conn.exec_driver_sql(
-            "SELECT taller_id FROM reparaciones WHERE id = ?", (rid,)
+        row = conn.execute(
+            text("SELECT taller_id FROM reparaciones WHERE id = :id"),
+            {"id": rid},
         ).first()
     return row[0] if row else None
 

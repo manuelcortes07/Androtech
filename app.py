@@ -36,7 +36,7 @@ from flask_limiter.util import get_remote_address
 from utils.pdf_generator import generar_presupuesto_pdf
 # Capa de acceso a datos: SQLAlchemy (Fase 1 SaaS completada — todo el
 # proyecto usa get_session()/select(); sqlite3 directo eliminado).
-from sqlalchemy import select
+from sqlalchemy import select, text
 from database import get_session, get_engine, is_postgres, is_sqlite
 from models import (
     Usuario, Cliente, Reparacion, FotoReparacion, NotaReparacion,
@@ -668,7 +668,7 @@ def dashboard():
         FROM reparaciones
         WHERE taller_id = :tid AND dispositivo IS NOT NULL AND dispositivo != ''
         GROUP BY dispositivo
-        ORDER BY cantidad DESC
+        ORDER BY cantidad DESC, dispositivo ASC
         LIMIT 5
     """), tp).all()
 
@@ -678,7 +678,7 @@ def dashboard():
         FROM reparaciones
         WHERE taller_id = :tid
         GROUP BY estado
-        ORDER BY cantidad DESC
+        ORDER BY cantidad DESC, estado ASC
     """), tp).all()
 
     # Convertir a dict para template
@@ -759,7 +759,10 @@ def dashboard():
         
         ingresos_por_mes.append({
             "mes": inicio.strftime("%b %Y"),
-            "valor": round(ingreso_mes_i, 2)
+            # float() para que el repr sea idéntico entre motores: SQLite
+            # devuelve int 0 cuando no hay filas y Postgres 0.0 (mismo valor,
+            # distinto repr); la coerción los iguala (Fase 3a.5, pincho A).
+            "valor": round(float(ingreso_mes_i), 2)
         })
     
     # ========== MÉTRICA 2: TIEMPO MEDIO DE REPARACIÓN ==========
@@ -3238,10 +3241,13 @@ def admin_seed_demo():
     updated = {"clientes": 0}
     skipped = {"reparaciones": 0, "piezas": 0, "notas": 0}
 
-    # Fase 2.4: el seeding usa exec_driver_sql (placeholders ? nativos) sobre
-    # la conexión del engine SQLAlchemy. SIEMBRA SOLO EL TALLER ACTIVO: todas
-    # las búsquedas de existencia filtran por taller_id y todos los INSERT lo
-    # fijan. Así un admin del taller B no contamina ni ve los datos del A.
+    # Fase 2.4 / 3a.3: el seeding usa Connection.execute(text(...)) con
+    # parámetros con nombre (:p) sobre la conexión del engine — agnóstico del
+    # motor (los `?` nativos sólo valen en SQLite). Los dos INSERT que necesitan
+    # el id recién creado usan RETURNING id + .scalar() (SQLite 3.35+ y Postgres).
+    # SIEMBRA SOLO EL TALLER ACTIVO: todas las búsquedas de existencia filtran
+    # por taller_id y todos los INSERT lo fijan. Así un admin del taller B no
+    # contamina ni ve los datos del A.
     tid = g.taller_id
     s = get_session()
     dconn = s.connection()
@@ -3249,9 +3255,10 @@ def admin_seed_demo():
     # ---- CLIENTES ----
     cliente_ids = {}
     for nombre, tel, email, dirc in CLIENTES:
-        existing = dconn.exec_driver_sql(
-            "SELECT id, telefono, email, direccion FROM clientes WHERE nombre = ? AND taller_id = ?",
-            (nombre, tid),
+        existing = dconn.execute(
+            text("SELECT id, telefono, email, direccion FROM clientes "
+                 "WHERE nombre = :nombre AND taller_id = :tid"),
+            {"nombre": nombre, "tid": tid},
         ).mappings().first()
         if existing:
             cid = existing["id"]
@@ -3262,17 +3269,18 @@ def admin_seed_demo():
                 or not existing["direccion"]
             )
             if needs_update:
-                dconn.exec_driver_sql(
-                    "UPDATE clientes SET telefono=?, email=?, direccion=? WHERE id=? AND taller_id=?",
-                    (tel, email, dirc, cid, tid),
+                dconn.execute(
+                    text("UPDATE clientes SET telefono=:tel, email=:email, "
+                         "direccion=:dirc WHERE id=:cid AND taller_id=:tid"),
+                    {"tel": tel, "email": email, "dirc": dirc, "cid": cid, "tid": tid},
                 )
                 updated["clientes"] += 1
         else:
-            res = dconn.exec_driver_sql(
-                "INSERT INTO clientes (nombre, telefono, email, direccion, taller_id) VALUES (?, ?, ?, ?, ?)",
-                (nombre, tel, email, dirc, tid),
-            )
-            cid = res.lastrowid
+            cid = dconn.execute(
+                text("INSERT INTO clientes (nombre, telefono, email, direccion, taller_id) "
+                     "VALUES (:nombre, :tel, :email, :dirc, :tid) RETURNING id"),
+                {"nombre": nombre, "tel": tel, "email": email, "dirc": dirc, "tid": tid},
+            ).scalar()
             inserted["clientes"] += 1
         cliente_ids[nombre] = cid
 
@@ -3282,9 +3290,10 @@ def admin_seed_demo():
         cid = cliente_ids.get(cli_nombre)
         if cid is None:
             continue
-        dup = dconn.exec_driver_sql(
-            "SELECT id FROM reparaciones WHERE cliente_id=? AND dispositivo=? AND descripcion=? AND taller_id=?",
-            (cid, disp, desc, tid),
+        dup = dconn.execute(
+            text("SELECT id FROM reparaciones WHERE cliente_id=:cid AND dispositivo=:disp "
+                 "AND descripcion=:desc AND taller_id=:tid"),
+            {"cid": cid, "disp": disp, "desc": desc, "tid": tid},
         ).first()
         if dup:
             skipped["reparaciones"] += 1
@@ -3294,15 +3303,16 @@ def admin_seed_demo():
         fecha_salida = fmt(now - timedelta(days=dias_s)) if dias_s is not None else None
         fecha_pago = fecha_salida if estado_pago == "Pagado" else None
 
-        res = dconn.exec_driver_sql(
-            """INSERT INTO reparaciones
+        rid = dconn.execute(
+            text("""INSERT INTO reparaciones
                (cliente_id, dispositivo, descripcion, estado, fecha_entrada, fecha_salida,
                 precio, tipo_documento, estado_pago, fecha_pago, metodo_pago, taller_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (cid, disp, desc, estado, fecha_entrada, fecha_salida,
-             precio, "presupuesto", estado_pago, fecha_pago, metodo, tid),
-        )
-        rid = res.lastrowid
+               VALUES (:cid, :disp, :desc, :estado, :fe, :fs, :precio, :tipo,
+                       :ep, :fp, :metodo, :tid) RETURNING id"""),
+            {"cid": cid, "disp": disp, "desc": desc, "estado": estado, "fe": fecha_entrada,
+             "fs": fecha_salida, "precio": precio, "tipo": "presupuesto", "ep": estado_pago,
+             "fp": fecha_pago, "metodo": metodo, "tid": tid},
+        ).scalar()
         inserted["reparaciones"] += 1
 
         flujo = ["Pendiente", "En proceso", "Terminado", "Entregado"]
@@ -3318,11 +3328,12 @@ def admin_seed_demo():
         for i in range(idx_final + 1):
             estado_paso = flujo[i]
             fecha_paso = fecha_entrada if i == 0 else fmt(t_inicio + paso * i)
-            dconn.exec_driver_sql(
-                """INSERT INTO reparaciones_historial
+            dconn.execute(
+                text("""INSERT INTO reparaciones_historial
                    (reparacion_id, estado_anterior, estado_nuevo, fecha_cambio, usuario, taller_id)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
-                (rid, anterior, estado_paso, fecha_paso, "admin", tid),
+                   VALUES (:rid, :ant, :nuevo, :fecha, :usuario, :tid)"""),
+                {"rid": rid, "ant": anterior, "nuevo": estado_paso, "fecha": fecha_paso,
+                 "usuario": "admin", "tid": tid},
             )
             inserted["historial"] += 1
             anterior = estado_paso
@@ -3330,18 +3341,20 @@ def admin_seed_demo():
     # ---- INVENTARIO ----
     fecha_act = fmt(now)
     for nombre, cat, cant, cmin, coste, venta, prov in PIEZAS:
-        existing = dconn.exec_driver_sql(
-            "SELECT id FROM inventario_piezas WHERE nombre = ? AND taller_id = ?", (nombre, tid)
+        existing = dconn.execute(
+            text("SELECT id FROM inventario_piezas WHERE nombre = :nombre AND taller_id = :tid"),
+            {"nombre": nombre, "tid": tid},
         ).first()
         if existing:
             skipped["piezas"] += 1
             continue
-        dconn.exec_driver_sql(
-            """INSERT INTO inventario_piezas
+        dconn.execute(
+            text("""INSERT INTO inventario_piezas
                (nombre, categoria, cantidad, cantidad_minima, precio_coste,
                 precio_venta, proveedor, fecha_actualizacion, taller_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (nombre, cat, cant, cmin, coste, venta, prov, fecha_act, tid),
+               VALUES (:nombre, :cat, :cant, :cmin, :coste, :venta, :prov, :fecha, :tid)"""),
+            {"nombre": nombre, "cat": cat, "cant": cant, "cmin": cmin, "coste": coste,
+             "venta": venta, "prov": prov, "fecha": fecha_act, "tid": tid},
         )
         inserted["piezas"] += 1
 
@@ -3350,25 +3363,28 @@ def admin_seed_demo():
         cid = cliente_ids.get(cli_nombre)
         if cid is None:
             continue
-        rep = dconn.exec_driver_sql(
-            "SELECT id FROM reparaciones WHERE cliente_id=? AND dispositivo=? AND taller_id=? ORDER BY id DESC LIMIT 1",
-            (cid, disp, tid),
+        rep = dconn.execute(
+            text("SELECT id FROM reparaciones WHERE cliente_id=:cid AND dispositivo=:disp "
+                 "AND taller_id=:tid ORDER BY id DESC LIMIT 1"),
+            {"cid": cid, "disp": disp, "tid": tid},
         ).mappings().first()
         if not rep:
             continue
         rid = rep["id"]
-        dup = dconn.exec_driver_sql(
-            "SELECT id FROM notas_reparacion WHERE reparacion_id=? AND contenido=? AND taller_id=?",
-            (rid, contenido, tid),
+        dup = dconn.execute(
+            text("SELECT id FROM notas_reparacion WHERE reparacion_id=:rid "
+                 "AND contenido=:contenido AND taller_id=:tid"),
+            {"rid": rid, "contenido": contenido, "tid": tid},
         ).first()
         if dup:
             skipped["notas"] += 1
             continue
-        dconn.exec_driver_sql(
-            """INSERT INTO notas_reparacion
+        dconn.execute(
+            text("""INSERT INTO notas_reparacion
                (reparacion_id, usuario, contenido, fecha_creacion, es_importante, taller_id)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (rid, usuario, contenido, fecha_act, imp, tid),
+               VALUES (:rid, :usuario, :contenido, :fecha, :imp, :tid)"""),
+            {"rid": rid, "usuario": usuario, "contenido": contenido, "fecha": fecha_act,
+             "imp": imp, "tid": tid},
         )
         inserted["notas"] += 1
 
