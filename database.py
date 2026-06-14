@@ -5,18 +5,19 @@ fue eliminado y todo el proyecto usa `get_session()` + modelos de
 `models.py` (o `text()` para las consultas complejas anotadas para
 recibir filtro `taller_id` manual en la Fase 2).
 
+MOTOR CONFIGURABLE (Fase 3a):
+- Si `DATABASE_URL` está definida → **PostgreSQL** (driver psycopg v3).
+  Railway/Heroku dan `postgres://`/`postgresql://`; se normaliza a
+  `postgresql+psycopg://`.
+- Si no → **SQLite** desde `DATABASE_PATH` (dev local y tests rápidos,
+  comportamiento de siempre).
+El resto del código es agnóstico del motor; cuando hace falta saber el
+dialecto (inserts on-conflict, funciones SQL), usa `is_postgres()`.
+
 Diseño:
 - Engine y `sessionmaker` se construyen **perezosamente** en la primera
-  llamada. Esto permite que los tests modifiquen `DATABASE_PATH` antes del
-  primer uso, y que durante el desarrollo se cambie la BD sin reiniciar
-  el intérprete.
-- La ruta sale del mismo `DATABASE_PATH` que usa `db.py` para que las dos
-  capas apunten siempre al mismo fichero SQLite.
-- `Base` es la base declarativa común que extienden los modelos en
-  `models.py`.
-
-Cuando lleguemos a Fase 3 (Postgres), solo cambia la URL del engine; el
-resto del código permanece igual.
+  llamada (los tests pueden cambiar `DATABASE_URL`/`DATABASE_PATH` antes).
+- `Base` es la base declarativa común que extienden los modelos.
 """
 
 from __future__ import annotations
@@ -28,18 +29,24 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 
 # ───────────────────────────────────────────────────────────────────
-# Resolución de la URL
+# Resolución de la URL (Postgres si DATABASE_URL, si no SQLite)
 # ───────────────────────────────────────────────────────────────────
 def _resolve_database_url() -> str:
-    """Construye la URL SQLAlchemy a partir de la misma ruta que usa db.py.
-
-    Mantener la lógica aquí (y no importar `_resolve_db_path` desde db.py)
-    evita un acoplamiento innecesario; ambos leen la misma variable.
-    """
+    url = os.environ.get("DATABASE_URL", "").strip()
+    if url:
+        # SQLAlchemy 2.0 + psycopg v3 requieren el scheme postgresql+psycopg://.
+        # Railway/Heroku entregan postgres:// o postgresql://.
+        if url.startswith("postgres://"):
+            url = "postgresql+psycopg://" + url[len("postgres://"):]
+        elif url.startswith("postgresql://"):
+            url = "postgresql+psycopg://" + url[len("postgresql://"):]
+        return url
     path = os.environ.get("DATABASE_PATH", "database/andro_tech.db")
-    # En Windows con ruta absoluta SQLAlchemy necesita 3 slashes adicionales
-    # tras "sqlite://", pero para rutas relativas (lo habitual) basta con 3.
     return f"sqlite:///{path}"
+
+
+def _es_sqlite(url: str) -> bool:
+    return url.startswith("sqlite")
 
 
 # ───────────────────────────────────────────────────────────────────
@@ -53,16 +60,31 @@ def get_engine() -> Engine:
     """Devuelve el `Engine` compartido, creándolo en la primera llamada."""
     global _engine
     if _engine is None:
-        _engine = create_engine(
-            _resolve_database_url(),
-            future=True,
-            echo=False,
-            # SQLite tiene check_same_thread por defecto en True. Como Flask
-            # puede atender requests en threads distintos, lo desactivamos
-            # — cada Session abre su propia conexión y la cierra.
-            connect_args={"check_same_thread": False},
-        )
+        url = _resolve_database_url()
+        if _es_sqlite(url):
+            # SQLite: check_same_thread False (Flask atiende en varios threads;
+            # cada Session abre y cierra su conexión).
+            connect_args = {"check_same_thread": False}
+            kwargs = {"connect_args": connect_args}
+        else:
+            # PostgreSQL (psycopg v3): client_encoding utf8 explícito para las
+            # columnas con ñ (usuarios.contraseña) — pincho E. pool_pre_ping
+            # evita usar conexiones muertas (Railway recicla conexiones).
+            kwargs = {
+                "connect_args": {"client_encoding": "utf8"},
+                "pool_pre_ping": True,
+            }
+        _engine = create_engine(url, future=True, echo=False, **kwargs)
     return _engine
+
+
+def is_postgres() -> bool:
+    """True si el engine activo es PostgreSQL (para ramificar por dialecto)."""
+    return get_engine().dialect.name == "postgresql"
+
+
+def is_sqlite() -> bool:
+    return get_engine().dialect.name == "sqlite"
 
 
 def get_session() -> Session:
