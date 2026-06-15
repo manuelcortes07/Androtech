@@ -1,0 +1,66 @@
+# Blueprint de Render para AndroTech SaaS (rama saas-migration).
+# Infra como código: al conectar este repo+rama como "Blueprint" en Render,
+# se provisiona TODO automáticamente (web + PostgreSQL + variables).
+#
+# ⚠️ Esto NO toca el despliegue del TFG (otro host/servicio). Es nuevo y aparte.
+#
+# Plan FREE:
+#   - La web se duerme tras inactividad y tarda ~30s en despertar (primera visita).
+#   - El Postgres free se borra a los ~30 días (recrear o subir de plan para producción real).
+#   - SIN disco persistente: las fotos/firmas son efímeras (mejora futura: S3/R2).
+
+databases:
+  - name: androtech-saas-db
+    databaseName: androtech
+    user: androtech
+    plan: free
+
+services:
+  - type: web
+    name: androtech-saas
+    runtime: python
+    plan: free
+    branch: saas-migration
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --keep-alive 5
+    healthCheckPath: /health
+    envVars:
+      # ── No secretas (las fija el Blueprint) ─────────────────────────────
+      - key: APP_ENV
+        value: production
+      - key: PYTHON_VERSION
+        value: "3.12.0"
+      # SECRET_KEY: Render genera un valor fuerte y lo mantiene entre deploys.
+      - key: SECRET_KEY
+        generateValue: true
+      # DATABASE_URL: cadena de conexión del Postgres de arriba (la inyecta Render).
+      # database.py la normaliza a postgresql+psycopg:// automáticamente.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: androtech-saas-db
+          property: connectionString
+      # Price del SaaS (no es secreto): el mismo de modo test que ya creaste.
+      - key: STRIPE_SAAS_PRICE_ID
+        value: price_1TiFaYBLNTOC0gyIjggRYPyx
+
+      # ── Secretas (las rellenas TÚ en el panel de Render; sync:false) ────
+      # Suscripción del SaaS:
+      - key: STRIPE_SAAS_SECRET_KEY
+        sync: false
+      - key: STRIPE_SAAS_WEBHOOK_SECRET
+        sync: false
+      # Pago de reparaciones (flujo separado):
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      # Email (Railway/Render bloquean SMTP saliente; quedará configurado pero
+      # puede no enviar en producción — aceptado, igual que en el TFG):
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_DEFAULT_SENDER
+        sync: false
