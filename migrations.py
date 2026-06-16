@@ -251,6 +251,28 @@ def _rebuild_usuarios(conn) -> None:
     conn.exec_driver_sql("ALTER TABLE usuarios_nuevo RENAME TO usuarios")
 
 
+def crear_indices_rendimiento(conn) -> None:
+    """Índices de rendimiento (B5), idempotentes. `taller_id` es la columna más
+    caliente (toda consulta filtra por el taller); además (taller_id, estado) y
+    cliente_id en reparaciones para el dashboard y los JOIN. En Postgres los
+    crea `create_all` desde los modelos (index=True); aquí, para SQLite."""
+    tablas_taller = list(_SCOPED_NOT_NULL) + ["usuarios", "audit_log"]
+    for t in tablas_taller:
+        if _table_exists(conn, t) and _has_column(conn, t, "taller_id"):
+            conn.exec_driver_sql(
+                f"CREATE INDEX IF NOT EXISTS ix_{t}_taller_id ON {t}(taller_id)"
+            )
+    if _table_exists(conn, "reparaciones"):
+        conn.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_reparaciones_taller_estado "
+            "ON reparaciones(taller_id, estado)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_reparaciones_cliente_id "
+            "ON reparaciones(cliente_id)"
+        )
+
+
 def aplicar_migracion_multitenant() -> dict:
     """Aplica la migración multi-tenant. Idempotente. Devuelve un resumen."""
     engine = get_engine()
@@ -289,6 +311,8 @@ def aplicar_migracion_multitenant() -> dict:
         )
         _rebuild_usuarios(conn)
         resumen["usuarios_rebuild"] = necesita_rebuild
+
+        crear_indices_rendimiento(conn)  # B5: índices en taller_id y calientes
 
     return resumen
 

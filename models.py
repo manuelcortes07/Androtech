@@ -99,7 +99,7 @@ class Usuario(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
-                       server_default="1")
+                       server_default="1", index=True)
     # El UNIQUE pasa de (usuario) a (taller_id, usuario): cada taller puede
     # tener su propio "admin".
     usuario = Column(Text, nullable=False)
@@ -168,7 +168,7 @@ class AuditLog(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     # NULLABLE a propósito: eventos del superadmin de plataforma llevan NULL;
     # los eventos de un taller llevan su taller_id.
-    taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=True)
+    taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=True, index=True)
     event_type = Column(Text, nullable=False)
     usuario = Column(Text)
     evento_datos = Column(Text)  # JSON serializado a string
@@ -205,7 +205,7 @@ class Cliente(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
-                       server_default="1")
+                       server_default="1", index=True)
     nombre = Column(Text, nullable=False)
     telefono = Column(Text)
     email = Column(Text)
@@ -227,8 +227,8 @@ class Reparacion(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
-                       server_default="1")
-    cliente_id = Column(Integer, ForeignKey("clientes.id"))
+                       server_default="1", index=True)
+    cliente_id = Column(Integer, ForeignKey("clientes.id"), index=True)
     dispositivo = Column(Text, nullable=False)
     descripcion = Column(Text)
     estado = Column(Text, default="Pendiente", server_default=text("'Pendiente'"))
@@ -243,6 +243,11 @@ class Reparacion(Base):
     metodo_pago = Column(Text)
     firma = Column(Text)
 
+    __table_args__ = (
+        # El dashboard agrupa/filtra por (taller_id, estado) constantemente.
+        Index("ix_reparaciones_taller_estado", "taller_id", "estado"),
+    )
+
     def __repr__(self) -> str:
         return (f"<Reparacion(id={self.id}, dispositivo={self.dispositivo!r}, "
                 f"estado={self.estado!r})>")
@@ -255,7 +260,7 @@ class FotoReparacion(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
-                       server_default="1")
+                       server_default="1", index=True)
     # ON DELETE CASCADE: igual que el DDL SQLite original (en Postgres SÍ se
     # aplica; en SQLite es cosmético porque las FKs están OFF).
     reparacion_id = Column(Integer, ForeignKey("reparaciones.id", ondelete="CASCADE"),
@@ -276,7 +281,7 @@ class NotaReparacion(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
-                       server_default="1")
+                       server_default="1", index=True)
     # ON DELETE CASCADE: igual que el DDL SQLite original.
     reparacion_id = Column(Integer, ForeignKey("reparaciones.id", ondelete="CASCADE"),
                            nullable=False)
@@ -300,7 +305,7 @@ class InventarioPieza(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
-                       server_default="1")
+                       server_default="1", index=True)
     nombre = Column(Text, nullable=False)
     categoria = Column(Text, default="General", server_default=text("'General'"))
     descripcion = Column(Text)
@@ -323,7 +328,7 @@ class PiezaReparacion(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
-                       server_default="1")
+                       server_default="1", index=True)
     reparacion_id = Column(Integer, ForeignKey("reparaciones.id"), nullable=False)
     pieza_id = Column(Integer, ForeignKey("inventario_piezas.id"), nullable=False)
     cantidad = Column(Integer, default=1, server_default=text("1"))
@@ -346,7 +351,7 @@ class SolicitudReparacion(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
-                       server_default="1")
+                       server_default="1", index=True)
     nombre = Column(Text, nullable=False)
     telefono = Column(Text, nullable=False)
     email = Column(Text)
@@ -391,7 +396,7 @@ class RepairHistorial(Base):
     # Desnormalizado: hereda el taller vía reparacion_id pero lleva taller_id
     # propio para que el filtro automático no tenga que hacer JOIN.
     taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
-                       server_default="1")
+                       server_default="1", index=True)
     reparacion_id = Column(Integer, ForeignKey("reparaciones.id"), nullable=False)
     estado_anterior = Column(Text)
     estado_nuevo = Column(Text, nullable=False)
