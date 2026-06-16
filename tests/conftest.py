@@ -164,6 +164,10 @@ app_module.SIGNATURES_FOLDER = os.path.join(_TEST_UPLOAD_ROOT, "firmas")
 os.makedirs(app_module.UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(app_module.SIGNATURES_FOLDER, exist_ok=True)
 
+# El rate limiting es infraestructura: NO debe interferir con los tests
+# funcionales (que repiten POSTs a /login, /signup, etc.). Se desactiva aquí.
+app_module.limiter.enabled = False
+
 
 # ───────────────────────────────────────────────────────────────────
 # Fixtures de Flask

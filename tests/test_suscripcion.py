@@ -88,7 +88,7 @@ class TestSignup:
     def test_crea_taller_admin_en_trial(self, client, db_conn, saas_mock):
         r = client.post("/signup", data={
             "nombre_taller": "Reparaciones Pérez", "email": "perez@taller.com",
-            "usuario": "admin", "password": "secreto123"})
+            "usuario": "admin", "password": "Secreto123"})
         assert r.status_code == 302
         assert r.headers["Location"] == "https://stripe.test/checkout"
 
@@ -107,9 +107,9 @@ class TestSignup:
 
     def test_email_duplicado_rechazado(self, client, db_conn, saas_mock):
         client.post("/signup", data={"nombre_taller": "Uno", "email": "dup@x.com",
-                                     "usuario": "admin", "password": "secreto123"})
+                                     "usuario": "admin", "password": "Secreto123"})
         r = client.post("/signup", data={"nombre_taller": "Dos", "email": "dup@x.com",
-                                         "usuario": "admin", "password": "secreto123"})
+                                         "usuario": "admin", "password": "Secreto123"})
         assert r.status_code == 400
         n = db_conn.execute(
             "SELECT COUNT(*) FROM talleres WHERE lower(email_contacto) = ?",
@@ -130,7 +130,7 @@ class TestSignup:
         monkeypatch.setattr(saas_billing, "crear_checkout_suscripcion", _boom)
         r = client.post("/signup", data={
             "nombre_taller": "Fantasma", "email": "ghost@x.com",
-            "usuario": "admin", "password": "secreto123"})
+            "usuario": "admin", "password": "Secreto123"})
         assert r.status_code == 502
         # Rollback: NO debe quedar ni el taller ni su admin.
         assert db_conn.execute("SELECT COUNT(*) FROM talleres WHERE slug = ?",

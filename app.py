@@ -108,11 +108,35 @@ def ratelimit_handler(e):
     flash("Demasiados intentos. Espera un minuto antes de volver a intentarlo.", "danger")
     return redirect(url_for("login"))
 
+# Content-Security-Policy. Allowlist REAL de orígenes que usa el front (CDNs de
+# bootstrap/icons/chart.js/fullcalendar/signature_pad en jsdelivr y scrollreveal
+# en unpkg). 'unsafe-inline' es necesario porque las plantillas tienen scripts y
+# estilos inline + handlers onclick; endurecer con nonces queda como deuda
+# futura (ver recomendaciones). No hay fetch/XHR externos → connect-src 'self'.
+_CSP = "; ".join([
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com",
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com",
+    "img-src 'self' data: https:",
+    "font-src 'self' https://cdn.jsdelivr.net data:",
+    "connect-src 'self'",
+    "frame-ancestors 'self'",
+    "base-uri 'self'",
+    "form-action 'self'",
+])
+
+
 @app.after_request
 def add_security_headers(response):
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Content-Security-Policy'] = _CSP
+    response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+    # HSTS sólo en producción (HTTPS). Los navegadores lo ignoran sobre http,
+    # así que no estorba en local, pero lo limitamos a prod por higiene.
+    if IS_PRODUCTION:
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     return response
 
 # -----------------------------
@@ -684,8 +708,9 @@ def signup():
         errores.append("Introduce un email válido.")
     if not admin_user:
         errores.append("El usuario administrador es obligatorio.")
-    if len(password) < 8:
-        errores.append("La contraseña debe tener al menos 8 caracteres.")
+    _ok_pwd, _msg_pwd = validar_contraseña(password)
+    if not _ok_pwd:
+        errores.append(_msg_pwd)
     if errores:
         for e in errores:
             flash(e, "danger")
@@ -3511,6 +3536,7 @@ def mis_reparaciones(slug=None):
 
 @app.route("/solicitar-reparacion", methods=["GET", "POST"])
 @app.route("/t/<slug>/solicitar-reparacion", methods=["GET", "POST"])
+@limiter.limit("10 per hour", methods=["POST"])  # anti-spam del portal público
 @csrf_protect
 def solicitar_reparacion(slug=None):
     """Formulario publico para que clientes soliciten una reparacion."""
