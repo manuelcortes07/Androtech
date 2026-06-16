@@ -46,9 +46,6 @@ DEFAULT_TALLER_SLUG = "androtech"
 _PLATFORM_PREFIXES = (
     "/health",
     "/static",
-    "/docs",        # /docs/<sub>/<file>  (legacy TFG, sirve ficheros)
-    "/docs-view",   # /docs-view/<sub>/<file>
-    "/admin/defensa",
     "/favicon",
     "/manifest.json",
     "/sw.js",
