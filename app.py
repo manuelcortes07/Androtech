@@ -762,6 +762,76 @@ def reset_confirmar(token):
 
 
 # =========================================
+# 🔸 VERIFICACIÓN DE EMAIL (B3.2) — NO bloqueante
+# =========================================
+@app.route("/verificar-email/<token>")
+def verificar_email(token):
+    try:
+        datos = account_tokens.cargar_token_verificacion(token)
+    except (BadSignature, SignatureExpired):
+        flash("El enlace de verificación no es válido o ha caducado.", "danger")
+        return redirect(url_for("login"))
+    tid, fp = datos.get("tid"), datos.get("fp")
+    with get_session() as s:
+        row = s.execute(
+            text("SELECT email_contacto FROM talleres WHERE id = :t"), {"t": tid}
+        ).first()
+        # Si el email cambió desde que se emitió el enlace, la huella no casa.
+        if not row or account_tokens.huella_email(row[0]) != fp:
+            flash("El enlace de verificación ya no es válido.", "danger")
+            return redirect(url_for("login"))
+        s.execute(text("UPDATE talleres SET email_verificado = 1 WHERE id = :t"),
+                  {"t": tid})
+        s.commit()
+    registrar_auditoria("email_verificado", "sistema", {"taller_id": tid},
+                        taller_id=tid)
+    flash("¡Email verificado correctamente! Gracias.", "success")
+    return redirect(url_for("dashboard") if session.get("usuario")
+                    else url_for("login"))
+
+
+@app.route("/verificar-email/reenviar", methods=["POST"])
+@login_required
+@limiter.limit("3 per hour", methods=["POST"])
+@csrf_protect
+def reenviar_verificacion():
+    tid = session.get("taller_id")
+    with get_session() as s:
+        row = s.execute(
+            text("SELECT nombre, email_contacto, email_verificado FROM talleres "
+                 "WHERE id = :t"), {"t": tid}
+        ).mappings().first()
+    if row and not row["email_verificado"] and row["email_contacto"]:
+        try:
+            tok = account_tokens.generar_token_verificacion(tid, row["email_contacto"])
+            url = url_for("verificar_email", token=tok, _external=True)
+            email_service.send_email_verificacion(row["email_contacto"], url, row["nombre"])
+        except Exception as e:
+            logger.error(json.dumps({"event": "reenvio_verif_error",
+                                     "error": str(e)}, ensure_ascii=False))
+    flash("Si tu email está pendiente de verificar, te hemos reenviado el enlace.",
+          "info")
+    return redirect(request.referrer or url_for("dashboard"))
+
+
+@app.context_processor
+def inject_email_verificacion():
+    """Expone a las plantillas si el taller activo tiene el email pendiente de
+    verificar (para el aviso no bloqueante en base.html)."""
+    if not session.get("usuario") or not session.get("taller_id"):
+        return {}
+    try:
+        with get_session() as s:
+            row = s.execute(
+                text("SELECT email_verificado FROM talleres WHERE id = :t"),
+                {"t": session["taller_id"]},
+            ).first()
+        return {"email_pendiente_verificar": bool(row and not row[0])}
+    except Exception:
+        return {}
+
+
+# =========================================
 # 🔸 SUSCRIPCIÓN DEL SaaS (Fase 3b) — registro self-service + facturación
 # =========================================
 # ⚠️ Flujo SEPARADO del pago de reparaciones (publico_pagar + /stripe/webhook).
@@ -905,6 +975,16 @@ def signup():
     # Auditoría de plataforma (taller_id explícito; evento del nuevo taller).
     registrar_auditoria("signup_taller", admin_user,
                         {"taller_id": nuevo_tid, "slug": slug, "email": email})
+
+    # B3.2: enviar verificación de email (NO bloqueante; el taller ya puede usar
+    # la app durante el trial, con un aviso para verificar).
+    try:
+        _vtoken = account_tokens.generar_token_verificacion(nuevo_tid, email)
+        _vurl = url_for("verificar_email", token=_vtoken, _external=True)
+        email_service.send_email_verificacion(email, _vurl, nombre)
+    except Exception as e:
+        logger.error(json.dumps({"event": "signup_verif_email_error",
+                                 "error": str(e)}, ensure_ascii=False))
 
     # Log in inmediato: el taller entra en 'trial' y puede usar la app.
     session["usuario"] = admin_user

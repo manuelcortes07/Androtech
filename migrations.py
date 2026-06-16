@@ -98,9 +98,19 @@ def _crear_tabla_talleres(conn) -> None:
             stripe_sub_id TEXT,
             fecha_fin_periodo TEXT,
             trial_fin TEXT,
+            email_verificado INTEGER NOT NULL DEFAULT 0,
             config TEXT
         )
     """)
+
+
+def _anadir_columna_email_verificado(conn) -> None:
+    """B3.2: talleres.email_verificado. Los talleres ya existentes se
+    'grandfatherean' como verificados para no mostrarles el aviso."""
+    if _table_exists(conn, "talleres") and not _has_column(conn, "talleres", "email_verificado"):
+        conn.exec_driver_sql(
+            "ALTER TABLE talleres ADD COLUMN email_verificado INTEGER NOT NULL DEFAULT 0")
+        conn.exec_driver_sql("UPDATE talleres SET email_verificado = 1")
 
 
 def _anadir_columna_trial_fin(conn) -> None:
@@ -297,6 +307,7 @@ def aplicar_migracion_multitenant() -> dict:
     with engine.begin() as conn:
         _crear_tabla_talleres(conn)
         _anadir_columna_trial_fin(conn)        # Fase 3b
+        _anadir_columna_email_verificado(conn) # B3.2
         _crear_tabla_stripe_eventos(conn)      # Fase 3b
         resumen["talleres_creada"] = True
 

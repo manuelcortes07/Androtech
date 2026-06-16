@@ -57,6 +57,8 @@ class Taller(Base):
     stripe_sub_id = Column(Text)        # id de la Subscription del SaaS (Fase 3b)
     fecha_fin_periodo = Column(Text)
     trial_fin = Column(Text)            # Fase 3b: fin de la prueba de 14 días (ISO)
+    email_verificado = Column(Integer, nullable=False, default=0,
+                              server_default=text("0"))  # B3.2
     config = Column(Text)  # JSON serializado: iva_rate, moneda, logo_url, branding…
 
     def __repr__(self) -> str:

@@ -275,6 +275,18 @@
             {% endif %}
         {% endwith %}
 
+        {# Aviso NO bloqueante de verificación de email (B3.2) #}
+        {% if email_pendiente_verificar %}
+            <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2" role="alert">
+                <i class="bi bi-envelope-exclamation-fill"></i>
+                <span>Tu email aún no está verificado. Revisa tu correo para activar todas las funciones.</span>
+                <form method="POST" action="{{ url_for('reenviar_verificacion') }}" class="ms-auto mb-0">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-sm btn-outline-dark">Reenviar enlace</button>
+                </form>
+            </div>
+        {% endif %}
+
         <!-- Bloque de contenido principal -->
         {% block content %}{% endblock %}
 
