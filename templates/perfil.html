@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Mi perfil{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:640px;">
+    <h2 class="mb-4"><i class="bi bi-person-circle me-2"></i>Mi perfil</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}{% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}{% endif %}
+    {% endwith %}
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-4">
+            <h5 class="card-title mb-3">Cuenta</h5>
+            <p class="mb-1"><strong>Usuario:</strong> {{ session.usuario }}</p>
+            <p class="mb-1"><strong>Taller:</strong> {{ taller.nombre if taller else '—' }}</p>
+            <p class="mb-0"><strong>Email:</strong> {{ taller.email_contacto if taller else '—' }}
+                {% if taller and taller.email_verificado %}
+                    <span class="badge bg-success ms-1">Verificado</span>
+                {% else %}
+                    <span class="badge bg-warning text-dark ms-1">Sin verificar</span>
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-4">
+            <h5 class="card-title mb-3"><i class="bi bi-lock-fill me-1"></i>Cambiar contraseña</h5>
+            <form method="POST" action="{{ url_for('cambiar_password') }}" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="mb-3">
+                    <label for="actual" class="form-label">Contraseña actual</label>
+                    <input type="password" class="form-control" id="actual" name="actual"
+                           required autocomplete="current-password">
+                </div>
+                <div class="mb-3">
+                    <label for="nueva" class="form-label">Nueva contraseña</label>
+                    <input type="password" class="form-control" id="nueva" name="nueva"
+                           required minlength="8" autocomplete="new-password"
+                           placeholder="Mínimo 8, con mayúscula y número">
+                </div>
+                <button type="submit" class="btn btn-primary">Actualizar contraseña</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+            <h5 class="card-title mb-3"><i class="bi bi-envelope-fill me-1"></i>Cambiar email</h5>
+            <p class="text-muted" style="font-size:.9rem;">Al cambiar el email tendrás que volver a verificarlo.</p>
+            <form method="POST" action="{{ url_for('cambiar_email') }}" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="mb-3">
+                    <label for="email" class="form-label">Nuevo email</label>
+                    <input type="email" class="form-control" id="email" name="email" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Confirma con tu contraseña</label>
+                    <input type="password" class="form-control" id="password" name="password"
+                           required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-primary">Actualizar email</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

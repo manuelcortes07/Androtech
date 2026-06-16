@@ -171,3 +171,55 @@ class TestVerificacionEmail:
         # El taller 3 NO se verifica por el enlace del taller 2.
         assert _verificado(db_conn, 2) == 1
         assert _verificado(db_conn, 3) == 0
+
+
+class TestCredenciales:
+    def test_cambiar_password_requiere_actual(self, client, db_conn):
+        uid = _seed_taller_con_admin(db_conn, 2, "a@x.com", password="Secreto123")
+        _login(client, 2)
+        # Actual incorrecta → NO cambia.
+        client.post("/perfil/password", data={"actual": "MALA", "nueva": "NuevaClave9"})
+        assert check_password_hash(_pw_hash(db_conn, uid), "Secreto123")
+        # Actual correcta → cambia.
+        client.post("/perfil/password", data={"actual": "Secreto123", "nueva": "NuevaClave9"})
+        assert check_password_hash(_pw_hash(db_conn, uid), "NuevaClave9")
+
+    def test_cambiar_password_aplica_politica(self, client, db_conn):
+        uid = _seed_taller_con_admin(db_conn, 2, "a@x.com", password="Secreto123")
+        _login(client, 2)
+        client.post("/perfil/password", data={"actual": "Secreto123", "nueva": "debil"})
+        assert check_password_hash(_pw_hash(db_conn, uid), "Secreto123")  # no cambió
+
+    def test_cambiar_email_requiere_password(self, client, db_conn):
+        _seed_taller_con_admin(db_conn, 2, "viejo@x.com", password="Secreto123")
+        _login(client, 2)
+        client.post("/perfil/email", data={"email": "nuevo@x.com", "password": "MALA"})
+        assert db_conn.execute(
+            "SELECT email_contacto FROM talleres WHERE id = 2").fetchone()[0] == "viejo@x.com"
+
+    def test_cambiar_email_redispara_verificacion(self, client, db_conn, monkeypatch):
+        import app as A
+        _seed_taller_con_admin(db_conn, 2, "viejo@x.com", password="Secreto123")
+        db_conn.execute("UPDATE talleres SET email_verificado = 1 WHERE id = 2")
+        db_conn.commit()
+        _login(client, 2)
+        enviados = []
+        monkeypatch.setattr(A.email_service, "send_email_verificacion",
+                            lambda *a, **k: enviados.append(a))
+        r = client.post("/perfil/email",
+                        data={"email": "nuevo@x.com", "password": "Secreto123"})
+        assert r.status_code == 302
+        row = db_conn.execute(
+            "SELECT email_contacto, email_verificado FROM talleres WHERE id = 2").fetchone()
+        assert row[0] == "nuevo@x.com" and row[1] == 0  # nuevo email, sin verificar
+        assert len(enviados) == 1                       # reenvío de verificación
+
+    def test_aislamiento_cambio_password(self, client, db_conn):
+        # Mismo nombre de usuario 'admin' en dos talleres.
+        uid2 = _seed_taller_con_admin(db_conn, 2, "a@x.com", password="Secreto123")
+        uid3 = _seed_taller_con_admin(db_conn, 3, "b@x.com", password="Secreto123")
+        _login(client, 2)  # logueado como admin del taller 2
+        client.post("/perfil/password", data={"actual": "Secreto123", "nueva": "ClaveDe2_9"})
+        # El admin del taller 3 (mismo nombre) queda INTACTO.
+        assert check_password_hash(_pw_hash(db_conn, uid2), "ClaveDe2_9")
+        assert check_password_hash(_pw_hash(db_conn, uid3), "Secreto123")

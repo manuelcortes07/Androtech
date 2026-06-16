@@ -192,6 +192,19 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                             <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('perfil') }}">
+                                    <i class="bi bi-person-circle"></i>Mi perfil
+                                </a>
+                            </li>
+                            {% if session.rol == 'admin' %}
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('suscripcion') }}">
+                                    <i class="bi bi-credit-card-2-front"></i>Suscripción
+                                </a>
+                            </li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
                                 <a class="dropdown-item text-danger d-flex align-items-center gap-2" href="/logout">
                                     <i class="bi bi-box-arrow-right"></i>Cerrar Sesion
                                 </a>

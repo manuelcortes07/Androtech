@@ -832,6 +832,92 @@ def inject_email_verificacion():
 
 
 # =========================================
+# 🔸 PERFIL: GESTIÓN DE CREDENCIALES (B3.3)
+# =========================================
+@app.route("/perfil")
+@login_required
+def perfil():
+    with get_session() as s:
+        taller = s.execute(
+            text("SELECT nombre, email_contacto, email_verificado FROM talleres "
+                 "WHERE id = :t"), {"t": session.get("taller_id")},
+        ).mappings().first()
+    return render_template("perfil.html", taller=taller)
+
+
+@app.route("/perfil/password", methods=["POST"])
+@login_required
+@csrf_protect
+def cambiar_password():
+    actual = request.form.get("actual", "")
+    nueva = request.form.get("nueva", "")
+    with get_session() as s:
+        # Auto-scoped al taller del usuario logueado (g.taller_id == sesión).
+        user = s.scalars(
+            select(Usuario).where(Usuario.usuario == session["usuario"])
+        ).first()
+        if not user or not check_password_hash(user.password, actual):
+            flash("La contraseña actual no es correcta.", "danger")
+            return redirect(url_for("perfil"))
+        ok, msg = validar_contraseña(nueva)
+        if not ok:
+            flash(msg, "danger")
+            return redirect(url_for("perfil"))
+        user.password = generate_password_hash(nueva)
+        s.commit()
+    registrar_auditoria("password_cambiado", session["usuario"],
+                        {"taller_id": session.get("taller_id")})
+    flash("Contraseña actualizada correctamente.", "success")
+    return redirect(url_for("perfil"))
+
+
+@app.route("/perfil/email", methods=["POST"])
+@login_required
+@csrf_protect
+def cambiar_email():
+    nuevo = request.form.get("email", "").strip().lower()
+    password = request.form.get("password", "")
+    if not _email_valido(nuevo):
+        flash("Introduce un email válido.", "danger")
+        return redirect(url_for("perfil"))
+    tid = session.get("taller_id")
+    with get_session() as s:
+        user = s.scalars(
+            select(Usuario).where(Usuario.usuario == session["usuario"])
+        ).first()
+        if not user or not check_password_hash(user.password, password):
+            flash("La contraseña no es correcta.", "danger")
+            return redirect(url_for("perfil"))
+        # Email único a nivel PLATAFORMA (ningún OTRO taller puede tenerlo).
+        existe = s.execute(
+            text("SELECT 1 FROM talleres WHERE lower(email_contacto) = :e "
+                 "AND id != :t"), {"e": nuevo, "t": tid},
+        ).first()
+        if existe:
+            flash("Ese email ya está en uso por otra cuenta.", "danger")
+            return redirect(url_for("perfil"))
+        # Cambiar el email → vuelve a NO verificado.
+        s.execute(
+            text("UPDATE talleres SET email_contacto = :e, email_verificado = 0 "
+                 "WHERE id = :t"), {"e": nuevo, "t": tid},
+        )
+        s.commit()
+    # Reenviar verificación al nuevo email (reusa B3.2).
+    try:
+        tok = account_tokens.generar_token_verificacion(tid, nuevo)
+        url = url_for("verificar_email", token=tok, _external=True)
+        email_service.send_email_verificacion(nuevo, url, None)
+    except Exception as e:
+        logger.error(json.dumps({"event": "cambiar_email_verif_error",
+                                 "error": str(e)}, ensure_ascii=False))
+    registrar_auditoria("email_cambiado", session["usuario"],
+                        {"taller_id": tid, "nuevo_email": nuevo})
+    flash("Email actualizado. Te hemos enviado un enlace para verificarlo.",
+          "success")
+    return redirect(url_for("perfil"))
+
+
+# =========================================
 # 🔸 SUSCRIPCIÓN DEL SaaS (Fase 3b) — registro self-service + facturación
 # =========================================
 # ⚠️ Flujo SEPARADO del pago de reparaciones (publico_pagar + /stripe/webhook).
