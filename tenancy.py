@@ -152,14 +152,16 @@ def resolver_taller() -> None:
 from models import (  # noqa: E402  (import tardío: evita ciclos en el arranque)
     Usuario, Cliente, Reparacion, FotoReparacion, NotaReparacion,
     PiezaReparacion, InventarioPieza, SolicitudReparacion, RepairHistorial,
-    AuditLog,
+    AuditLog, TallerSetting,
 )
 
-# Los 10 modelos con columna taller_id (9 de scope NOT NULL + audit_log nullable).
+# Modelos con columna taller_id: 9 de scope NOT NULL + audit_log (nullable) +
+# taller_settings (config por taller, Fase B6). Todos pasan por el filtro
+# automático y el juez de aislamiento.
 _MODELOS_SCOPED = (
     Usuario, Cliente, Reparacion, FotoReparacion, NotaReparacion,
     PiezaReparacion, InventarioPieza, SolicitudReparacion, RepairHistorial,
-    AuditLog,
+    AuditLog, TallerSetting,
 )
 
 # Escape explícito de plataforma (context-var, seguro entre hilos/peticiones).

@@ -412,3 +412,31 @@ class RepairHistorial(Base):
             f"<RepairHistorial(id={self.id}, reparacion_id={self.reparacion_id}, "
             f"{self.estado_anterior!r}->{self.estado_nuevo!r})>"
         )
+
+
+class TallerSetting(Base):
+    """Configuración por taller (B6): almacén clave→valor con scope de taller.
+
+    Es el sitio donde vivirán futuras preferencias (horarios, preferencias de
+    notificación, branding…) SIN tener que migrar el esquema cada vez: una
+    feature nueva guarda su ajuste con una clave.
+
+    Tabla de SCOPE: lleva `taller_id` y está en `tenancy._MODELOS_SCOPED`, así
+    que el filtro automático la aísla y el juez la vigila. UNIQUE(taller_id,
+    clave) permite que cada taller tenga su propio valor para la misma clave.
+    """
+
+    __tablename__ = "taller_settings"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
+                       server_default="1", index=True)
+    clave = Column(Text, nullable=False)
+    valor = Column(Text)
+
+    __table_args__ = (
+        UniqueConstraint("taller_id", "clave", name="uq_taller_setting"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<TallerSetting(taller_id={self.taller_id}, clave={self.clave!r})>"

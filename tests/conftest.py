@@ -206,6 +206,7 @@ def db_conn():
 # ───────────────────────────────────────────────────────────────────
 _DATA_TABLES = (
     "stripe_eventos",
+    "taller_settings",
     "audit_log",
     "reparaciones_historial",
     "piezas_reparacion",

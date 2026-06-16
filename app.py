@@ -304,6 +304,10 @@ MAIL_CONFIGURED = bool(
 
 mail = Mail(app)
 email_service = EmailService(mail)
+# Capa de notificaciones (B6): costura única de envío. Hoy 'email'; preparada
+# para registrar canales futuros (SMS/WhatsApp) sin tocar los puntos de llamada.
+from notifications import Notificador
+notificador = Notificador(email_service)
 
 # register CSRF helpers from utils/security
 app.before_request(ensure_csrf_token)

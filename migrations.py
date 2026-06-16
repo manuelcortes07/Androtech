@@ -251,6 +251,20 @@ def _rebuild_usuarios(conn) -> None:
     conn.exec_driver_sql("ALTER TABLE usuarios_nuevo RENAME TO usuarios")
 
 
+def _crear_tabla_taller_settings(conn) -> None:
+    """Fase B6: config por taller (clave→valor, con scope). En Postgres la crea
+    create_all desde el modelo TallerSetting; aquí, para SQLite."""
+    conn.exec_driver_sql("""
+        CREATE TABLE IF NOT EXISTS taller_settings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            taller_id INTEGER NOT NULL DEFAULT 1,
+            clave TEXT NOT NULL,
+            valor TEXT,
+            UNIQUE(taller_id, clave)
+        )
+    """)
+
+
 def crear_indices_rendimiento(conn) -> None:
     """Índices de rendimiento (B5), idempotentes. `taller_id` es la columna más
     caliente (toda consulta filtra por el taller); además (taller_id, estado) y
@@ -312,6 +326,7 @@ def aplicar_migracion_multitenant() -> dict:
         _rebuild_usuarios(conn)
         resumen["usuarios_rebuild"] = necesita_rebuild
 
+        _crear_tabla_taller_settings(conn)  # B6: config por taller
         crear_indices_rendimiento(conn)  # B5: índices en taller_id y calientes
 
     return resumen
