@@ -345,7 +345,13 @@ def generar_presupuesto_pdf(reparacion_data, tipo_documento="presupuesto", base_
     styles = _get_styles()
     elements = []
 
-    rep_id = reparacion_data.get('id', 0)
+    # rep_id puede llegar como str (p. ej. desde la metadata del webhook de
+    # Stripe). Coerción segura a int para el formato :05d (si no, revienta con
+    # "Unknown format code 'd' for object of type 'str'").
+    try:
+        rep_id = int(reparacion_data.get('id', 0))
+    except (TypeError, ValueError):
+        rep_id = 0
     prefix = 'F' if tipo_documento == 'factura' else 'P'
     doc_number = f'{prefix}-{rep_id:05d}'
     doc_title = 'FACTURA' if tipo_documento == 'factura' else 'PRESUPUESTO'
