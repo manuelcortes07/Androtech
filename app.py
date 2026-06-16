@@ -36,6 +36,9 @@ from flask_limiter.util import get_remote_address
 from utils.pdf_generator import generar_presupuesto_pdf
 # Suscripción del SaaS (Fase 3b) — flujo Stripe SEPARADO del de reparaciones.
 import saas_billing
+# Esenciales de cuenta (B3): tokens firmados de reset/verificación.
+from itsdangerous import BadSignature, SignatureExpired
+import tokens as account_tokens
 # Capa de acceso a datos: SQLAlchemy (Fase 1 SaaS completada — todo el
 # proyecto usa get_session()/select(); sqlite3 directo eliminado).
 from sqlalchemy import select, text
@@ -659,6 +662,102 @@ def login(slug=None):
 def logout():
     session.clear()
     flash("Has cerrado sesión correctamente.", "info")
+    return redirect(url_for("login"))
+
+
+# =========================================
+# 🔸 RESET DE CONTRASEÑA (B3.1)
+# =========================================
+# El email vive en talleres.email_contacto (el del admin del taller). El reset
+# localiza el taller por email y opera sobre SU usuario admin. SQL crudo a
+# propósito: el usuario no está logueado (g.taller_id sería el default), así que
+# no debemos pasar por el filtro automático del ORM.
+_MSG_RESET_GENERICO = ("Si ese email corresponde a una cuenta, te hemos enviado "
+                       "un enlace para restablecer la contraseña.")
+
+
+@app.route("/reset", methods=["GET", "POST"])
+@limiter.limit("5 per hour", methods=["POST"])  # anti-abuso
+@csrf_protect
+def reset_solicitar():
+    if request.method == "GET":
+        return render_template("reset_solicitar.html")
+
+    email = request.form.get("email", "").strip().lower()
+    # ANTI-ENUMERACIÓN: la respuesta es SIEMPRE la misma, exista o no el email.
+    with get_session() as s:
+        taller = s.execute(
+            text("SELECT id, nombre, email_contacto FROM talleres "
+                 "WHERE lower(email_contacto) = :e"),
+            {"e": email},
+        ).mappings().first()
+        if taller:
+            urow = s.execute(
+                text('SELECT id, taller_id, "contraseña" AS pw FROM usuarios '
+                     "WHERE taller_id = :t AND rol = 'admin' ORDER BY id LIMIT 1"),
+                {"t": taller["id"]},
+            ).mappings().first()
+            if urow:
+                from types import SimpleNamespace
+                usuario = SimpleNamespace(id=urow["id"], taller_id=urow["taller_id"],
+                                          password=urow["pw"])
+                token = account_tokens.generar_token_reset(usuario)
+                reset_url = url_for("reset_confirmar", token=token, _external=True)
+                try:
+                    email_service.send_password_reset(
+                        taller["email_contacto"], reset_url, taller["nombre"])
+                except Exception as e:
+                    logger.error(json.dumps({"event": "reset_email_error",
+                                             "error": str(e)}, ensure_ascii=False))
+                registrar_auditoria("password_reset_solicitado", str(urow["id"]),
+                                    {"taller_id": taller["id"]},
+                                    taller_id=taller["id"])
+    flash(_MSG_RESET_GENERICO, "info")
+    return render_template("reset_solicitar.html", enviado=True)
+
+
+@app.route("/reset/<token>", methods=["GET", "POST"])
+@csrf_protect
+def reset_confirmar(token):
+    # Validar firma + caducidad. Token manipulado o caducado → fuera.
+    try:
+        datos = account_tokens.cargar_token_reset(token)
+    except SignatureExpired:
+        flash("El enlace de restablecimiento ha caducado. Solicita uno nuevo.", "danger")
+        return redirect(url_for("reset_solicitar"))
+    except BadSignature:
+        flash("El enlace de restablecimiento no es válido.", "danger")
+        return redirect(url_for("reset_solicitar"))
+
+    uid, tid, fp = datos.get("uid"), datos.get("tid"), datos.get("fp")
+    with get_session() as s:
+        urow = s.execute(
+            text('SELECT id, "contraseña" AS pw FROM usuarios '
+                 "WHERE id = :uid AND taller_id = :tid"),
+            {"uid": uid, "tid": tid},
+        ).mappings().first()
+    # Single-use de facto: si la contraseña ya cambió, la huella no coincide.
+    if not urow or account_tokens.huella_password(urow["pw"]) != fp:
+        flash("El enlace ya no es válido (quizá la contraseña ya se cambió).", "danger")
+        return redirect(url_for("reset_solicitar"))
+
+    if request.method == "GET":
+        return render_template("reset_confirmar.html", token=token)
+
+    nueva = request.form.get("password", "")
+    ok, msg = validar_contraseña(nueva)
+    if not ok:
+        flash(msg, "danger")
+        return render_template("reset_confirmar.html", token=token), 400
+    with get_session() as s:
+        s.execute(
+            text('UPDATE usuarios SET "contraseña" = :p WHERE id = :uid AND taller_id = :tid'),
+            {"p": generate_password_hash(nueva), "uid": uid, "tid": tid},
+        )
+        s.commit()
+    registrar_auditoria("password_reset_completado", str(uid),
+                        {"taller_id": tid}, taller_id=tid)
+    flash("Contraseña actualizada. Ya puedes iniciar sesión.", "success")
     return redirect(url_for("login"))
 
 

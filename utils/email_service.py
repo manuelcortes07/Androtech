@@ -215,6 +215,32 @@ class EmailService:
             logger.error(f'Error enviando email de bienvenida: {type(e).__name__}: {str(e)}')
             raise
 
+    def send_password_reset(self, to_email, reset_url, taller_nombre=None):
+        """Email con el enlace de reset de contraseña (B3.1)."""
+        html = render_template(
+            'emails/reset_password.html',
+            reset_url=reset_url, taller_nombre=taller_nombre,
+            year=datetime.now().year,
+        )
+        self._send(
+            subject='AndroTech - Restablece tu contraseña',
+            to_email=to_email, html_body=html,
+        )
+        logger.info(f'Email de reset de contraseña enviado a {to_email}')
+
+    def send_email_verificacion(self, to_email, verify_url, taller_nombre=None):
+        """Email con el enlace de verificación de cuenta (B3.2)."""
+        html = render_template(
+            'emails/verificar_email.html',
+            verify_url=verify_url, taller_nombre=taller_nombre,
+            year=datetime.now().year,
+        )
+        self._send(
+            subject='AndroTech - Verifica tu email',
+            to_email=to_email, html_body=html,
+        )
+        logger.info(f'Email de verificación enviado a {to_email}')
+
     def send_test(self, to_email: str, cliente_nombre: str = 'Administrador') -> None:
         """Email de prueba (usa la plantilla de bienvenida). Usado por /admin/test-email."""
         html = render_template(
