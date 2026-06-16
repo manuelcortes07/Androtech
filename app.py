@@ -173,7 +173,23 @@ if not logger.handlers:
     file_handler.setFormatter(JSONFormatter())
     logger.addHandler(file_handler)
 
-logger.setLevel(logging.INFO)
+logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO').upper())
+
+# ── Sentry (observabilidad de errores) — COSTURA, APAGADA por defecto ────────
+# Sin SENTRY_DSN no hace nada y NO requiere la dependencia instalada. Si se
+# define SENTRY_DSN y `sentry-sdk` está disponible, se inicializa. Pensado para
+# activarlo en producción sin tocar código (sólo la env var + la dependencia).
+_sentry_dsn = os.environ.get('SENTRY_DSN', '').strip()
+if _sentry_dsn:
+    try:
+        import sentry_sdk
+        sentry_sdk.init(dsn=_sentry_dsn,
+                        environment=os.environ.get('APP_ENV', 'development'),
+                        traces_sample_rate=0.0)
+        logger.info('{"event": "sentry_inicializado"}')
+    except Exception as _e:  # pragma: no cover (depende de dep externa)
+        logger.warning('SENTRY_DSN definido pero no se pudo inicializar Sentry '
+                       '(¿falta sentry-sdk?): %s', _e)
 
 # Stripe configuration (use environment variables in production)
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
@@ -998,8 +1014,19 @@ def saas_webhook():
 # worker esta vivo; si devuelve 502, gunicorn no arranca.
 @app.route("/health")
 def healthcheck():
+    # Liveness + readiness ligero: comprueba la conexión a BD con un SELECT 1.
+    # Devuelve 200 siempre (el proceso está vivo) e informa del estado de la BD
+    # en "database"; así un parpadeo de BD no tira el healthcheck del hosting.
+    db_ok = True
+    try:
+        with get_session() as s:
+            s.execute(text("SELECT 1"))
+    except Exception:
+        db_ok = False
+        logger.warning('{"event": "health_db_unavailable"}')
     return jsonify({
         "status": "ok",
+        "database": "ok" if db_ok else "unavailable",
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "mail_configured": bool(MAIL_CONFIGURED),
         "python": f"{os.sys.version_info.major}.{os.sys.version_info.minor}",
