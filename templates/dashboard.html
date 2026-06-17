@@ -320,12 +320,12 @@
                                     <td class="at-mono">#{{ rep.id }}</td>
                                     <td>{{ rep.cliente or 'Sin asignar' }}</td>
                                     <td>{{ rep.dispositivo }}</td>
-                                    <td><span class="at-pill at-pill--{{ rep.estado|lower|replace(' ','-') }}">{{ rep.estado }}</span></td>
+                                    <td><span class="at-status at-status--{{ rep.estado|lower|replace(' ','-') }}">{{ rep.estado }}</span></td>
                                     <td>
                                         {% if rep.estado_pago == 'Pagado' %}
-                                            <span class="at-pill at-pill--reparado"><i class="bi bi-check"></i>Pagado</span>
+                                            <span class="at-status at-status--reparado"><i class="bi bi-check"></i>Pagado</span>
                                         {% else %}
-                                            <span class="at-pill at-pill--pendiente"><i class="bi bi-clock"></i>Pendiente</span>
+                                            <span class="at-status at-status--pendiente"><i class="bi bi-clock"></i>Pendiente</span>
                                         {% endif %}
                                     </td>
                                     <td class="at-mono at-dim">{{ rep.fecha_entrada }}</td>
