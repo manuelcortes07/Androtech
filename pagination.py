@@ -83,7 +83,7 @@ class Pagina:
         """Índice del último elemento mostrado."""
         return min(self.offset + self.per_page, self.total)
 
-    def ventana(self, borde: int = 1, alrededor: int = 2):
+    def ventana(self, borde: int = 1, alrededor: int = 2) -> list:
         """Números de página a mostrar, con `None` como elipsis."""
         paginas: list = []
         ultimo = 0

@@ -110,8 +110,12 @@ class TestResetPassword:
 def _login(client, tid, slug="t"):
     from auth import PERMISOS_ADMIN
     with client.session_transaction() as s:
-        s["usuario"] = "admin"; s["rol"] = "admin"; s["permisos"] = PERMISOS_ADMIN
-        s["taller_id"] = tid; s["taller_slug"] = slug; s["csrf_token"] = "x"
+        s["usuario"] = "admin"
+        s["rol"] = "admin"
+        s["permisos"] = PERMISOS_ADMIN
+        s["taller_id"] = tid
+        s["taller_slug"] = slug
+        s["csrf_token"] = "x"
 
 
 def _verificado(db_conn, tid):
@@ -122,8 +126,8 @@ def _verificado(db_conn, tid):
 class TestVerificacionEmail:
     def test_signup_envia_verificacion(self, client, db_conn, monkeypatch):
         import app as A
-        monkeypatch.setattr(saas_billing := __import__("saas_billing"),
-                            "is_configured", lambda: False)
+        import saas_billing
+        monkeypatch.setattr(saas_billing, "is_configured", lambda: False)
         enviados = []
         monkeypatch.setattr(A.email_service, "send_email_verificacion",
                             lambda *a, **k: enviados.append(a))

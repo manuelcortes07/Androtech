@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 
@@ -228,7 +229,7 @@ def _sellar_taller_en_insert(session_, flush_context, instances):
 
 
 @contextmanager
-def sin_filtro_taller(motivo: str):
+def sin_filtro_taller(motivo: str) -> Iterator[None]:
     """Escape EXPLÍCITO del filtro de taller, para operaciones de plataforma.
 
     Dentro del `with`, las consultas ORM ven TODOS los talleres. Es el único

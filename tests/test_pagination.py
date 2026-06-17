@@ -64,7 +64,7 @@ class TestClientesPaginacion:
         assert r.status_code == 200
         # Cada cliente sembrado tiene un email único @x.com → contamos esas filas.
         body = r.get_data(as_text=True)
-        filas_cliente = [l for l in body.splitlines() if "@x.com" in l]
+        filas_cliente = [ln for ln in body.splitlines() if "@x.com" in ln]
         assert len(filas_cliente) == n  # TODOS, no sólo page_size()
 
     def test_juez_contador_y_filas_scoped(self, logged_admin, db_conn):
@@ -109,8 +109,8 @@ class TestReparacionesPaginacion:
         assert r.status_code == 200
         # Filas de datos: empiezan por el id (dígito) y llevan el dispositivo
         # (excluye banner "ANDROTECH…Dispositivos" y la cabecera "…Dispositivo…").
-        filas = [l for l in r.get_data(as_text=True).splitlines()
-                 if l[:1].isdigit() and ";Disp" in l]
+        filas = [ln for ln in r.get_data(as_text=True).splitlines()
+                 if ln[:1].isdigit() and ";Disp" in ln]
         assert len(filas) == n  # TODAS, no sólo una página
 
     def test_juez_contador_scoped(self, logged_admin, db_conn):

@@ -415,7 +415,7 @@ def strftime_filter(date_str, format_str='%d/%m/%Y'):
         # Intentar parsear la fecha
         try:
             date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-        except:
+        except Exception:
             return date_str
     else:
         date_obj = date_str
@@ -3749,6 +3749,7 @@ def contacto():
         email = request.form["email"]
         telefono = request.form["telefono"]
         tipo = request.form["tipo"]
+        # Se lee para EXIGIR el campo (400 si falta); el contenido se registra abajo.
         mensaje = request.form["mensaje"]
 
         # Aquí simplemente imprimimos los datos en consola
@@ -3759,7 +3760,8 @@ def contacto():
                 "nombre": nombre,
                 "email": email,
                 "telefono": telefono,
-                "tipo": tipo
+                "tipo": tipo,
+                "mensaje": mensaje
             }, ensure_ascii=False))
         except Exception:
             logger.info(f"contacto_enviado nombre={nombre} email={email} tipo={tipo}")
