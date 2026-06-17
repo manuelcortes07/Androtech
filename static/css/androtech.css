@@ -245,6 +245,13 @@
 .at-rise-3 { animation-delay: .19s; }
 .at-rise-4 { animation-delay: .26s; }
 .at-timeline__dot { animation: at-draw .4s ease both; }
+/* La línea de seguimiento se "dibuja sola": stagger por etapa */
+.at-timeline__item:nth-child(1) .at-timeline__dot { animation-delay: .05s; }
+.at-timeline__item:nth-child(2) .at-timeline__dot { animation-delay: .18s; }
+.at-timeline__item:nth-child(3) .at-timeline__dot { animation-delay: .31s; }
+.at-timeline__item:nth-child(4) .at-timeline__dot { animation-delay: .44s; }
+.at-timeline__item:nth-child(5) .at-timeline__dot { animation-delay: .57s; }
+.at-timeline__item:nth-child(6) .at-timeline__dot { animation-delay: .70s; }
 
 @media (prefers-reduced-motion: reduce) {
   .at-rise, .at-timeline__dot { animation: none !important; }
