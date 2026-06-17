@@ -706,7 +706,7 @@ def reset_solicitar():
                 token = account_tokens.generar_token_reset(usuario)
                 reset_url = url_for("reset_confirmar", token=token, _external=True)
                 try:
-                    email_service.send_password_reset(
+                    notificador.enviar_email("send_password_reset", 
                         taller["email_contacto"], reset_url, taller["nombre"])
                 except Exception as e:
                     logger.error(json.dumps({"event": "reset_email_error",
@@ -807,7 +807,7 @@ def reenviar_verificacion():
         try:
             tok = account_tokens.generar_token_verificacion(tid, row["email_contacto"])
             url = url_for("verificar_email", token=tok, _external=True)
-            email_service.send_email_verificacion(row["email_contacto"], url, row["nombre"])
+            notificador.enviar_email("send_email_verificacion", row["email_contacto"], url, row["nombre"])
         except Exception as e:
             logger.error(json.dumps({"event": "reenvio_verif_error",
                                      "error": str(e)}, ensure_ascii=False))
@@ -908,7 +908,7 @@ def cambiar_email():
     try:
         tok = account_tokens.generar_token_verificacion(tid, nuevo)
         url = url_for("verificar_email", token=tok, _external=True)
-        email_service.send_email_verificacion(nuevo, url, None)
+        notificador.enviar_email("send_email_verificacion", nuevo, url, None)
     except Exception as e:
         logger.error(json.dumps({"event": "cambiar_email_verif_error",
                                  "error": str(e)}, ensure_ascii=False))
@@ -1069,7 +1069,7 @@ def signup():
     try:
         _vtoken = account_tokens.generar_token_verificacion(nuevo_tid, email)
         _vurl = url_for("verificar_email", token=_vtoken, _external=True)
-        email_service.send_email_verificacion(email, _vurl, nombre)
+        notificador.enviar_email("send_email_verificacion", email, _vurl, nombre)
     except Exception as e:
         logger.error(json.dumps({"event": "signup_verif_email_error",
                                  "error": str(e)}, ensure_ascii=False))
@@ -1675,7 +1675,7 @@ def nuevo_cliente():
         # Enviar email de bienvenida al nuevo cliente
         if email:
             try:
-                email_service.send_bienvenida_cliente(
+                notificador.enviar_email("send_bienvenida_cliente", 
                     to_email=email,
                     cliente_nombre=nombre
                 )
@@ -2411,7 +2411,7 @@ def nueva_reparacion():
         # Enviar email de nueva reparación al cliente
         try:
             if cliente_email:
-                email_service.send_nueva_reparacion(
+                notificador.enviar_email("send_nueva_reparacion", 
                     to_email=cliente_email,
                     cliente_nombre=cliente_nombre,
                     reparacion_id=new_id,
@@ -2494,7 +2494,7 @@ def editar_reparacion(id):
             try:
                 if cliente_email:
                     # Enviar email de actualización de estado
-                    email_service.send_repair_status_update(
+                    notificador.enviar_email("send_repair_status_update", 
                         to_email=cliente_email,
                         cliente_nombre=cliente_nombre,
                         reparacion_id=id,
@@ -4353,7 +4353,7 @@ def admin_test_email():
             return redirect(url_for('admin_test_email'))
 
         try:
-            email_service.send_test(
+            notificador.enviar_email("send_test", 
                 to_email=destinatario,
                 cliente_nombre=session.get('usuario', 'administrador'),
             )
@@ -4858,7 +4858,7 @@ def stripe_webhook():
                         logger.exception(f'[WEBHOOK] Error generando PDF para reparacion {reparacion_id}, se enviara email sin adjunto')
 
                     # Enviar email de confirmación con factura PDF adjunta
-                    email_service.send_payment_confirmation(
+                    notificador.enviar_email("send_payment_confirmation", 
                         to_email=reparacion_data['email'],
                         cliente_nombre=reparacion_data['nombre'],
                         reparacion_id=reparacion_id,

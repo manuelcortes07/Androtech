@@ -66,3 +66,16 @@ class Notificador:
         self._email_service._send(subject=asunto, to_email=destinatario,
                                   html_body=cuerpo_html)
         return True
+
+    def enviar_email(self, metodo: str, *args, **kwargs):
+        """Punto ÚNICO de salida de email del producto (P2).
+
+        Delega en el método de CONTENIDO del EmailService (las plantillas
+        existentes) — NO cambia ni el contenido ni el destinatario. Funnel
+        donde, en el futuro, vivirán logging/reintentos/routing por canal sin
+        tocar cada call-site. Propaga las excepciones igual que la llamada
+        directa, para que el manejo de errores de cada handler no cambie.
+        """
+        if self._email_service is None:
+            return None
+        return getattr(self._email_service, metodo)(*args, **kwargs)
