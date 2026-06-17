@@ -218,33 +218,9 @@
             </table>
         </div>
 
-        <!-- PAGINACIÓN -->
+        <!-- PAGINACIÓN server-side (B5): partial reutilizable con elipsis -->
         <div class="px-3 py-3 border-top" style="background:#fafbfc;">
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="small text-muted">
-                    Mostrando <strong>{{ reparaciones|length }}</strong> de <strong>{{ total }}</strong> reparaciones
-                </div>
-                <nav aria-label="Paginación">
-                    <ul class="pagination pagination-sm mb-0">
-                        <li class="page-item {% if page <= 1 %}disabled{% endif %}">
-                            <a class="page-link" href="?page={{ page-1 }}{% if filters_query %}&{{ filters_query }}{% endif %}">
-                                <i class="bi bi-chevron-left"></i>
-                            </a>
-                        </li>
-                        {% for p in range(1, total_pages+1) %}
-                        <li class="page-item {% if p == page %}active{% endif %}">
-                            <a class="page-link" href="?page={{ p }}{% if filters_query %}&{{ filters_query }}{% endif %}"
-                               {% if p == page %}style="background:#2B8AC4;border-color:#2B8AC4;"{% endif %}>{{ p }}</a>
-                        </li>
-                        {% endfor %}
-                        <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
-                            <a class="page-link" href="?page={{ page+1 }}{% if filters_query %}&{{ filters_query }}{% endif %}">
-                                <i class="bi bi-chevron-right"></i>
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-            </div>
+            {% include "_paginacion.html" %}
         </div>
     </div>
 

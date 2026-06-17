@@ -75,3 +75,47 @@ class TestClientesPaginacion:
         body = logged_admin.get("/clientes").get_data(as_text=True)
         assert "de 3" in body          # contador SOLO del taller 1 (no 53)
         assert "Otro" not in body      # jamás ve clientes del taller 2
+
+
+def _seed_reparaciones(db_conn, tid, n):
+    cur = db_conn.execute(
+        "INSERT INTO clientes (nombre, taller_id) VALUES (?, ?)",
+        (f"ClienteRep{tid}", tid))
+    cid = cur.lastrowid
+    for i in range(n):
+        db_conn.execute(
+            "INSERT INTO reparaciones (cliente_id, dispositivo, estado, "
+            "fecha_entrada, precio, estado_pago, taller_id) "
+            "VALUES (?, ?, 'Pendiente', ?, 100.0, 'Pendiente', ?)",
+            (cid, f"Disp{i:03d}", f"2026-01-{(i % 28) + 1:02d}", tid))
+    db_conn.commit()
+
+
+class TestReparacionesPaginacion:
+    def test_pagina_fuera_de_rango_no_rompe(self, logged_admin, db_conn):
+        _seed_reparaciones(db_conn, 1, 10)
+        for p in ("9999", "0", "abc", "-1"):
+            assert logged_admin.get(f"/reparaciones?page={p}").status_code == 200
+
+    def test_filtro_se_conserva_en_enlaces(self, logged_admin, db_conn):
+        _seed_reparaciones(db_conn, 1, page_size() + 5)
+        body = logged_admin.get("/reparaciones?estado=Pendiente").get_data(as_text=True)
+        assert "estado=Pendiente&amp;page=2" in body  # el filtro viaja en los enlaces
+
+    def test_export_csv_saca_todo_no_solo_la_pagina(self, logged_admin, db_conn):
+        n = page_size() + 12
+        _seed_reparaciones(db_conn, 1, n)
+        r = logged_admin.get("/exportar/reparaciones.csv")
+        assert r.status_code == 200
+        # Filas de datos: empiezan por el id (dígito) y llevan el dispositivo
+        # (excluye banner "ANDROTECH…Dispositivos" y la cabecera "…Dispositivo…").
+        filas = [l for l in r.get_data(as_text=True).splitlines()
+                 if l[:1].isdigit() and ";Disp" in l]
+        assert len(filas) == n  # TODAS, no sólo una página
+
+    def test_juez_contador_scoped(self, logged_admin, db_conn):
+        _seed_reparaciones(db_conn, 1, 3)
+        _crear_taller2(db_conn)
+        _seed_reparaciones(db_conn, 2, 40)
+        body = logged_admin.get("/reparaciones").get_data(as_text=True)
+        assert "de 3" in body  # contador del taller 1, nunca las 43

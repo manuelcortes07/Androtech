@@ -2215,16 +2215,6 @@ def reparaciones():
     # búsqueda global
     q = request.args.get('q', '').strip()
 
-    # Paginación
-    try:
-        page = int(request.args.get('page', 1))
-        if page < 1:
-            page = 1
-    except ValueError:
-        page = 1
-    per_page = 10
-    offset = (page - 1) * per_page
-
     # Fase 2.4: SQL dinámico con filtro de taller SIEMPRE presente (raw SQL).
     from sqlalchemy import text as _text
 
@@ -2280,16 +2270,22 @@ def reparaciones():
     where_sql = " WHERE " + " AND ".join(where_clauses)
 
     with get_session() as s:
-        # Total para paginación
+        # Total para paginación (COUNT scoped por taller: el WHERE ya incluye
+        # reparaciones.taller_id = :tid, así que el contador es del taller).
         total = s.execute(
             _text("SELECT COUNT(*) " + sql_base + where_sql), params
         ).scalar()
 
-        # Consulta principal con orden y límite
+        # Paginación centralizada (B5): PAGE_SIZE por env, clamp de rango.
+        pag = paginar(total)
+
+        # Consulta principal con orden y límite (tiebreak por id para orden
+        # determinista entre páginas cuando hay fechas repetidas).
         select_sql = ("SELECT reparaciones.*, clientes.nombre AS cliente " + sql_base
-                      + where_sql + " ORDER BY fecha_entrada DESC LIMIT :limit OFFSET :offset")
+                      + where_sql + " ORDER BY fecha_entrada DESC, reparaciones.id DESC "
+                      + "LIMIT :limit OFFSET :offset")
         datos = s.execute(
-            _text(select_sql), {**params, 'limit': per_page, 'offset': offset}
+            _text(select_sql), {**params, 'limit': pag.per_page, 'offset': pag.offset}
         ).mappings().all()
 
         # Enriquecer datos con última actualización de cada reparación (ORM)
@@ -2331,12 +2327,10 @@ def reparaciones():
 
     filters_query = urllib.parse.urlencode(filters)
 
-    total_pages = max(1, (total + per_page - 1) // per_page)
-
     # Determinar si mostrar precios según rol
     mostrar_precios = session.get('rol') in ['admin', 'tecnico']
 
-    return render_template("reparaciones.html", reparaciones=datos_enriquecidos, clientes=clientes, filters=filters, filters_query=filters_query, page=page, total_pages=total_pages, per_page=per_page, total=total, mostrar_precios=mostrar_precios, user_role=session.get('rol'))
+    return render_template("reparaciones.html", reparaciones=datos_enriquecidos, clientes=clientes, filters=filters, filters_query=filters_query, pagina=pag, page=pag.page, total_pages=pag.total_pages, per_page=pag.per_page, total=total, mostrar_precios=mostrar_precios, user_role=session.get('rol'))
 
 
 # NUEVA REPARACIÓN
