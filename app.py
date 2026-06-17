@@ -3907,6 +3907,37 @@ def solicitar_reparacion(slug=None):
 
 
 # =========================================
+# ADMIN: AUDITORÍA (vista completa paginada, B5)
+# =========================================
+@app.route("/admin/auditoria")
+@login_required
+def admin_auditoria():
+    if session.get("rol") != "admin":
+        flash("Acceso restringido al administrador.", "danger")
+        return redirect(url_for("dashboard"))
+    from sqlalchemy import func as _func
+    from models import AuditLog
+    # COUNT y SELECT auto-scoped por el filtro ORM (g.taller_id): un admin sólo
+    # ve los eventos de SU taller (los de plataforma con taller_id NULL no
+    # cuentan para un taller). audit_log puede crecer mucho → paginado.
+    with get_session() as s:
+        total = s.scalar(select(_func.count(AuditLog.id)))
+        pag = paginar(total)
+        filas = s.scalars(
+            select(AuditLog)
+            .order_by(AuditLog.timestamp.desc(), AuditLog.id.desc())
+            .limit(pag.per_page).offset(pag.offset)
+        ).all()
+        eventos = [{
+            "id": e.id, "event_type": e.event_type, "usuario": e.usuario,
+            "evento_datos": e.evento_datos, "ip_address": e.ip_address,
+            "timestamp": e.timestamp,
+        } for e in filas]
+    return render_template("admin_auditoria.html", eventos=eventos,
+                           pagina=pag, filters_query="")
+
+
+# =========================================
 # ADMIN: SEED DE DATOS DEMO (ejecutar UNA VEZ desde el navegador)
 # =========================================
 

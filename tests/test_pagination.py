@@ -119,3 +119,39 @@ class TestReparacionesPaginacion:
         _seed_reparaciones(db_conn, 2, 40)
         body = logged_admin.get("/reparaciones").get_data(as_text=True)
         assert "de 3" in body  # contador del taller 1, nunca las 43
+
+
+def _seed_auditoria(db_conn, tid, n, usuario="admin"):
+    for i in range(n):
+        db_conn.execute(
+            "INSERT INTO audit_log (taller_id, event_type, usuario, evento_datos, timestamp) "
+            "VALUES (?, 'login', ?, '{}', ?)",
+            (tid, usuario, f"2026-03-01 00:{i // 60:02d}:{i % 60:02d}"))
+    db_conn.commit()
+
+
+class TestAuditoriaPaginacion:
+    def test_vista_paginada(self, logged_admin, db_conn):
+        ps = page_size()
+        _seed_auditoria(db_conn, 1, ps + 5)
+        r1 = logged_admin.get("/admin/auditoria")
+        assert r1.status_code == 200
+        assert f"de {ps + 5}" in r1.get_data(as_text=True)
+        assert logged_admin.get("/admin/auditoria?page=2").status_code == 200
+
+    def test_pagina_fuera_de_rango_no_rompe(self, logged_admin, db_conn):
+        _seed_auditoria(db_conn, 1, 5)
+        for p in ("9999", "0", "abc"):
+            assert logged_admin.get(f"/admin/auditoria?page={p}").status_code == 200
+
+    def test_solo_admin(self, logged_tecnico, db_conn):
+        r = logged_tecnico.get("/admin/auditoria", follow_redirects=False)
+        assert r.status_code == 302  # redirige (no es admin)
+
+    def test_juez_contador_scoped(self, logged_admin, db_conn):
+        _seed_auditoria(db_conn, 1, 2, usuario="admin")
+        _crear_taller2(db_conn)
+        _seed_auditoria(db_conn, 2, 30, usuario="RIVALUSER")
+        body = logged_admin.get("/admin/auditoria").get_data(as_text=True)
+        assert "de 2" in body            # sólo los del taller 1
+        assert "RIVALUSER" not in body   # jamás eventos del taller 2

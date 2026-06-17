@@ -143,6 +143,13 @@
                                 </a>
                             </li>
                             {% endif %}
+                            {% if session.rol == 'admin' %}
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('admin_auditoria') }}">
+                                    <i class="bi bi-clock-history"></i>Auditoría
+                                </a>
+                            </li>
+                            {% endif %}
                             {% if tiene_permiso('reparaciones_ver') %}
                             <li><hr class="dropdown-divider"></li>
                             <li>

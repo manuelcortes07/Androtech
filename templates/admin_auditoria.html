@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Auditoría - AndroTech{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4 align-items-end">
+        <div class="col">
+            <span class="at-pill"><i class="bi bi-clock-history me-1"></i>Auditoría</span>
+            <h1 class="at-section-title mt-2 mb-1">Registro de actividad</h1>
+            <p class="at-section-sub" style="margin:0;max-width:none;">Eventos críticos del taller (accesos, pagos, cambios)</p>
+        </div>
+    </div>
+
+    <div class="at-admin-card">
+        <div class="table-responsive">
+            <table class="at-admin-table table table-hover align-middle mb-0">
+                <thead>
+                <tr style="background: rgba(0,0,0,.02);">
+                    <th class="ps-4" style="width:170px;">Fecha</th>
+                    <th style="width:200px;">Evento</th>
+                    <th style="width:140px;">Usuario</th>
+                    <th>Datos</th>
+                    <th style="width:130px;">IP</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for e in eventos %}
+                    <tr>
+                        <td class="ps-4 text-muted small">{{ e.timestamp }}</td>
+                        <td><span class="badge bg-light text-dark">{{ e.event_type }}</span></td>
+                        <td class="small">{{ e.usuario or '—' }}</td>
+                        <td class="small text-muted" style="max-width:380px;overflow:hidden;text-overflow:ellipsis;">
+                            {{ e.evento_datos or '' }}
+                        </td>
+                        <td class="small text-muted">{{ e.ip_address or '—' }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if eventos|length == 0 %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-clock-history" style="font-size:2.5rem;opacity:.3;"></i>
+            <p class="mb-0 mt-2">No hay eventos de auditoría.</p>
+        </div>
+        {% endif %}
+
+        <div class="px-4 py-3" style="border-top: 1px solid rgba(0,0,0,.06);">
+            {% include "_paginacion.html" %}
+        </div>
+    </div>
+</div>
+{% endblock %}
