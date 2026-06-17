@@ -49,50 +49,42 @@
     </div>
     {% endif %}
 
-    <!-- FILA 1: KPIs PRINCIPALES -->
+    <!-- FILA 1: KPIs PRINCIPALES (rediseño D3: stat cards) -->
     <div class="row g-3 mb-4">
         <div class="col-6 col-lg-3">
-            <div class="at-dash-kpi">
-                <div class="at-dash-kpi-icon" style="background: rgba(43,138,196,.1);">
-                    <i class="bi bi-people-fill" style="color: #2B8AC4;"></i>
+            <div class="at-stat at-rise at-rise-1">
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="at-stat__label">Clientes</span>
+                    <i class="bi bi-people-fill at-stat__icon"></i>
                 </div>
-                <div>
-                    <div class="at-dash-kpi-value" style="color: #2B8AC4;">{{ total_clientes }}</div>
-                    <div class="at-dash-kpi-label">Clientes</div>
-                </div>
+                <div class="at-stat__value">{{ total_clientes }}</div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
-            <div class="at-dash-kpi">
-                <div class="at-dash-kpi-icon" style="background: rgba(108,117,125,.1);">
-                    <i class="bi bi-tools" style="color: #6c757d;"></i>
+            <div class="at-stat at-rise at-rise-2">
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="at-stat__label">Reparaciones</span>
+                    <i class="bi bi-tools at-stat__icon"></i>
                 </div>
-                <div>
-                    <div class="at-dash-kpi-value" style="color: #6c757d;">{{ total_reparaciones }}</div>
-                    <div class="at-dash-kpi-label">Reparaciones</div>
-                </div>
+                <div class="at-stat__value">{{ total_reparaciones }}</div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
-            <div class="at-dash-kpi">
-                <div class="at-dash-kpi-icon" style="background: rgba(255,193,7,.1);">
-                    <i class="bi bi-hourglass-split" style="color: #ffc107;"></i>
+            <div class="at-stat at-rise at-rise-3">
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="at-stat__label">Pendientes</span>
+                    <i class="bi bi-hourglass-split at-stat__icon"></i>
                 </div>
-                <div>
-                    <div class="at-dash-kpi-value" style="color: #e6a800;">{{ reparaciones_activas }}</div>
-                    <div class="at-dash-kpi-label">Pendientes</div>
-                </div>
+                <div class="at-stat__value">{{ reparaciones_activas }}</div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
-            <div class="at-dash-kpi">
-                <div class="at-dash-kpi-icon" style="background: rgba(25,135,84,.1);">
-                    <i class="bi bi-check-circle-fill" style="color: #198754;"></i>
+            <div class="at-stat at-rise at-rise-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="at-stat__label">Completadas</span>
+                    <i class="bi bi-check-circle-fill at-stat__icon"></i>
                 </div>
-                <div>
-                    <div class="at-dash-kpi-value" style="color: #198754;">{{ reparaciones_terminadas }}</div>
-                    <div class="at-dash-kpi-label">Completadas</div>
-                </div>
+                <div class="at-stat__value">{{ reparaciones_terminadas }}</div>
             </div>
         </div>
     </div>
@@ -303,17 +295,17 @@
     <!-- FILA 6: ÚLTIMAS REPARACIONES -->
     <div class="row g-3 mb-4">
         <div class="col-12">
-            <div class="at-dash-card">
-                <div class="at-dash-card-header">
-                    <i class="bi bi-list-check"></i> Ultimas Reparaciones
+            <div class="at-card at-rise">
+                <div class="at-card__head">
+                    <span class="at-display" style="font-size:1rem;"><i class="bi bi-list-check me-2"></i>Últimas reparaciones</span>
                 </div>
-                <div class="at-dash-card-body p-0">
+                <div>
                     {% if ultimas_reparaciones %}
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0">
+                        <table class="at-table">
                             <thead>
-                                <tr style="background: rgba(0,0,0,.02);">
-                                    <th class="ps-4">ID</th>
+                                <tr>
+                                    <th>ID</th>
                                     <th>Cliente</th>
                                     <th>Dispositivo</th>
                                     <th>Estado</th>
@@ -325,34 +317,26 @@
                             <tbody>
                                 {% for rep in ultimas_reparaciones %}
                                 <tr>
-                                    <td class="ps-4"><strong>#{{ rep.id }}</strong></td>
+                                    <td class="at-mono">#{{ rep.id }}</td>
                                     <td>{{ rep.cliente or 'Sin asignar' }}</td>
                                     <td>{{ rep.dispositivo }}</td>
-                                    <td>
-                                        {% if rep.estado == 'Terminado' or rep.estado == 'Entregado' %}
-                                            <span class="badge" style="background: rgba(25,135,84,.12); color: #198754;">{{ rep.estado }}</span>
-                                        {% elif rep.estado == 'Pendiente' %}
-                                            <span class="badge" style="background: rgba(255,193,7,.15); color: #997a00;">{{ rep.estado }}</span>
-                                        {% else %}
-                                            <span class="badge" style="background: rgba(43,138,196,.12); color: #2B8AC4;">{{ rep.estado }}</span>
-                                        {% endif %}
-                                    </td>
+                                    <td><span class="at-pill at-pill--{{ rep.estado|lower|replace(' ','-') }}">{{ rep.estado }}</span></td>
                                     <td>
                                         {% if rep.estado_pago == 'Pagado' %}
-                                            <span class="badge" style="background: rgba(25,135,84,.12); color: #198754;"><i class="bi bi-check me-1"></i>Pagado</span>
+                                            <span class="at-pill at-pill--reparado"><i class="bi bi-check"></i>Pagado</span>
                                         {% else %}
-                                            <span class="badge" style="background: rgba(220,53,69,.1); color: #dc3545;"><i class="bi bi-clock me-1"></i>Pendiente</span>
+                                            <span class="at-pill at-pill--pendiente"><i class="bi bi-clock"></i>Pendiente</span>
                                         {% endif %}
                                     </td>
-                                    <td><small class="text-muted">{{ rep.fecha_entrada }}</small></td>
-                                    <td><strong>{{ "%.2f"|format(rep.precio or 0) }}€</strong></td>
+                                    <td class="at-mono at-dim">{{ rep.fecha_entrada }}</td>
+                                    <td class="at-mono">{{ "%.2f"|format(rep.precio or 0) }}€</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
                     {% else %}
-                    <p class="text-center text-muted py-4 mb-0">No hay reparaciones registradas</p>
+                    <p class="text-center at-dim py-4 mb-0">No hay reparaciones registradas</p>
                     {% endif %}
                 </div>
             </div>
