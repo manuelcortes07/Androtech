@@ -1,5 +1,5 @@
-import sqlite3
 import os
+import sqlite3
 
 # Ruta correcta
 db_path = "database/andro_tech.db"

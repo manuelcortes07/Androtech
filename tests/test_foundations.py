@@ -6,8 +6,8 @@ otro (la tabla taller_settings es de scope).
 
 from flask import g
 
-from settings import get_setting, set_setting, all_settings
-from notifications import Notificador, CanalNoDisponible
+from notifications import CanalNoDisponible, Notificador
+from settings import all_settings, get_setting, set_setting
 
 
 # ───────────────────────── config por taller ───────────────────────────────

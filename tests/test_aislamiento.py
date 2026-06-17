@@ -11,8 +11,8 @@ de aceptación de toda la Fase 2.
 """
 
 import json
-import pytest
 
+import pytest
 
 # Marcadores ÚNICOS del taller B: si aparecen logueado como A, hay fuga.
 RIVAL_DISPOSITIVO = "PixelRIVAL"
@@ -223,10 +223,11 @@ class TestWebhookAislamiento:
 # ════════════════════════════════════════════════════════════════════
 class TestPlataformaEscape:
     def test_escape_ve_ambos_talleres(self, app, dos_talleres, db_conn):
+        from flask import g
+        from sqlalchemy import select
+
         from database import get_session
         from models import Reparacion
-        from sqlalchemy import select
-        from flask import g
         from tenancy import sin_filtro_taller
         with app.test_request_context("/dashboard"):
             g.taller_id = 1

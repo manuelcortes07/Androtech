@@ -12,13 +12,13 @@ modelo `Reparacion` ya existía).
 `validar_transicion` es lógica pura sin acceso a BD.
 """
 
-from datetime import datetime
 import logging
+from datetime import datetime
 
 from sqlalchemy import select
 
 from database import get_session
-from models import Reparacion, RepairHistorial
+from models import RepairHistorial, Reparacion
 
 logger = logging.getLogger("androtech")
 

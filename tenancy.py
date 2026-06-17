@@ -24,12 +24,12 @@ nativos sólo valen en SQLite (Fase 3a.3).
 
 from __future__ import annotations
 
-import re
 import logging
+import re
 from contextlib import contextmanager
 from contextvars import ContextVar
 
-from flask import g, request, session, abort, has_request_context
+from flask import abort, g, has_request_context, request, session
 from sqlalchemy import event, text
 from sqlalchemy.orm import Session, with_loader_criteria
 
@@ -147,9 +147,17 @@ def resolver_taller() -> None:
 # El único modo de ver varios talleres es el escape EXPLÍCITO sin_filtro_taller().
 
 from models import (  # noqa: E402  (import tardío: evita ciclos en el arranque)
-    Usuario, Cliente, Reparacion, FotoReparacion, NotaReparacion,
-    PiezaReparacion, InventarioPieza, SolicitudReparacion, RepairHistorial,
-    AuditLog, TallerSetting,
+    AuditLog,
+    Cliente,
+    FotoReparacion,
+    InventarioPieza,
+    NotaReparacion,
+    PiezaReparacion,
+    RepairHistorial,
+    Reparacion,
+    SolicitudReparacion,
+    TallerSetting,
+    Usuario,
 )
 
 # Modelos con columna taller_id: 9 de scope NOT NULL + audit_log (nullable) +

@@ -9,8 +9,8 @@ El flujo de suscripción es SEPARADO del de pago de reparaciones; estos tests
 mockean `saas_billing`, no el `stripe` global del flujo de reparaciones.
 """
 
-import json
 import datetime
+import json
 
 import pytest
 from sqlalchemy import text

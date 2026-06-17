@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 from itsdangerous import SignatureExpired
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 import tokens as account_tokens
 

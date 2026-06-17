@@ -1,8 +1,8 @@
 """Tests de la pasada de pulido (P1 N+1, P2 notificaciones, P3 CSP nonces)."""
 
-import app as A
 from flask import g
 
+import app as A
 from database import get_session
 
 

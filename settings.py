@@ -20,18 +20,14 @@ from models import TallerSetting
 def get_setting(clave: str, default: str | None = None) -> str | None:
     """Valor de `clave` para el taller activo, o `default` si no existe."""
     with get_session() as s:
-        row = s.scalars(
-            select(TallerSetting).where(TallerSetting.clave == clave)
-        ).first()
+        row = s.scalars(select(TallerSetting).where(TallerSetting.clave == clave)).first()
         return row.valor if row else default
 
 
 def set_setting(clave: str, valor: str) -> None:
     """Crea o actualiza `clave` para el taller activo (upsert por taller)."""
     with get_session() as s:
-        row = s.scalars(
-            select(TallerSetting).where(TallerSetting.clave == clave)
-        ).first()
+        row = s.scalars(select(TallerSetting).where(TallerSetting.clave == clave)).first()
         if row:
             row.valor = valor
         else:

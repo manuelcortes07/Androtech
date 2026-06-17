@@ -38,33 +38,30 @@ class Notificador:
     def canales(self) -> list[str]:
         return sorted(self._backends.keys())
 
-    def enviar(self, canal: str, destinatario: str, asunto: str,
-               cuerpo_html: str, **kwargs) -> bool:
+    def enviar(
+        self, canal: str, destinatario: str, asunto: str, cuerpo_html: str, **kwargs
+    ) -> bool:
         """Envía por `canal`. Lanza CanalNoDisponible si no está registrado.
         Cualquier fallo del backend se captura y se devuelve False (un envío
         que falla nunca debe tumbar el flujo de negocio)."""
         backend = self._backends.get(canal)
         if backend is None:
             raise CanalNoDisponible(
-                f"Canal de notificación '{canal}' no disponible. "
-                f"Registrados: {self.canales()}"
+                f"Canal de notificación '{canal}' no disponible. Registrados: {self.canales()}"
             )
         try:
             return bool(backend(destinatario, asunto, cuerpo_html, **kwargs))
         except Exception as e:  # pragma: no cover (defensivo)
             logger.warning(
-                '{"event": "notificacion_fallo", "canal": "%s", "error": %r}'
-                % (canal, str(e))
+                '{"event": "notificacion_fallo", "canal": "%s", "error": %r}' % (canal, str(e))
             )
             return False
 
     # ── Backend de email (sobre el EmailService existente) ──────────────────
-    def _enviar_email(self, destinatario: str, asunto: str, cuerpo_html: str,
-                      **kwargs) -> bool:
+    def _enviar_email(self, destinatario: str, asunto: str, cuerpo_html: str, **kwargs) -> bool:
         if self._email_service is None:
             return False
-        self._email_service._send(subject=asunto, to_email=destinatario,
-                                  html_body=cuerpo_html)
+        self._email_service._send(subject=asunto, to_email=destinatario, html_body=cuerpo_html)
         return True
 
     def enviar_email(self, metodo: str, *args, **kwargs):

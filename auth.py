@@ -11,11 +11,12 @@ ignora internamente — cada función abre su propia `Session`.
 """
 
 from functools import wraps
-from flask import session, redirect, url_for, flash
+
+from flask import flash, redirect, session, url_for
 from sqlalchemy import select
 
-from database import get_engine, get_session, Base, insert_or_ignore
-from models import Rol, PermisoRol
+from database import Base, get_engine, get_session, insert_or_ignore
+from models import PermisoRol, Rol
 
 # ─── Definicion de permisos disponibles ──────────────────────────────
 # Cada permiso tiene: clave interna, nombre visible, categoria

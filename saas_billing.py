@@ -40,6 +40,7 @@ def _get_client():
     global _client
     if _client is None:
         import stripe
+
         _client = stripe.StripeClient(STRIPE_SAAS_SECRET_KEY)
     return _client
 
@@ -55,41 +56,43 @@ def crear_customer(email: str, nombre: str):
     return _get_client().v1.customers.create({"email": email, "name": nombre})
 
 
-def crear_checkout_suscripcion(customer_id: str, taller_id: int,
-                               success_url: str, cancel_url: str):
+def crear_checkout_suscripcion(customer_id: str, taller_id: int, success_url: str, cancel_url: str):
     """Checkout en modo subscription: TARJETA REQUERIDA + trial de 14 días.
 
     La Subscription real se crea cuando el taller completa el Checkout; su id
     llega por webhook (`checkout.session.completed`). El primer cobro es
     automático el día 15 si no cancela.
     """
-    return _get_client().v1.checkout.sessions.create({
-        "mode": "subscription",
-        "customer": customer_id,
-        "line_items": [{"price": STRIPE_SAAS_PRICE_ID, "quantity": 1}],
-        "subscription_data": {"trial_period_days": TRIAL_DIAS},
-        "payment_method_collection": "always",  # tarjeta requerida en el trial
-        "success_url": success_url,
-        "cancel_url": cancel_url,
-        # `flujo` distingue inequívocamente este Checkout del de reparaciones.
-        "metadata": {"taller_id": str(taller_id), "flujo": "saas_suscripcion"},
-    })
+    return _get_client().v1.checkout.sessions.create(
+        {
+            "mode": "subscription",
+            "customer": customer_id,
+            "line_items": [{"price": STRIPE_SAAS_PRICE_ID, "quantity": 1}],
+            "subscription_data": {"trial_period_days": TRIAL_DIAS},
+            "payment_method_collection": "always",  # tarjeta requerida en el trial
+            "success_url": success_url,
+            "cancel_url": cancel_url,
+            # `flujo` distingue inequívocamente este Checkout del de reparaciones.
+            "metadata": {"taller_id": str(taller_id), "flujo": "saas_suscripcion"},
+        }
+    )
 
 
 def crear_portal(customer_id: str, return_url: str):
     """Stripe Customer Portal: el admin gestiona tarjeta / cancela suscripción."""
-    return _get_client().v1.billing_portal.sessions.create({
-        "customer": customer_id,
-        "return_url": return_url,
-    })
+    return _get_client().v1.billing_portal.sessions.create(
+        {
+            "customer": customer_id,
+            "return_url": return_url,
+        }
+    )
 
 
 def construir_evento(payload, sig_header):
     """Verifica la firma del webhook del SaaS con STRIPE_SAAS_WEBHOOK_SECRET."""
     import stripe
-    return stripe.Webhook.construct_event(
-        payload, sig_header, STRIPE_SAAS_WEBHOOK_SECRET
-    )
+
+    return stripe.Webhook.construct_event(payload, sig_header, STRIPE_SAAS_WEBHOOK_SECRET)
 
 
 # ─── Lógica de estado de suscripción (pura, fácil de testear) ───────────────
@@ -111,8 +114,7 @@ def _parse_fecha(valor: str) -> datetime | None:
             return None
 
 
-def acceso_bloqueado(estado: str, trial_fin: str | None,
-                     ahora: datetime | None = None) -> bool:
+def acceso_bloqueado(estado: str, trial_fin: str | None, ahora: datetime | None = None) -> bool:
     """True si el taller NO puede acceder (BLOQUEO). Política Fase 3b:
 
     - 'activo' → acceso.

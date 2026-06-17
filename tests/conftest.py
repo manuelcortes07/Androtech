@@ -16,10 +16,11 @@ Diseño (DUAL-ENGINE, Fase 3a.5):
 """
 
 import os
-import sys
 import sqlite3
+import sys
 import tempfile
 from unittest.mock import MagicMock, patch
+
 import pytest
 
 # ───────────────────────────────────────────────────────────────────
@@ -139,8 +140,9 @@ else:
 
 # Ahora sí importar la app. En SQLite crea las 8 tablas restantes y siembra
 # roles; en Postgres crea TODO el esquema desde los modelos + roles + taller 1.
-import app as app_module  # noqa: E402
 from werkzeug.security import generate_password_hash  # noqa: E402
+
+import app as app_module  # noqa: E402
 
 
 def _raw_conn():

@@ -4,7 +4,7 @@ Script para verificar que todas las dependencias están instaladas correctamente
 """
 
 import sys
-import os
+
 
 def check_dependency(name, import_name=None):
     """Verificar si una dependencia está disponible"""

@@ -17,7 +17,7 @@ def calcular_alertas_reparacion(reparacion, ultima_actualizacion=None):
     # Convert sqlite3.Row to dict if needed
     if not isinstance(reparacion, dict):
         reparacion = dict(reparacion)
-    
+
     alertas = []
     urgencia = 'normal'
 

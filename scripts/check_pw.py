@@ -3,10 +3,13 @@
 Ejecutar desde la raíz del repo: python scripts/check_pw.py
 (Actualizado en Fase 1.9: usa la capa SQLAlchemy; db.py ya no existe.)
 """
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sqlalchemy import select
+
 from database import get_session
 from models import Usuario
 

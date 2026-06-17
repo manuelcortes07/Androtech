@@ -13,10 +13,11 @@ declarado. Mantenemos la interfaz publica identica (los mismos metodos que
 consume app.py) para no tocar nada fuera de este fichero.
 """
 
-import smtplib
 import logging
-from email.message import EmailMessage
+import smtplib
 from datetime import datetime
+from email.message import EmailMessage
+
 from flask import current_app, render_template
 
 logger = logging.getLogger(__name__)

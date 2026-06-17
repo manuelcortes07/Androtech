@@ -1,12 +1,25 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify, send_from_directory, g, abort
-import os
-import socket
-from datetime import datetime, timedelta
-import secrets
-import logging
 import json
+import logging
+import os
+import secrets
+import socket
 import urllib.parse
+from datetime import datetime, timedelta
+
 from dotenv import load_dotenv
+from flask import (
+    Flask,
+    abort,
+    flash,
+    g,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    session,
+    url_for,
+)
 
 # Cargar variables de entorno desde .env
 load_dotenv()
@@ -25,48 +38,62 @@ try:
     import stripe
 except ImportError:
     stripe = None
-from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
-from werkzeug.middleware.proxy_fix import ProxyFix
-from flask_mail import Mail
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_mail import Mail
 
-# local modules (split responsibilities)
-from utils.pdf_generator import generar_presupuesto_pdf
-# Suscripción del SaaS (Fase 3b) — flujo Stripe SEPARADO del de reparaciones.
-import saas_billing
 # Esenciales de cuenta (B3): tokens firmados de reset/verificación.
 from itsdangerous import BadSignature, SignatureExpired
-import tokens as account_tokens
-# Paginación clásica numerada (B5).
-from pagination import paginar
+
 # Capa de acceso a datos: SQLAlchemy (Fase 1 SaaS completada — todo el
 # proyecto usa get_session()/select(); sqlite3 directo eliminado).
 from sqlalchemy import select, text
-from database import (get_session, get_engine, is_postgres, is_sqlite,
-                      insert_or_ignore)
-from models import (
-    Usuario, Cliente, Reparacion, FotoReparacion, NotaReparacion,
-    InventarioPieza, PiezaReparacion, RepairHistorial, Rol, PermisoRol,
-    SolicitudReparacion, StripeEvento,
-)
-from auth import (
-    login_required, role_required, permiso_requerido, tiene_permiso,
-    init_permisos_db, obtener_permisos_usuario,
-    PERMISOS_DISPONIBLES, PERMISOS_ADMIN, PERMISOS_TECNICO,
-)
+from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.security import check_password_hash, generate_password_hash
+
+# Suscripción del SaaS (Fase 3b) — flujo Stripe SEPARADO del de reparaciones.
+import saas_billing
+import tokens as account_tokens
 from alerts import calcular_alertas_reparacion
+from audit import crear_tabla_auditoria, obtener_auditoria_reciente, registrar_auditoria
+from auth import (
+    PERMISOS_DISPONIBLES,
+    init_permisos_db,
+    login_required,
+    obtener_permisos_usuario,
+    permiso_requerido,
+    tiene_permiso,
+)
+from database import get_engine, get_session, insert_or_ignore, is_postgres
 from historial import registrar_cambio_estado, validar_transicion
-from audit import registrar_auditoria, obtener_auditoria_reciente, crear_tabla_auditoria
+from models import (
+    Cliente,
+    FotoReparacion,
+    InventarioPieza,
+    NotaReparacion,
+    PermisoRol,
+    PiezaReparacion,
+    RepairHistorial,
+    Reparacion,
+    Rol,
+    SolicitudReparacion,
+    StripeEvento,
+    Usuario,
+)
+
+# Paginación clásica numerada (B5).
+from pagination import paginar
+from utils.email_service import EmailService
+
+# local modules (split responsibilities)
+from utils.pdf_generator import generar_presupuesto_pdf
 from utils.security import (
+    csrf_protect,
     ensure_csrf_token,
     inject_csrf_token,
-    csrf_protect,
-    validar_precio,
     validar_contraseña,
+    validar_precio,
 )
-from utils.email_service import EmailService
 
 app = Flask(__name__)
 # Trust Railway / Nginx reverse-proxy headers so request.host_url returns https://
@@ -229,8 +256,9 @@ if STRIPE_SECRET_KEY and not STRIPE_SECRET_KEY.startswith('sk_'):
 import models as _models  # noqa: F401  (registra todos los modelos en Base.metadata)
 from database import Base as _Base
 from migrations import (
-    crear_esquema_sqlite_defensivo, aplicar_migracion_multitenant,
+    aplicar_migracion_multitenant,
     asegurar_taller_1,
+    crear_esquema_sqlite_defensivo,
 )
 
 if is_postgres():
@@ -312,6 +340,7 @@ email_service = EmailService(mail)
 # Capa de notificaciones (B6): costura única de envío. Hoy 'email'; preparada
 # para registrar canales futuros (SMS/WhatsApp) sin tocar los puntos de llamada.
 from notifications import Notificador
+
 notificador = Notificador(email_service)
 
 # register CSRF helpers from utils/security
@@ -320,8 +349,8 @@ app.context_processor(inject_csrf_token)
 
 # Multi-tenancy (Fase 2.2): resolver el taller activo (g.taller_id) en cada
 # petición. Debe correr antes de cualquier handler que consulte datos con scope.
-from tenancy import (resolver_taller, es_ruta_plataforma,
-                     DEFAULT_TALLER_ID, DEFAULT_TALLER_SLUG)
+from tenancy import es_ruta_plataforma, resolver_taller
+
 app.before_request(resolver_taller)
 
 # Puerta de acceso por suscripción (Fase 3b.3): tras resolver el taller,
@@ -706,7 +735,7 @@ def reset_solicitar():
                 token = account_tokens.generar_token_reset(usuario)
                 reset_url = url_for("reset_confirmar", token=token, _external=True)
                 try:
-                    notificador.enviar_email("send_password_reset", 
+                    notificador.enviar_email("send_password_reset",
                         taller["email_contacto"], reset_url, taller["nombre"])
                 except Exception as e:
                     logger.error(json.dumps({"event": "reset_email_error",
@@ -1483,11 +1512,11 @@ def dashboard():
     """), {**tp, "hace7": hace_7_dias}).mappings().all()
 
     reparaciones_atrasadas_list = [dict(r) for r in reparaciones_atrasadas] if reparaciones_atrasadas else []
-    
+
     # Enriquecer con alertas
     for rep in reparaciones_sin_pagar_list:
         rep['alertas_info'] = calcular_alertas_reparacion(rep, rep.get('ultima_actualizacion'))
-    
+
     for rep in reparaciones_atrasadas_list:
         rep['alertas_info'] = calcular_alertas_reparacion(rep, rep.get('ultima_actualizacion'))
 
@@ -1504,12 +1533,12 @@ def dashboard():
                 fin = datetime(fecha.year + 1, 1, 1) - __import__('datetime').timedelta(seconds=1)
             else:
                 fin = datetime(fecha.year, fecha.month + 1, 1) - __import__('datetime').timedelta(seconds=1)
-        
+
         ingreso_mes_i = s.execute(_text("""
             SELECT COALESCE(SUM(precio), 0) FROM reparaciones
             WHERE taller_id = :tid AND fecha_entrada >= :ini AND fecha_entrada <= :fin AND precio IS NOT NULL
         """), {**tp, "ini": inicio.strftime("%Y-%m-%d"), "fin": fin.strftime("%Y-%m-%d")}).scalar()
-        
+
         ingresos_por_mes.append({
             "mes": inicio.strftime("%b %Y"),
             # float() para que el repr sea idéntico entre motores: SQLite
@@ -1517,7 +1546,7 @@ def dashboard():
             # distinto repr); la coerción los iguala (Fase 3a.5, pincho A).
             "valor": round(float(ingreso_mes_i), 2)
         })
-    
+
     # ========== MÉTRICA 2: TIEMPO MEDIO DE REPARACIÓN ==========
     tiempo_medio_dias = 0
     reparaciones_completadas = s.execute(_text("""
@@ -1564,7 +1593,7 @@ def dashboard():
     eventos_auditoria = obtener_auditoria_reciente(limite=10)
 
     s.close()
-    
+
     # Calcular IVA en ingresos
     iva_total = round(ingresos_total * 0.21, 2)
     iva_mes = round(ingresos_mes * 0.21, 2)
@@ -1635,7 +1664,8 @@ def clientes():
     # auto-scoped al taller por el filtro automático del ORM (g.taller_id), así
     # que el contador y las filas son SIEMPRE del taller. La búsqueda es
     # server-side para que funcione sobre TODO el conjunto, no sólo la página.
-    from sqlalchemy import func as _func, or_ as _or
+    from sqlalchemy import func as _func
+    from sqlalchemy import or_ as _or
     q = request.args.get("q", "").strip()
     base = select(Cliente)
     cnt = select(_func.count(Cliente.id))
@@ -1675,7 +1705,7 @@ def nuevo_cliente():
         # Enviar email de bienvenida al nuevo cliente
         if email:
             try:
-                notificador.enviar_email("send_bienvenida_cliente", 
+                notificador.enviar_email("send_bienvenida_cliente",
                     to_email=email,
                     cliente_nombre=nombre
                 )
@@ -1800,13 +1830,14 @@ def historial_cliente():
 @app.route("/cliente/<int:id>/historial-pdf")
 @login_required
 def exportar_historial_cliente_pdf(id):
-    from reportlab.lib import colors
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.units import cm
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from io import BytesIO
+
+    from reportlab.lib import colors
+    from reportlab.lib.enums import TA_CENTER
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import cm
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
     # Fase 1.4: lookup de cliente vía ORM. Las reparaciones siguen en crudo
     # hasta la Fase 1.5.
@@ -1967,7 +1998,8 @@ def buscar():
         ).all()
 
         # Fase 1.5b: búsqueda de reparaciones vía ORM con JOIN y cast
-        from sqlalchemy import cast as _cast, String as _String
+        from sqlalchemy import String as _String
+        from sqlalchemy import cast as _cast
         reparaciones_result = s.execute(
             select(
                 Reparacion.id, Reparacion.dispositivo, Reparacion.estado,
@@ -1997,7 +2029,7 @@ def buscar():
 # =========================================
 
 import csv
-from io import StringIO, BytesIO
+from io import BytesIO, StringIO
 
 # ── Helpers compartidos para exportacion CSV ──────────────────────────────────
 
@@ -2411,7 +2443,7 @@ def nueva_reparacion():
         # Enviar email de nueva reparación al cliente
         try:
             if cliente_email:
-                notificador.enviar_email("send_nueva_reparacion", 
+                notificador.enviar_email("send_nueva_reparacion",
                     to_email=cliente_email,
                     cliente_nombre=cliente_nombre,
                     reparacion_id=new_id,
@@ -2494,7 +2526,7 @@ def editar_reparacion(id):
             try:
                 if cliente_email:
                     # Enviar email de actualización de estado
-                    notificador.enviar_email("send_repair_status_update", 
+                    notificador.enviar_email("send_repair_status_update",
                         to_email=cliente_email,
                         cliente_nombre=cliente_nombre,
                         reparacion_id=id,
@@ -3057,15 +3089,16 @@ def api_calendario_eventos():
 @app.route("/reparaciones/<int:id>/ticket")
 @login_required
 def ticket_recogida(id):
-    from reportlab.lib import colors
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.units import cm, mm
-    from reportlab.lib.enums import TA_CENTER
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-    from reportlab.graphics.shapes import Drawing
-    from reportlab.graphics.barcode.qr import QrCodeWidget
     from io import BytesIO
+
+    from reportlab.graphics.barcode.qr import QrCodeWidget
+    from reportlab.graphics.shapes import Drawing
+    from reportlab.lib import colors
+    from reportlab.lib.enums import TA_CENTER
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import cm
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
     with get_session() as s:
         reparacion = s.execute(
@@ -3234,7 +3267,7 @@ def generar_pdf_presupuesto(id):
     tipo_documento = request.args.get("tipo", "presupuesto").lower()
     if tipo_documento not in ["presupuesto", "factura"]:
         tipo_documento = "presupuesto"
-    
+
     with get_session() as s:
         # Obtener reparación y cliente
         reparacion = s.execute(
@@ -3285,7 +3318,7 @@ def generar_pdf_presupuesto(id):
     pdf_buffer = generar_presupuesto_pdf(reparacion_data, tipo_documento=tipo_documento,
                                          base_url=base_url,
                                          taller_slug=getattr(g, 'taller_slug', None))
-    
+
     # Retornar como descarga
     nombre_archivo = f"{tipo_documento}_reparacion_{id}.pdf"
     return send_file(
@@ -3317,7 +3350,7 @@ def admin_usuarios():
             WHERE taller_id = :tid
             ORDER BY usuario ASC
         """), {"tid": g.taller_id}).mappings().all()
-    
+
     try:
         logger.info(json.dumps({
             "event": "admin_usuarios_viewed",
@@ -3326,7 +3359,7 @@ def admin_usuarios():
         }, ensure_ascii=False))
     except Exception:
         logger.info(f"admin_usuarios_viewed by {session.get('usuario')}")
-    
+
     return render_template("admin_usuarios.html", usuarios=usuarios)
 
 
@@ -3340,12 +3373,12 @@ def nuevo_usuario():
         usuario = request.form.get("usuario", "").strip()
         contraseña = request.form.get("contraseña", "").strip()
         rol = request.form.get("rol", "tecnico").strip()
-        
+
         # Validaciones
         if not usuario or len(usuario) < 3:
             flash("❌ Usuario debe tener al menos 3 caracteres.", "danger")
             return render_template("nuevo_usuario.html")
-        
+
         if not contraseña:
             flash("❌ La contraseña es obligatoria.", "danger")
             return render_template("nuevo_usuario.html")
@@ -3354,7 +3387,7 @@ def nuevo_usuario():
         if not pwd_ok:
             flash(f"❌ {pwd_msg}", "danger")
             return render_template("nuevo_usuario.html")
-        
+
         with get_session() as s:
             roles_validos = list(s.scalars(select(Rol.nombre)).all())
             if rol not in roles_validos:
@@ -3671,7 +3704,8 @@ def editar_rol(id):
 @login_required
 @permiso_requerido('roles_gestionar')
 def borrar_rol(id):
-    from sqlalchemy import delete as _delete, func as _func
+    from sqlalchemy import delete as _delete
+    from sqlalchemy import func as _func
     with get_session() as s:
         rol = s.get(Rol, id)
         if not rol:
@@ -3924,6 +3958,7 @@ def admin_auditoria():
         flash("Acceso restringido al administrador.", "danger")
         return redirect(url_for("dashboard"))
     from sqlalchemy import func as _func
+
     from models import AuditLog
     # COUNT y SELECT auto-scoped por el filtro ORM (g.taller_id): un admin sólo
     # ve los eventos de SU taller (los de plataforma con taller_id NULL no
@@ -4218,6 +4253,7 @@ def admin_sistema():
         return redirect(url_for('dashboard'))
 
     import sys
+
     import flask as _flask
 
     # Version Python (sin saltos de linea)
@@ -4353,7 +4389,7 @@ def admin_test_email():
             return redirect(url_for('admin_test_email'))
 
         try:
-            notificador.enviar_email("send_test", 
+            notificador.enviar_email("send_test",
                 to_email=destinatario,
                 cliente_nombre=session.get('usuario', 'administrador'),
             )
@@ -4858,7 +4894,7 @@ def stripe_webhook():
                         logger.exception(f'[WEBHOOK] Error generando PDF para reparacion {reparacion_id}, se enviara email sin adjunto')
 
                     # Enviar email de confirmación con factura PDF adjunta
-                    notificador.enviar_email("send_payment_confirmation", 
+                    notificador.enviar_email("send_payment_confirmation",
                         to_email=reparacion_data['email'],
                         cliente_nombre=reparacion_data['nombre'],
                         reparacion_id=reparacion_id,

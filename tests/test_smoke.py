@@ -642,10 +642,11 @@ class TestTenancyResolucion:
 class TestFiltroAutomatico:
     def test_select_filtrado_por_taller(self, app, seed_reparacion, seed_taller_2):
         """Una SELECT ORM con g.taller_id=1 solo ve datos del taller 1."""
+        from flask import g
+        from sqlalchemy import select
+
         from database import get_session
         from models import Reparacion
-        from sqlalchemy import select
-        from flask import g
         with app.test_request_context("/dashboard"):
             g.taller_id = 1
             with get_session() as s:
@@ -657,9 +658,10 @@ class TestFiltroAutomatico:
     def test_idor_get_otro_taller_devuelve_none(self, app, seed_reparacion,
                                                  seed_taller_2):
         """IDOR: s.get(Reparacion, <id_de_taller_2>) con g.taller_id=1 → None."""
+        from flask import g
+
         from database import get_session
         from models import Reparacion
-        from flask import g
         rep2 = seed_taller_2["reparacion_id"]
         with app.test_request_context("/dashboard"):
             g.taller_id = 1
@@ -670,9 +672,10 @@ class TestFiltroAutomatico:
     def test_auto_stamp_en_insert(self, app, db_conn):
         """Un INSERT ORM con g.taller_id=2 recibe taller_id=2 sin que el handler
         lo fije (sello automático en before_flush)."""
+        from flask import g
+
         from database import get_session
         from models import Cliente
-        from flask import g
         # taller 2 debe existir para la FK lógica
         db_conn.execute(
             "INSERT INTO talleres (id, nombre, slug, fecha_alta, estado, plan) "
@@ -693,10 +696,11 @@ class TestFiltroAutomatico:
                                                  seed_taller_2, db_conn):
         """El escape sin_filtro_taller() ve TODOS los talleres y queda auditado
         con taller_id NULL (evento de plataforma)."""
+        from flask import g
+        from sqlalchemy import select
+
         from database import get_session
         from models import Reparacion
-        from sqlalchemy import select
-        from flask import g
         from tenancy import sin_filtro_taller
         with app.test_request_context("/dashboard"):
             g.taller_id = 1

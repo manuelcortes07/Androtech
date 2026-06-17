@@ -6,8 +6,9 @@ keep the application file focused on routing and orchestration.
 """
 
 import secrets
-from flask import request, session, flash, redirect
 from functools import wraps
+
+from flask import flash, redirect, request, session
 
 
 def ensure_csrf_token():

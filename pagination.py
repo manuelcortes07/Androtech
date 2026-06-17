@@ -88,8 +88,7 @@ class Pagina:
         paginas: list = []
         ultimo = 0
         for n in range(1, self.total_pages + 1):
-            if (n <= borde or n > self.total_pages - borde
-                    or abs(n - self.page) <= alrededor):
+            if n <= borde or n > self.total_pages - borde or abs(n - self.page) <= alrededor:
                 if ultimo and n - ultimo > 1:
                     paginas.append(None)
                 paginas.append(n)

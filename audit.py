@@ -8,13 +8,13 @@ de la migración SaaS completada; el parámetro `conn` legacy se eliminó
 en la limpieza de la Fase 1.9).
 """
 
-from datetime import datetime
-import logging
 import json
+import logging
+from datetime import datetime
 
 from sqlalchemy import select
 
-from database import get_engine, get_session, Base
+from database import Base, get_engine, get_session
 from models import AuditLog
 
 logger = logging.getLogger("androtech")

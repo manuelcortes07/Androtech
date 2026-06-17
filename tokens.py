@@ -22,8 +22,8 @@ from itsdangerous import URLSafeTimedSerializer
 _SALT_RESET = "androtech-password-reset"
 _SALT_VERIFY = "androtech-email-verify"
 
-MAX_AGE_RESET = 3600        # 1 hora
-MAX_AGE_VERIFY = 86400      # 24 horas
+MAX_AGE_RESET = 3600  # 1 hora
+MAX_AGE_VERIFY = 86400  # 24 horas
 
 
 def _serializer(salt: str) -> URLSafeTimedSerializer:
@@ -37,11 +37,13 @@ def _fingerprint(valor: str) -> str:
 # ─── Reset de contraseña ────────────────────────────────────────────────────
 def generar_token_reset(usuario) -> str:
     """Token de reset atado a (usuario, taller) y a la contraseña ACTUAL."""
-    return _serializer(_SALT_RESET).dumps({
-        "uid": usuario.id,
-        "tid": usuario.taller_id,
-        "fp": _fingerprint(usuario.password),
-    })
+    return _serializer(_SALT_RESET).dumps(
+        {
+            "uid": usuario.id,
+            "tid": usuario.taller_id,
+            "fp": _fingerprint(usuario.password),
+        }
+    )
 
 
 def cargar_token_reset(token: str, max_age: int = MAX_AGE_RESET) -> dict:
@@ -57,10 +59,12 @@ def huella_password(password_hash: str) -> str:
 # ─── Verificación de email ──────────────────────────────────────────────────
 def generar_token_verificacion(taller_id: int, email: str) -> str:
     """Token de verificación atado a (taller, email actual)."""
-    return _serializer(_SALT_VERIFY).dumps({
-        "tid": taller_id,
-        "fp": _fingerprint((email or "").lower()),
-    })
+    return _serializer(_SALT_VERIFY).dumps(
+        {
+            "tid": taller_id,
+            "fp": _fingerprint((email or "").lower()),
+        }
+    )
 
 
 def cargar_token_verificacion(token: str, max_age: int = MAX_AGE_VERIFY) -> dict:
