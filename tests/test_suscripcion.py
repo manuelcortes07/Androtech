@@ -244,6 +244,31 @@ class TestWebhook:
         assert r.status_code == 400
 
 
+# ──────────── ciclo de vida end-to-end (webhook → puerta) ──────────────────
+class TestCicloVidaSuscripcion:
+    def test_pago_fallido_bloquea_y_pago_reactiva(self, client, db_conn, saas_mock):
+        _crear_taller(db_conn, 2, "activo", customer="cus_X")
+        _login_como(client, 2, "t2")
+        assert client.get("/dashboard").status_code == 200          # activo → entra
+        # invoice.payment_failed → suspendido
+        _webhook(client, _ev("e_fail", "invoice.payment_failed", {"customer": "cus_X"}))
+        r = client.get("/dashboard")
+        assert r.status_code == 302 and "bloqueado" in r.headers.get("Location", "")
+        assert db_conn.execute(
+            "SELECT estado FROM talleres WHERE id = 2").fetchone()[0] == "suspendido"
+        # invoice.paid → reactiva → acceso restaurado
+        _webhook(client, _ev("e_paid", "invoice.paid", {"customer": "cus_X"}))
+        assert client.get("/dashboard").status_code == 200
+
+    def test_cancelacion_bloquea(self, client, db_conn, saas_mock):
+        _crear_taller(db_conn, 2, "activo", customer="cus_X")
+        _login_como(client, 2, "t2")
+        _webhook(client, _ev("e_del", "customer.subscription.deleted",
+                             {"customer": "cus_X", "id": "sub_1", "status": "canceled"}))
+        r = client.get("/dashboard")
+        assert r.status_code == 302 and "bloqueado" in r.headers.get("Location", "")
+
+
 # ─────────────────────── aislamiento de suscripción ────────────────────────
 class TestAislamientoSuscripcion:
     def test_un_taller_no_ve_la_suscripcion_de_otro(self, client, db_conn, logged_admin):
