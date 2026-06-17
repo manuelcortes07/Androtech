@@ -1609,6 +1609,25 @@ def dashboard():
 #  SECCIÓN CLIENTES
 
 # LISTAR CLIENTES
+def _ultimas_actualizaciones(s, ids):
+    """{reparacion_id: última fecha_cambio} para una lista de ids, en UNA sola
+    consulta (evita el N+1 de pedir el historial fila a fila, P1).
+
+    `MAX(fecha_cambio)` equivale a `ORDER BY fecha_cambio DESC LIMIT 1` porque
+    los timestamps son strings ordenables 'YYYY-MM-DD HH:MM:SS'. Scoped por
+    taller vía el filtro automático del ORM (RepairHistorial es entidad).
+    """
+    if not ids:
+        return {}
+    from sqlalchemy import func as _func
+    filas = s.execute(
+        select(RepairHistorial.reparacion_id, _func.max(RepairHistorial.fecha_cambio))
+        .where(RepairHistorial.reparacion_id.in_(ids))
+        .group_by(RepairHistorial.reparacion_id)
+    ).all()
+    return {rid: fecha for rid, fecha in filas}
+
+
 @app.route("/clientes")
 @login_required
 def clientes():
@@ -1753,16 +1772,11 @@ def historial_cliente():
     ).mappings().all()
     reparaciones = [dict(r) for r in reparaciones_rows]
 
-    # Enriquecer datos con última actualización de cada reparación (ORM)
+    # Enriquecer con la última actualización SIN N+1: una consulta agregada (P1).
+    ultimas = _ultimas_actualizaciones(s, [r['id'] for r in reparaciones])
     reparaciones_enriquecidas = []
     for r in reparaciones:
-        ultima = s.scalars(
-            select(RepairHistorial.fecha_cambio)
-            .where(RepairHistorial.reparacion_id == r['id'])
-            .order_by(RepairHistorial.fecha_cambio.desc())
-            .limit(1)
-        ).first()
-        r['ultima_actualizacion'] = ultima
+        r['ultima_actualizacion'] = ultimas.get(r['id'])
         reparaciones_enriquecidas.append(r)
 
     estados = s.execute(_text("SELECT DISTINCT estado FROM reparaciones WHERE taller_id = :tid ORDER BY estado"), tp).all()
@@ -2288,21 +2302,15 @@ def reparaciones():
             _text(select_sql), {**params, 'limit': pag.per_page, 'offset': pag.offset}
         ).mappings().all()
 
-        # Enriquecer datos con última actualización de cada reparación (ORM)
+        # Enriquecer con la última actualización de cada reparación SIN N+1:
+        # una sola consulta agregada para todas las filas de la página (P1).
+        ultimas = _ultimas_actualizaciones(s, [r['id'] for r in datos])
         datos_enriquecidos = []
         for r in datos:
             r_dict = dict(r)
-            ultima = s.scalars(
-                select(RepairHistorial.fecha_cambio)
-                .where(RepairHistorial.reparacion_id == r_dict['id'])
-                .order_by(RepairHistorial.fecha_cambio.desc())
-                .limit(1)
-            ).first()
-            r_dict['ultima_actualizacion'] = ultima
-
+            r_dict['ultima_actualizacion'] = ultimas.get(r_dict['id'])
             # Calcular alertas inteligentes
             r_dict['alertas_info'] = calcular_alertas_reparacion(r_dict, r_dict['ultima_actualizacion'])
-
             datos_enriquecidos.append(r_dict)
 
         # Lista de clientes para filtro (ORM)
