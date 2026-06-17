@@ -1,0 +1,9 @@
+# Opcional: `pip install pre-commit && pre-commit install`.
+# Corre ruff (autofixes seguros) antes de cada commit. NO incluye ruff-format
+# para no reformatear el monolito legacy en cada commit (eso se hace aparte).
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.17
+    hooks:
+      - id: ruff
+        args: [--fix]

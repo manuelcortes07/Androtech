@@ -1,0 +1,18 @@
+# Configuración de tooling de AndroTech (P5). Por ahora sólo ruff (lint+format).
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["venv", ".venv", ".claude"]
+
+[tool.ruff.lint]
+# E/W pycodestyle, F pyflages (imports/vars sin uso), I orden de imports.
+select = ["E", "F", "W", "I"]
+# E501 (línea larga): el monolito app.py tiene muchas; no es prioritario y
+# generaría ruido. Se controla la longitud en módulos nuevos vía format.
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# Los tests reusan fixtures e imports "no usados" aparentes; y app.py tiene
+# imports tardíos intencionados. No bloqueamos por F401/E402 ahí.
+"tests/*" = ["F811", "E402", "F401"]
+"app.py" = ["E402"]

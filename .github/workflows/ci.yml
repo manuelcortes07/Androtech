@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [saas-migration]
+  pull_request:
+    branches: [saas-migration]
+
+jobs:
+  # Suite completa sobre SQLite (rápida, por defecto). Incluye EL JUEZ de
+  # aislamiento (tests/test_aislamiento.py). El build falla si cae un test.
+  tests-sqlite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-test.txt
+      - name: pytest (SQLite) + JUEZ
+        run: pytest tests/ -q
+
+  # MISMA suite sobre PostgreSQL (dual-engine vía TEST_DATABASE_URL). El
+  # adaptador DualConn traduce ?→%s y emula lastrowid.
+  tests-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: androtest
+          POSTGRES_DB: androtech
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-test.txt
+      - name: pytest (PostgreSQL) + JUEZ
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:androtest@localhost:5432/androtech
+        run: pytest tests/ -q
+
+  # Lint (no bloqueante de momento: el monolito legacy aún arrastra avisos).
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - name: ruff check
+        run: ruff check . || true
