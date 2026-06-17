@@ -1,0 +1,31 @@
+{# Controles de paginación reutilizables (B5). Espera en contexto:
+   - `pagina`: objeto Pagina (pagination.py)
+   - `filters_query`: query-string de filtros SIN page (puede ser '')
+   Sin JS obligatorio: son enlaces server-side que conservan los filtros. #}
+{% if pagina and pagina.total_pages > 1 %}
+{% set _sep = (filters_query ~ '&') if filters_query else '' %}
+<nav aria-label="Paginación" class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3">
+    <small class="text-muted">
+        Mostrando {{ pagina.start }}–{{ pagina.end }} de {{ pagina.total }}
+    </small>
+    <ul class="pagination pagination-sm mb-0">
+        <li class="page-item {% if not pagina.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="?{{ _sep }}page={{ pagina.prev_num }}" aria-label="Anterior">&laquo;</a>
+        </li>
+        {% for n in pagina.ventana() %}
+            {% if n is none %}
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% else %}
+                <li class="page-item {% if n == pagina.page %}active{% endif %}">
+                    <a class="page-link" href="?{{ _sep }}page={{ n }}">{{ n }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+        <li class="page-item {% if not pagina.has_next %}disabled{% endif %}">
+            <a class="page-link" href="?{{ _sep }}page={{ pagina.next_num }}" aria-label="Siguiente">&raquo;</a>
+        </li>
+    </ul>
+</nav>
+{% elif pagina and pagina.total > 0 %}
+<small class="text-muted d-block mt-3">Mostrando {{ pagina.start }}–{{ pagina.end }} de {{ pagina.total }}</small>
+{% endif %}

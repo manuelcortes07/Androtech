@@ -23,27 +23,21 @@
 
         <!-- Barra de herramientas -->
         <div class="at-dash-card-body" style="border-bottom: 1px solid rgba(0,0,0,.06);">
-            <form class="at-admin-form" onsubmit="return false;">
+            <form class="at-admin-form" method="get" action="{{ url_for('clientes') }}">
                 <div class="row g-2 align-items-center">
                     <div class="col-md-6">
                         <div class="input-group">
                             <span class="input-group-text border-0" style="background: #EBF5FB; color: #2B8AC4;">
                                 <i class="bi bi-search"></i>
                             </span>
-                            <input id="clientes-search" type="search" class="form-control border-0"
-                                   placeholder="Buscar por nombre o email..."
+                            <input id="clientes-search" name="q" type="search" class="form-control border-0"
+                                   value="{{ q or '' }}"
+                                   placeholder="Buscar por nombre, email o teléfono..."
                                    style="background: #EBF5FB;">
-                        </div>
-                    </div>
-                    <div class="col-md-3 ms-auto text-md-end">
-                        <div class="d-flex align-items-center justify-content-end gap-2">
-                            <label for="perPage" class="form-label small text-muted mb-0 text-nowrap">Filas por pagina</label>
-                            <select id="perPage" class="form-select form-select-sm border-0" style="width:auto; background: #EBF5FB;">
-                                <option value="5">5</option>
-                                <option value="10" selected>10</option>
-                                <option value="25">25</option>
-                                <option value="50">50</option>
-                            </select>
+                            <button type="submit" class="btn btn-sm at-btn-primary">Buscar</button>
+                            {% if q %}
+                                <a href="{{ url_for('clientes') }}" class="btn btn-sm btn-outline-secondary">Limpiar</a>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -130,18 +124,15 @@
         </div>
         {% endif %}
 
-        <!-- Paginacion -->
-        <div class="d-flex justify-content-between align-items-center px-4 py-3" style="border-top: 1px solid rgba(0,0,0,.06);">
-            <div class="text-muted small" id="clientes-info">Mostrando 0 - 0 de 0</div>
-            <nav aria-label="Paginacion clientes">
-                <ul id="clientes-pagination" class="pagination pagination-sm mb-0"></ul>
-            </nav>
+        <!-- Paginación server-side (B5) -->
+        <div class="px-4 py-3" style="border-top: 1px solid rgba(0,0,0,.06);">
+            {% include "_paginacion.html" %}
         </div>
 
         <!-- Footer -->
         <div class="px-4 py-3 d-flex justify-content-between align-items-center" style="border-top: 1px solid rgba(0,0,0,.06); background: rgba(0,0,0,.01);">
             <div class="text-muted small">
-                <i class="bi bi-database me-1"></i>Mostrando <strong>{{ clientes|length }}</strong> clientes en total
+                <i class="bi bi-database me-1"></i><strong>{{ pagina.total }}</strong> clientes{% if q %} (filtrados){% endif %}
             </div>
             <div class="text-muted small">Panel administrativo — AndroTech</div>
         </div>
@@ -153,129 +144,8 @@
 
 {% block scripts %}
     {{ super() }}
-    <script>
-        (function () {
-            // Elementos
-            const searchInput = document.getElementById('clientes-search');
-            const perPageSelect = document.getElementById('perPage');
-            const table = document.getElementById('clientes-table');
-            const tbody = table.querySelector('tbody');
-            const pagination = document.getElementById('clientes-pagination');
-            const info = document.getElementById('clientes-info');
-
-            // Obtener todas las filas (como array) y mantener el orden original
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-
-            // Estado
-            let filteredRows = rows.slice();
-            let currentPage = 1;
-
-            function formatCount(start, end, total) {
-                return `Mostrando ${start} - ${end} de ${total}`;
-            }
-
-            function renderPagination() {
-                const perPage = parseInt(perPageSelect.value, 10);
-                const total = filteredRows.length;
-                const pages = Math.max(1, Math.ceil(total / perPage));
-
-                // Ajusta la página actual si está fuera de rango
-                if (currentPage > pages) currentPage = pages;
-                if (currentPage < 1) currentPage = 1;
-
-                // Construye botones de paginación
-                pagination.innerHTML = '';
-
-                const createPageItem = (label, page, disabled = false, active = false) => {
-                    const li = document.createElement('li');
-                    li.className = 'page-item' + (disabled ? ' disabled' : '') + (active ? ' active' : '');
-                    const a = document.createElement('a');
-                    a.className = 'page-link';
-                    a.href = '#';
-                    a.dataset.page = page;
-                    a.textContent = label;
-                    a.addEventListener('click', function (e) {
-                        e.preventDefault();
-                        if (!disabled) {
-                            currentPage = page;
-                            showPage();
-                        }
-                    });
-                    li.appendChild(a);
-                    return li;
-                };
-
-                // Previous
-                pagination.appendChild(createPageItem('«', Math.max(1, currentPage - 1), currentPage === 1));
-
-                // Rango inteligente de páginas (hasta 7)
-                let start = Math.max(1, currentPage - 3);
-                let end = Math.min(pages, currentPage + 3);
-                if (currentPage <= 4) end = Math.min(pages, 7);
-                if (currentPage > pages - 4) start = Math.max(1, pages - 6);
-
-                for (let p = start; p <= end; p++) {
-                    pagination.appendChild(createPageItem(p, p, false, p === currentPage));
-                }
-
-                // Next
-                pagination.appendChild(createPageItem('»', Math.min(pages, currentPage + 1), currentPage === pages));
-
-                // Actualiza texto de información
-                const startIndex = total === 0 ? 0 : ((currentPage - 1) * perPage) + 1;
-                const endIndex = Math.min(total, currentPage * perPage);
-                info.textContent = formatCount(startIndex, endIndex, total);
-            }
-
-            function showPage() {
-                const perPage = parseInt(perPageSelect.value, 10);
-                const start = (currentPage - 1) * perPage;
-                const end = start + perPage;
-
-                // Oculta todas
-                rows.forEach(row => row.style.display = 'none');
-
-                // Muestra las filas filtradas de la página
-                const pageRows = filteredRows.slice(start, end);
-                pageRows.forEach(r => r.style.display = 'table-row');
-
-                renderPagination();
-            }
-
-            function applyFilter() {
-                const q = (searchInput.value || '').trim().toLowerCase();
-
-                if (!q) {
-                    filteredRows = rows.slice();
-                } else {
-                    filteredRows = rows.filter(r => {
-                        const cols = r.querySelectorAll('td');
-                        const nombre = cols[1] ? cols[1].textContent.toLowerCase() : '';
-                        const email = cols[3] ? cols[3].textContent.toLowerCase() : '';
-                        return nombre.includes(q) || email.includes(q);
-                    });
-                }
-
-                // Vuelve a la primera página después de filtrar
-                currentPage = 1;
-                showPage();
-            }
-
-            // Eventos
-            searchInput.addEventListener('input', function () {
-                applyFilter();
-            });
-
-            perPageSelect.addEventListener('change', function () {
-                currentPage = 1;
-                showPage();
-            });
-
-            // Inicializa
-            applyFilter();
-
-        })();
-    </script>
+    {# La búsqueda y la paginación son SERVER-SIDE (B5): la antigua lógica
+       client-side se eliminó para que escalen a miles de filas. #}
 
     <!-- Modal de Confirmacion -->
     <div class="modal fade" id="confirmBorrarModal" tabindex="-1" aria-labelledby="confirmBorrarLabel" aria-hidden="true">

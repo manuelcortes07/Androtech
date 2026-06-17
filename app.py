@@ -39,6 +39,8 @@ import saas_billing
 # Esenciales de cuenta (B3): tokens firmados de reset/verificación.
 from itsdangerous import BadSignature, SignatureExpired
 import tokens as account_tokens
+# Paginación clásica numerada (B5).
+from pagination import paginar
 # Capa de acceso a datos: SQLAlchemy (Fase 1 SaaS completada — todo el
 # proyecto usa get_session()/select(); sqlite3 directo eliminado).
 from sqlalchemy import select, text
@@ -1610,10 +1612,29 @@ def dashboard():
 @app.route("/clientes")
 @login_required
 def clientes():
-    # Fase 1.4: listado vía ORM
+    # Listado paginado server-side (B5) con búsqueda. COUNT y SELECT van
+    # auto-scoped al taller por el filtro automático del ORM (g.taller_id), así
+    # que el contador y las filas son SIEMPRE del taller. La búsqueda es
+    # server-side para que funcione sobre TODO el conjunto, no sólo la página.
+    from sqlalchemy import func as _func, or_ as _or
+    q = request.args.get("q", "").strip()
+    base = select(Cliente)
+    cnt = select(_func.count(Cliente.id))
+    if q:
+        like = f"%{q}%"
+        cond = _or(Cliente.nombre.like(like), Cliente.email.like(like),
+                   Cliente.telefono.like(like))
+        base = base.where(cond)
+        cnt = cnt.where(cond)
     with get_session() as s:
-        clientes = s.scalars(select(Cliente)).all()
-    return render_template("clientes.html", clientes=clientes)
+        total = s.scalar(cnt)
+        pag = paginar(total)
+        clientes = s.scalars(
+            base.order_by(Cliente.nombre).limit(pag.per_page).offset(pag.offset)
+        ).all()
+    filters_query = urllib.parse.urlencode({"q": q}) if q else ""
+    return render_template("clientes.html", clientes=clientes, pagina=pag,
+                           q=q, filters_query=filters_query)
 
 
 # CREAR CLIENTE
