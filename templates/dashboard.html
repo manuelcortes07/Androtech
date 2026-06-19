@@ -4,153 +4,90 @@
 
 {% block content %}
 
-<div class="container-fluid py-4">
+<div class="at-rise">
 
     <!-- ENCABEZADO -->
-    <div class="row mb-4 align-items-end">
-        <div class="col">
-            <span class="at-pill"><i class="bi bi-speedometer2 me-1"></i>Panel de Control</span>
-            <h1 class="at-section-title mt-2 mb-1">Bienvenido, {{ session.usuario }}</h1>
-            <p class="at-section-sub" style="margin:0;max-width:none;">Resumen en tiempo real de tu negocio — {{ now }}</p>
+    <div class="at-page-head">
+        <div>
+            <h1 class="at-page-title">Bienvenido, {{ session.usuario }}</h1>
+            <p class="at-page-sub">Resumen en tiempo real de tu negocio — {{ now }}</p>
         </div>
         {% if tiene_permiso('reparaciones_exportar') or tiene_permiso('clientes_exportar') %}
-        <div class="col-auto">
-            <div class="d-flex gap-2">
-                {% if tiene_permiso('reparaciones_exportar') %}
-                <a href="/exportar/reparaciones.csv" class="at-btn-outline btn btn-sm">
-                    <i class="bi bi-download me-1"></i>Reparaciones CSV
-                </a>
-                {% endif %}
-                {% if tiene_permiso('clientes_exportar') %}
-                <a href="/exportar/clientes.csv" class="at-btn-outline btn btn-sm">
-                    <i class="bi bi-download me-1"></i>Clientes CSV
-                </a>
-                {% endif %}
-            </div>
+        <div class="d-flex gap-2 flex-wrap">
+            {% if tiene_permiso('reparaciones_exportar') %}
+            <a href="/exportar/reparaciones.csv" class="at-btn at-btn--outline at-btn--sm"><i class="bi bi-download"></i> Reparaciones CSV</a>
+            {% endif %}
+            {% if tiene_permiso('clientes_exportar') %}
+            <a href="/exportar/clientes.csv" class="at-btn at-btn--outline at-btn--sm"><i class="bi bi-download"></i> Clientes CSV</a>
+            {% endif %}
         </div>
         {% endif %}
     </div>
 
     <!-- ALERTA: REPARACIONES ATRASADAS -->
     {% if reparaciones_atrasadas %}
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="alert alert-warning alert-dismissible fade show border-0 shadow-sm" role="alert" style="border-left: 4px solid #ffc107 !important;">
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-exclamation-triangle-fill me-3 fs-4" style="color:#ffc107;"></i>
-                    <div>
-                        <strong>{{ reparaciones_atrasadas|length }} reparacion(es) atrasada(s)</strong>
-                        <p class="mb-0 small text-muted">En estado activo sin actualizacion hace mas de 7 dias.</p>
-                    </div>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        </div>
+    <div class="at-alert at-alert--warning" role="alert" style="margin-bottom:18px;">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span><strong>{{ reparaciones_atrasadas|length }} reparación(es) atrasada(s)</strong> — en estado activo sin actualización hace más de 7 días.</span>
     </div>
     {% endif %}
 
     <!-- FILA 1: KPIs PRINCIPALES -->
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-lg-3">
-            <div class="at-dash-kpi">
-                <div class="at-dash-kpi-icon" style="background: rgba(43,138,196,.1);">
-                    <i class="bi bi-people-fill" style="color: #2B8AC4;"></i>
-                </div>
-                <div>
-                    <div class="at-dash-kpi-value" style="color: #2B8AC4;">{{ total_clientes }}</div>
-                    <div class="at-dash-kpi-label">Clientes</div>
-                </div>
-            </div>
+    <div class="at-stats">
+        <div class="at-stat at-rise at-rise-1">
+            <div class="at-stat-ic"><i class="bi bi-people-fill"></i></div>
+            <div><div class="at-stat-n">{{ total_clientes }}</div><div class="at-stat-l">Clientes</div></div>
         </div>
-        <div class="col-6 col-lg-3">
-            <div class="at-dash-kpi">
-                <div class="at-dash-kpi-icon" style="background: rgba(108,117,125,.1);">
-                    <i class="bi bi-tools" style="color: #6c757d;"></i>
-                </div>
-                <div>
-                    <div class="at-dash-kpi-value" style="color: #6c757d;">{{ total_reparaciones }}</div>
-                    <div class="at-dash-kpi-label">Reparaciones</div>
-                </div>
-            </div>
+        <div class="at-stat at-rise at-rise-2">
+            <div class="at-stat-ic c"><i class="bi bi-tools"></i></div>
+            <div><div class="at-stat-n">{{ total_reparaciones }}</div><div class="at-stat-l">Reparaciones</div></div>
         </div>
-        <div class="col-6 col-lg-3">
-            <div class="at-dash-kpi">
-                <div class="at-dash-kpi-icon" style="background: rgba(255,193,7,.1);">
-                    <i class="bi bi-hourglass-split" style="color: #ffc107;"></i>
-                </div>
-                <div>
-                    <div class="at-dash-kpi-value" style="color: #e6a800;">{{ reparaciones_activas }}</div>
-                    <div class="at-dash-kpi-label">Pendientes</div>
-                </div>
-            </div>
+        <div class="at-stat at-rise at-rise-3">
+            <div class="at-stat-ic am"><i class="bi bi-hourglass-split"></i></div>
+            <div><div class="at-stat-n">{{ reparaciones_activas }}</div><div class="at-stat-l">Pendientes</div></div>
         </div>
-        <div class="col-6 col-lg-3">
-            <div class="at-dash-kpi">
-                <div class="at-dash-kpi-icon" style="background: rgba(25,135,84,.1);">
-                    <i class="bi bi-check-circle-fill" style="color: #198754;"></i>
-                </div>
-                <div>
-                    <div class="at-dash-kpi-value" style="color: #198754;">{{ reparaciones_terminadas }}</div>
-                    <div class="at-dash-kpi-label">Completadas</div>
-                </div>
-            </div>
+        <div class="at-stat at-rise at-rise-4">
+            <div class="at-stat-ic g"><i class="bi bi-check-circle-fill"></i></div>
+            <div><div class="at-stat-n">{{ reparaciones_terminadas }}</div><div class="at-stat-l">Completadas</div></div>
         </div>
     </div>
 
     <!-- FILA 2: INGRESOS -->
     <div class="row g-3 mb-4">
-        <!-- Este Mes -->
         <div class="col-lg-6">
-            <div class="at-dash-card">
-                <div class="at-dash-card-header">
-                    <i class="bi bi-calendar-month"></i> Este Mes
-                </div>
-                <div class="at-dash-card-body">
+            <div class="at-card h-100">
+                <div class="at-card__head"><span><i class="bi bi-calendar-month"></i> Este mes</span></div>
+                <div class="at-card__body">
                     <div class="row g-3">
                         <div class="col-6">
-                            <div class="at-dash-kpi-label">Ingresos (sin IVA)</div>
-                            <div class="at-dash-kpi-value" style="color: #2B8AC4; font-size: 1.5rem;">{{ "%.2f"|format(ingresos_mes) }}€</div>
+                            <div class="at-label">Ingresos (sin IVA)</div>
+                            <div class="at-stat-n" style="color:var(--accent);">{{ "%.2f"|format(ingresos_mes) }}€</div>
                         </div>
                         <div class="col-6">
-                            <div class="at-dash-kpi-label">IVA (21%)</div>
-                            <div class="at-dash-kpi-value" style="color: #6c757d; font-size: 1.5rem;">{{ "%.2f"|format(iva_mes) }}€</div>
+                            <div class="at-label">IVA (21%)</div>
+                            <div class="at-stat-n at-dim">{{ "%.2f"|format(iva_mes) }}€</div>
                         </div>
                     </div>
-                    <hr style="opacity:.08;">
+                    <hr class="at-divider">
                     <div class="row g-3">
-                        <div class="col-6">
-                            <div class="at-dash-kpi-label">Reparaciones</div>
-                            <div class="fw-bold fs-5">{{ reparaciones_mes }}</div>
-                        </div>
-                        <div class="col-6">
-                            <div class="at-dash-kpi-label">Completadas</div>
-                            <div class="fw-bold fs-5" style="color: #198754;">{{ reparaciones_completadas_mes }}</div>
-                        </div>
+                        <div class="col-6"><div class="at-label">Reparaciones</div><div style="font-weight:700;font-size:18px;">{{ reparaciones_mes }}</div></div>
+                        <div class="col-6"><div class="at-label">Completadas</div><div style="font-weight:700;font-size:18px;color:var(--green);">{{ reparaciones_completadas_mes }}</div></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Ingresos Totales -->
         <div class="col-lg-6">
-            <div class="at-dash-card">
-                <div class="at-dash-card-header">
-                    <i class="bi bi-graph-up-arrow"></i> Ingresos Totales
-                </div>
-                <div class="at-dash-card-body">
+            <div class="at-card h-100">
+                <div class="at-card__head"><span><i class="bi bi-graph-up-arrow"></i> Ingresos totales</span></div>
+                <div class="at-card__body">
                     <div class="row g-3">
-                        <div class="col-6">
-                            <div class="at-dash-kpi-label">Base Imponible</div>
-                            <div class="at-dash-kpi-value" style="color: #198754; font-size: 1.5rem;">{{ "%.2f"|format(ingresos_total) }}€</div>
-                        </div>
-                        <div class="col-6">
-                            <div class="at-dash-kpi-label">IVA Acumulado</div>
-                            <div class="at-dash-kpi-value" style="color: #6c757d; font-size: 1.5rem;">{{ "%.2f"|format(iva_total) }}€</div>
-                        </div>
+                        <div class="col-6"><div class="at-label">Base imponible</div><div class="at-stat-n" style="color:var(--green);">{{ "%.2f"|format(ingresos_total) }}€</div></div>
+                        <div class="col-6"><div class="at-label">IVA acumulado</div><div class="at-stat-n at-dim">{{ "%.2f"|format(iva_total) }}€</div></div>
                     </div>
-                    <hr style="opacity:.08;">
-                    <div class="at-dash-kpi-label">Total con IVA</div>
-                    <div class="at-dash-kpi-value" style="color: #2B8AC4; font-size: 1.75rem;">{{ "%.2f"|format(ingresos_total + iva_total) }}€</div>
+                    <hr class="at-divider">
+                    <div class="at-label">Total con IVA</div>
+                    <div class="at-stat-n" style="color:var(--accent);font-size:30px;">{{ "%.2f"|format(ingresos_total + iva_total) }}€</div>
                 </div>
             </div>
         </div>
@@ -158,58 +95,34 @@
 
     <!-- FILA 3: COBROS -->
     <div class="row g-3 mb-4">
-        <!-- Dinero Cobrado -->
         <div class="col-lg-6">
-            <div class="at-dash-card">
-                <div class="at-dash-card-header" style="color: #198754;">
-                    <i class="bi bi-check-circle-fill"></i> Dinero Cobrado
-                </div>
-                <div class="at-dash-card-body">
+            <div class="at-card h-100">
+                <div class="at-card__head"><span style="color:var(--green);"><i class="bi bi-check-circle-fill"></i> Dinero cobrado</span></div>
+                <div class="at-card__body">
                     <div class="row g-3 mb-3">
-                        <div class="col-6">
-                            <div class="at-dash-kpi-label">Cobrado</div>
-                            <div class="at-dash-kpi-value" style="color: #198754; font-size: 1.5rem;">{{ "%.2f"|format(dinero_cobrado) }}€</div>
-                        </div>
-                        <div class="col-6">
-                            <div class="at-dash-kpi-label">Reparaciones pagadas</div>
-                            <div class="at-dash-kpi-value" style="color: #6c757d; font-size: 1.5rem;">{{ reparaciones_pagadas }}</div>
-                        </div>
+                        <div class="col-6"><div class="at-label">Cobrado</div><div class="at-stat-n" style="color:var(--green);">{{ "%.2f"|format(dinero_cobrado) }}€</div></div>
+                        <div class="col-6"><div class="at-label">Reparaciones pagadas</div><div class="at-stat-n at-dim">{{ reparaciones_pagadas }}</div></div>
                     </div>
-                    <div class="progress" style="height: 8px; border-radius: 4px; background: rgba(25,135,84,.1);">
-                        <div class="progress-bar" style="width: {{ tasa_cobro }}%; background: #198754; border-radius: 4px;"></div>
+                    <div style="height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden;">
+                        <div style="height:100%;width:{{ tasa_cobro }}%;background:var(--green);border-radius:4px;"></div>
                     </div>
-                    <small class="text-muted mt-1 d-block">{{ tasa_cobro }}% cobrado</small>
+                    <small class="at-dim d-block" style="margin-top:6px;">{{ tasa_cobro }}% cobrado</small>
                 </div>
             </div>
         </div>
 
-        <!-- Dinero Por Cobrar -->
         <div class="col-lg-6">
-            <div class="at-dash-card">
-                <div class="at-dash-card-header" style="color: #e6a800;">
-                    <i class="bi bi-hourglass-split"></i> Dinero Por Cobrar
-                </div>
-                <div class="at-dash-card-body">
+            <div class="at-card h-100">
+                <div class="at-card__head"><span style="color:var(--amber);"><i class="bi bi-hourglass-split"></i> Dinero por cobrar</span></div>
+                <div class="at-card__body">
                     <div class="row g-3 mb-3">
-                        <div class="col-6">
-                            <div class="at-dash-kpi-label">Pendiente</div>
-                            <div class="at-dash-kpi-value" style="color: #e6a800; font-size: 1.5rem;">{{ "%.2f"|format(dinero_por_cobrar) }}€</div>
-                        </div>
-                        <div class="col-6">
-                            <div class="at-dash-kpi-label">Reparaciones</div>
-                            <div class="at-dash-kpi-value" style="color: #6c757d; font-size: 1.5rem;">{{ reparaciones_pendiente_pago }}</div>
-                        </div>
+                        <div class="col-6"><div class="at-label">Pendiente</div><div class="at-stat-n" style="color:var(--amber);">{{ "%.2f"|format(dinero_por_cobrar) }}€</div></div>
+                        <div class="col-6"><div class="at-label">Reparaciones</div><div class="at-stat-n at-dim">{{ reparaciones_pendiente_pago }}</div></div>
                     </div>
                     {% if reparaciones_pendiente_pago > 0 %}
-                        <div class="d-flex align-items-center gap-2" style="color: #dc3545;">
-                            <i class="bi bi-exclamation-circle"></i>
-                            <small class="fw-semibold">{{ reparaciones_pendiente_pago }} reparacion(es) sin pagar</small>
-                        </div>
+                        <div class="d-flex align-items-center gap-2" style="color:var(--red);"><i class="bi bi-exclamation-circle"></i><small style="font-weight:600;">{{ reparaciones_pendiente_pago }} reparación(es) sin pagar</small></div>
                     {% else %}
-                        <div class="d-flex align-items-center gap-2" style="color: #198754;">
-                            <i class="bi bi-check-circle"></i>
-                            <small class="fw-semibold">Todas las reparaciones estan pagadas</small>
-                        </div>
+                        <div class="d-flex align-items-center gap-2" style="color:var(--green);"><i class="bi bi-check-circle"></i><small style="font-weight:600;">Todas las reparaciones están pagadas</small></div>
                     {% endif %}
                 </div>
             </div>
@@ -220,14 +133,10 @@
     <div class="row g-3 mb-4">
         {% if dispositivos_top %}
         <div class="col-lg-6">
-            <div class="at-dash-card">
-                <div class="at-dash-card-header">
-                    <i class="bi bi-phone"></i> Dispositivos Mas Reparados
-                </div>
-                <div class="at-dash-card-body">
-                    <div style="position: relative; height: 220px;">
-                        <canvas id="chartDispositivos"></canvas>
-                    </div>
+            <div class="at-card h-100">
+                <div class="at-card__head"><span><i class="bi bi-phone"></i> Dispositivos más reparados</span></div>
+                <div class="at-card__body">
+                    <div style="position: relative; height: 220px;"><canvas id="chartDispositivos"></canvas></div>
                 </div>
             </div>
         </div>
@@ -235,14 +144,10 @@
 
         {% if estados_distribucion %}
         <div class="col-lg-6">
-            <div class="at-dash-card">
-                <div class="at-dash-card-header">
-                    <i class="bi bi-diagram-3"></i> Distribucion de Estados
-                </div>
-                <div class="at-dash-card-body d-flex align-items-center justify-content-center">
-                    <div style="position: relative; height: 220px; width: 100%;">
-                        <canvas id="chartEstados"></canvas>
-                    </div>
+            <div class="at-card h-100">
+                <div class="at-card__head"><span><i class="bi bi-diagram-3"></i> Distribución de estados</span></div>
+                <div class="at-card__body d-flex align-items-center justify-content-center">
+                    <div style="position: relative; height: 220px; width: 100%;"><canvas id="chartEstados"></canvas></div>
                 </div>
             </div>
         </div>
@@ -251,169 +156,104 @@
 
     <!-- FILA 5: PENDIENTES DE PAGO -->
     {% if reparaciones_sin_pagar %}
-    <div class="row g-3 mb-4">
-        <div class="col-12">
-            <div class="at-dash-card" style="border-left: 3px solid #e6a800;">
-                <div class="at-dash-card-header" style="color: #e6a800;">
-                    <i class="bi bi-exclamation-circle"></i> Reparaciones Pendientes de Pago
-                </div>
-                <div class="at-dash-card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead>
-                                <tr style="background: rgba(0,0,0,.02);">
-                                    <th class="ps-4">ID</th>
-                                    <th>Cliente</th>
-                                    <th>Dispositivo</th>
-                                    <th>Alertas</th>
-                                    <th>Precio</th>
-                                    <th>Fecha Entrada</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for rep in reparaciones_sin_pagar %}
-                                <tr>
-                                    <td class="ps-4"><strong>#{{ rep.id }}</strong></td>
-                                    <td>{{ rep.cliente or 'Sin asignar' }}</td>
-                                    <td>{{ rep.dispositivo }}</td>
-                                    <td>
-                                        {% if rep.alertas_info.tiene_alertas %}
-                                            <div class="d-flex gap-1 flex-wrap">
-                                                {% for alerta in rep.alertas_info.alertas %}
-                                                <span class="badge bg-{{ alerta.color }} small" title="{{ alerta.mensaje }}">{{ alerta.icono }}</span>
-                                                {% endfor %}
-                                            </div>
-                                        {% else %}
-                                            <span class="text-muted">—</span>
-                                        {% endif %}
-                                    </td>
-                                    <td><strong style="color: #dc3545;">{{ "%.2f"|format(rep.precio) }}€</strong></td>
-                                    <td><small class="text-muted">{{ rep.fecha_entrada }}</small></td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+    <div class="at-card mb-4">
+        <div class="at-card__head"><span style="color:var(--amber);"><i class="bi bi-exclamation-circle"></i> Reparaciones pendientes de pago</span></div>
+        <div class="at-table-wrap" style="border:none;border-radius:0;">
+            <table class="at-table">
+                <thead>
+                    <tr><th>ID</th><th>Cliente</th><th>Dispositivo</th><th>Alertas</th><th>Precio</th><th>Fecha entrada</th></tr>
+                </thead>
+                <tbody>
+                    {% for rep in reparaciones_sin_pagar %}
+                    <tr>
+                        <td class="at-mono"><strong>#{{ rep.id }}</strong></td>
+                        <td>{{ rep.cliente or 'Sin asignar' }}</td>
+                        <td>{{ rep.dispositivo }}</td>
+                        <td>
+                            {% if rep.alertas_info.tiene_alertas %}
+                                <div class="d-flex gap-1 flex-wrap">
+                                    {% for alerta in rep.alertas_info.alertas %}<span class="badge bg-{{ alerta.color }} small" title="{{ alerta.mensaje }}">{{ alerta.icono }}</span>{% endfor %}
+                                </div>
+                            {% else %}<span class="at-dim">—</span>{% endif %}
+                        </td>
+                        <td class="at-mono" style="color:var(--red);font-weight:700;">{{ "%.2f"|format(rep.precio) }}€</td>
+                        <td class="at-mono at-dim">{{ rep.fecha_entrada }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
     {% endif %}
 
     <!-- FILA 6: ÚLTIMAS REPARACIONES -->
-    <div class="row g-3 mb-4">
-        <div class="col-12">
-            <div class="at-dash-card">
-                <div class="at-dash-card-header">
-                    <i class="bi bi-list-check"></i> Ultimas Reparaciones
-                </div>
-                <div class="at-dash-card-body p-0">
-                    {% if ultimas_reparaciones %}
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead>
-                                <tr style="background: rgba(0,0,0,.02);">
-                                    <th class="ps-4">ID</th>
-                                    <th>Cliente</th>
-                                    <th>Dispositivo</th>
-                                    <th>Estado</th>
-                                    <th>Pago</th>
-                                    <th>Fecha</th>
-                                    <th>Precio</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for rep in ultimas_reparaciones %}
-                                <tr>
-                                    <td class="ps-4"><strong>#{{ rep.id }}</strong></td>
-                                    <td>{{ rep.cliente or 'Sin asignar' }}</td>
-                                    <td>{{ rep.dispositivo }}</td>
-                                    <td>
-                                        {% if rep.estado == 'Terminado' or rep.estado == 'Entregado' %}
-                                            <span class="badge" style="background: rgba(25,135,84,.12); color: #198754;">{{ rep.estado }}</span>
-                                        {% elif rep.estado == 'Pendiente' %}
-                                            <span class="badge" style="background: rgba(255,193,7,.15); color: #997a00;">{{ rep.estado }}</span>
-                                        {% else %}
-                                            <span class="badge" style="background: rgba(43,138,196,.12); color: #2B8AC4;">{{ rep.estado }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if rep.estado_pago == 'Pagado' %}
-                                            <span class="badge" style="background: rgba(25,135,84,.12); color: #198754;"><i class="bi bi-check me-1"></i>Pagado</span>
-                                        {% else %}
-                                            <span class="badge" style="background: rgba(220,53,69,.1); color: #dc3545;"><i class="bi bi-clock me-1"></i>Pendiente</span>
-                                        {% endif %}
-                                    </td>
-                                    <td><small class="text-muted">{{ rep.fecha_entrada }}</small></td>
-                                    <td><strong>{{ "%.2f"|format(rep.precio or 0) }}€</strong></td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <p class="text-center text-muted py-4 mb-0">No hay reparaciones registradas</p>
-                    {% endif %}
-                </div>
-            </div>
+    <div class="at-card mb-4">
+        <div class="at-card__head"><span><i class="bi bi-list-check"></i> Últimas reparaciones</span></div>
+        {% if ultimas_reparaciones %}
+        <div class="at-table-wrap" style="border:none;border-radius:0;">
+            <table class="at-table">
+                <thead>
+                    <tr><th>ID</th><th>Cliente</th><th>Dispositivo</th><th>Estado</th><th>Pago</th><th>Fecha</th><th>Precio</th></tr>
+                </thead>
+                <tbody>
+                    {% for rep in ultimas_reparaciones %}
+                    <tr>
+                        <td class="at-mono"><strong>#{{ rep.id }}</strong></td>
+                        <td>{{ rep.cliente or 'Sin asignar' }}</td>
+                        <td>{{ rep.dispositivo }}</td>
+                        <td><span class="at-status at-status--{{ rep.estado|lower|replace(' ','-') }}">{{ rep.estado }}</span></td>
+                        <td>
+                            {% if rep.estado_pago == 'Pagado' %}
+                                <span class="at-status at-status--pagado">Pagado</span>
+                            {% else %}
+                                <span class="at-status at-status--pendiente">Pendiente</span>
+                            {% endif %}
+                        </td>
+                        <td class="at-mono at-dim">{{ rep.fecha_entrada }}</td>
+                        <td class="at-mono"><strong>{{ "%.2f"|format(rep.precio or 0) }}€</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
+        {% else %}
+        <div class="at-card__body"><p class="text-center at-dim" style="margin:0;padding:18px 0;">No hay reparaciones registradas</p></div>
+        {% endif %}
     </div>
 
     <!-- FILA 7: MÉTRICAS AVANZADAS -->
     <div class="row g-3 mb-4">
-        <!-- Ingresos por mes (gráfico) -->
         <div class="col-lg-6">
-            <div class="at-dash-card">
-                <div class="at-dash-card-header">
-                    <i class="bi bi-bar-chart-fill"></i> Ingresos por Mes
-                    <small class="text-muted fw-normal ms-2">(ultimos 6 meses)</small>
-                </div>
-                <div class="at-dash-card-body">
-                    <div style="position: relative; height: 200px;">
-                        <canvas id="chartIngresos"></canvas>
-                    </div>
-                    <div class="mt-3 pt-3" style="border-top: 1px solid rgba(0,0,0,.05);">
-                        <small class="text-muted">
-                            <i class="bi bi-info-circle me-1"></i>
-                            Total 6 meses: <strong style="color: #2B8AC4;">{{ "%.2f"|format(ingresos_por_mes|map(attribute='valor')|sum) }}€</strong>
-                        </small>
-                    </div>
+            <div class="at-card h-100">
+                <div class="at-card__head"><span><i class="bi bi-bar-chart-fill"></i> Ingresos por mes <small class="at-dim" style="font-weight:400;">(últimos 6 meses)</small></span></div>
+                <div class="at-card__body">
+                    <div style="position: relative; height: 200px;"><canvas id="chartIngresos"></canvas></div>
+                    <hr class="at-divider">
+                    <small class="at-dim"><i class="bi bi-info-circle"></i> Total 6 meses: <strong style="color:var(--accent);">{{ "%.2f"|format(ingresos_por_mes|map(attribute='valor')|sum) }}€</strong></small>
                 </div>
             </div>
         </div>
 
-        <!-- Tiempo medio + Técnicos -->
         <div class="col-lg-6">
             <div class="row g-3">
-                <!-- Tiempo medio -->
                 <div class="col-12">
-                    <div class="at-dash-kpi" style="justify-content: flex-start; gap: 1.25rem;">
-                        <div class="at-dash-kpi-icon" style="background: rgba(43,138,196,.1); width: 56px; height: 56px; font-size: 1.5rem;">
-                            <i class="bi bi-hourglass-bottom" style="color: #2B8AC4;"></i>
-                        </div>
+                    <div class="at-stat" style="gap:1.25rem;">
+                        <div class="at-stat-ic" style="width:56px;height:56px;font-size:24px;"><i class="bi bi-hourglass-bottom"></i></div>
                         <div>
-                            <div class="at-dash-kpi-label">Tiempo Promedio de Reparacion</div>
-                            <div class="at-dash-kpi-value" style="color: #2B8AC4; font-size: 2rem;">
-                                {{ tiempo_medio_dias }} <span class="text-muted" style="font-size: .5em; font-weight: 400;">dias</span>
-                            </div>
-                            <small class="text-muted">Basado en {{ reparaciones_completadas_mes }} reparaciones</small>
+                            <div class="at-label">Tiempo promedio de reparación</div>
+                            <div class="at-stat-n" style="color:var(--accent);font-size:32px;">{{ tiempo_medio_dias }} <span class="at-dim" style="font-size:.5em;font-weight:400;">días</span></div>
+                            <small class="at-dim">Basado en {{ reparaciones_completadas_mes }} reparaciones</small>
                         </div>
                     </div>
                 </div>
-
-                <!-- Reparaciones por técnico (gráfico) -->
                 <div class="col-12">
-                    <div class="at-dash-card">
-                        <div class="at-dash-card-header">
-                            <i class="bi bi-person-badge"></i> Reparaciones por Tecnico
-                        </div>
-                        <div class="at-dash-card-body">
+                    <div class="at-card">
+                        <div class="at-card__head"><span><i class="bi bi-person-badge"></i> Reparaciones por técnico</span></div>
+                        <div class="at-card__body">
                             {% if reparaciones_por_tecnico %}
-                            <div style="position: relative; height: 160px;">
-                                <canvas id="chartTecnicos"></canvas>
-                            </div>
+                            <div style="position: relative; height: 160px;"><canvas id="chartTecnicos"></canvas></div>
                             {% else %}
-                            <p class="text-muted mb-0"><i class="bi bi-info-circle me-1"></i>Sin datos de tecnicos aun</p>
+                            <p class="at-dim" style="margin:0;"><i class="bi bi-info-circle"></i> Sin datos de técnicos aún</p>
                             {% endif %}
                         </div>
                     </div>
@@ -424,132 +264,70 @@
 
     <!-- FILA 8: AUDITORÍA -->
     {% if eventos_auditoria %}
-    <div class="row g-3 mb-4">
-        <div class="col-12">
-            <div class="at-dash-card">
-                <div class="at-dash-card-header">
-                    <i class="bi bi-shield-lock"></i> Auditoria Reciente
-                </div>
-                <div class="at-dash-card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover table-sm mb-0">
-                            <thead>
-                                <tr style="background: rgba(0,0,0,.02);">
-                                    <th class="ps-4">Timestamp</th>
-                                    <th>Evento</th>
-                                    <th>Usuario</th>
-                                    <th>Detalles</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for evento in eventos_auditoria %}
-                                <tr>
-                                    <td class="ps-4">
-                                        <small class="text-muted">
-                                            {% if evento.timestamp %}
-                                                {{ evento.timestamp|strftime('%d/%m/%Y %H:%M:%S') }}
-                                            {% endif %}
-                                        </small>
-                                    </td>
-                                    <td>
-                                        {% if evento.event_type == 'login' %}
-                                            <span class="badge" style="background: rgba(25,135,84,.12); color: #198754;"><i class="bi bi-box-arrow-in-right me-1"></i>Login</span>
-                                        {% elif evento.event_type == 'login_failed' %}
-                                            <span class="badge" style="background: rgba(220,53,69,.1); color: #dc3545;"><i class="bi bi-exclamation-circle me-1"></i>Login Fallido</span>
-                                        {% elif evento.event_type == 'usuario_created' %}
-                                            <span class="badge" style="background: rgba(43,138,196,.12); color: #2B8AC4;"><i class="bi bi-person-plus me-1"></i>Usuario Creado</span>
-                                        {% elif evento.event_type == 'usuario_updated' %}
-                                            <span class="badge" style="background: rgba(43,138,196,.12); color: #2B8AC4;"><i class="bi bi-pencil me-1"></i>Usuario Actualizado</span>
-                                        {% elif evento.event_type == 'usuario_deleted' %}
-                                            <span class="badge" style="background: rgba(220,53,69,.1); color: #dc3545;"><i class="bi bi-trash me-1"></i>Usuario Eliminado</span>
-                                        {% elif evento.event_type == 'reparacion_created' %}
-                                            <span class="badge" style="background: rgba(43,138,196,.12); color: #2B8AC4;"><i class="bi bi-tools me-1"></i>Reparacion Creada</span>
-                                        {% elif evento.event_type == 'reparacion_updated' %}
-                                            <span class="badge" style="background: rgba(43,138,196,.12); color: #2B8AC4;"><i class="bi bi-pencil me-1"></i>Reparacion Actualizada</span>
-                                        {% elif evento.event_type == 'reparacion_deleted' %}
-                                            <span class="badge" style="background: rgba(220,53,69,.1); color: #dc3545;"><i class="bi bi-trash me-1"></i>Reparacion Eliminada</span>
-                                        {% elif evento.event_type == 'pago_registrado' %}
-                                            <span class="badge" style="background: rgba(25,135,84,.12); color: #198754;"><i class="bi bi-credit-card me-1"></i>Pago Registrado</span>
-                                        {% else %}
-                                            <span class="badge" style="background: rgba(108,117,125,.1); color: #6c757d;">{{ evento.event_type }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td><strong>{{ evento.usuario or 'Sistema' }}</strong></td>
-                                    <td>
-                                        <small class="text-muted">
-                                            {% if evento.ip_address %}
-                                                <i class="bi bi-globe me-1"></i>{{ evento.ip_address }}
-                                            {% elif evento.evento_datos %}
-                                                {{ evento.evento_datos|truncate(60) }}
-                                            {% endif %}
-                                        </small>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+    <div class="at-card mb-4">
+        <div class="at-card__head"><span><i class="bi bi-shield-lock"></i> Auditoría reciente</span></div>
+        <div class="at-table-wrap" style="border:none;border-radius:0;">
+            <table class="at-table">
+                <thead>
+                    <tr><th>Timestamp</th><th>Evento</th><th>Usuario</th><th>Detalles</th></tr>
+                </thead>
+                <tbody>
+                    {% for evento in eventos_auditoria %}
+                    <tr>
+                        <td class="at-mono at-dim">{% if evento.timestamp %}{{ evento.timestamp|strftime('%d/%m/%Y %H:%M:%S') }}{% endif %}</td>
+                        <td>
+                            {% if evento.event_type == 'login' %}
+                                <span class="at-status at-status--terminado">Login</span>
+                            {% elif evento.event_type == 'login_failed' %}
+                                <span class="at-status at-status--pendiente">Login fallido</span>
+                            {% elif evento.event_type in ['usuario_created','usuario_updated','reparacion_created','reparacion_updated'] %}
+                                <span class="at-status at-status--en-proceso">{{ evento.event_type }}</span>
+                            {% elif evento.event_type in ['usuario_deleted','reparacion_deleted'] %}
+                                <span class="at-status at-status--pendiente">{{ evento.event_type }}</span>
+                            {% elif evento.event_type == 'pago_registrado' %}
+                                <span class="at-status at-status--pagado">Pago registrado</span>
+                            {% else %}
+                                <span class="at-status" style="color:var(--dim);background:var(--surface-2);">{{ evento.event_type }}</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ evento.usuario or 'Sistema' }}</strong></td>
+                        <td class="at-dim"><small>{% if evento.ip_address %}<i class="bi bi-globe"></i> {{ evento.ip_address }}{% elif evento.evento_datos %}{{ evento.evento_datos|truncate(60) }}{% endif %}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
     {% endif %}
 
     <!-- FILA 9: REPARACIONES ATRASADAS (TABLA) -->
     {% if reparaciones_atrasadas %}
-    <div class="row g-3 mb-4">
-        <div class="col-12">
-            <div class="at-dash-card" style="border-left: 3px solid #dc3545;">
-                <div class="at-dash-card-header" style="color: #dc3545;">
-                    <i class="bi bi-exclamation-triangle-fill"></i> Reparaciones Atrasadas
-                </div>
-                <div class="at-dash-card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead>
-                                <tr style="background: rgba(0,0,0,.02);">
-                                    <th class="ps-4">ID</th>
-                                    <th>Cliente</th>
-                                    <th>Dispositivo</th>
-                                    <th>Estado</th>
-                                    <th>Alertas</th>
-                                    <th>Ultima Actualizacion</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for rep in reparaciones_atrasadas %}
-                                <tr>
-                                    <td class="ps-4"><strong>#{{ rep.id }}</strong></td>
-                                    <td>{{ rep.cliente or 'Sin asignar' }}</td>
-                                    <td>{{ rep.dispositivo }}</td>
-                                    <td>
-                                        <span class="badge" style="background: rgba(255,193,7,.15); color: #997a00;">{{ rep.estado }}</span>
-                                    </td>
-                                    <td>
-                                        {% if rep.alertas_info.tiene_alertas %}
-                                            <div class="d-flex gap-1 flex-wrap">
-                                                {% for alerta in rep.alertas_info.alertas %}
-                                                <span class="badge bg-{{ alerta.color }} small" title="{{ alerta.mensaje }}">{{ alerta.icono }}</span>
-                                                {% endfor %}
-                                            </div>
-                                        {% else %}
-                                            <span class="text-muted">—</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if rep.ultima_actualizacion %}
-                                            <small class="text-muted">{{ rep.ultima_actualizacion|strftime('%d/%m/%Y %H:%M') }}</small>
-                                        {% else %}
-                                            <span class="badge" style="background: rgba(108,117,125,.1); color: #6c757d;">Nunca</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+    <div class="at-card mb-4">
+        <div class="at-card__head"><span style="color:var(--red);"><i class="bi bi-exclamation-triangle-fill"></i> Reparaciones atrasadas</span></div>
+        <div class="at-table-wrap" style="border:none;border-radius:0;">
+            <table class="at-table">
+                <thead>
+                    <tr><th>ID</th><th>Cliente</th><th>Dispositivo</th><th>Estado</th><th>Alertas</th><th>Última actualización</th></tr>
+                </thead>
+                <tbody>
+                    {% for rep in reparaciones_atrasadas %}
+                    <tr>
+                        <td class="at-mono"><strong>#{{ rep.id }}</strong></td>
+                        <td>{{ rep.cliente or 'Sin asignar' }}</td>
+                        <td>{{ rep.dispositivo }}</td>
+                        <td><span class="at-status at-status--{{ rep.estado|lower|replace(' ','-') }}">{{ rep.estado }}</span></td>
+                        <td>
+                            {% if rep.alertas_info.tiene_alertas %}
+                                <div class="d-flex gap-1 flex-wrap">
+                                    {% for alerta in rep.alertas_info.alertas %}<span class="badge bg-{{ alerta.color }} small" title="{{ alerta.mensaje }}">{{ alerta.icono }}</span>{% endfor %}
+                                </div>
+                            {% else %}<span class="at-dim">—</span>{% endif %}
+                        </td>
+                        <td>{% if rep.ultima_actualizacion %}<small class="at-mono at-dim">{{ rep.ultima_actualizacion|strftime('%d/%m/%Y %H:%M') }}</small>{% else %}<span class="at-dim">Nunca</span>{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
     {% endif %}
