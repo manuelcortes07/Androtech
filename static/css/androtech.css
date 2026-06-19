@@ -275,4 +275,137 @@
   .at-tg,.at-track li{opacity:1!important;transform:none!important}
   .at-particles{display:none}
   .at-scanline{display:none}
+  .at-rise{opacity:1!important;transform:none!important}
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PANEL INTERNO (herramienta de uso diario · movimiento CONTENIDO)
+   Mismo sistema visual que las públicas, sin partículas/auroras/escaneo.
+   ════════════════════════════════════════════════════════════════════════ */
+.at-app{min-height:100vh}
+
+/* Layout shell: sidebar fija + zona principal */
+.at-shell{display:flex;min-height:100vh}
+.at-sidebar{width:248px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;position:fixed;inset:0 auto 0 0;z-index:60;overflow-y:auto}
+.at-side-brand{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk';font-weight:700;font-size:18px;
+  padding:20px 22px;border-bottom:1px solid var(--line);color:var(--text)}
+.at-side-nav{padding:14px 12px;display:flex;flex-direction:column;gap:2px;flex:1}
+.at-side-sect{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);
+  padding:16px 12px 6px}
+.at-nav-link{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;color:var(--dim);
+  font-size:14.5px;font-weight:500;transition:background .18s,color .18s;border:1px solid transparent}
+.at-nav-link i{font-size:17px;width:20px;text-align:center;flex-shrink:0}
+.at-nav-link:hover{background:var(--surface-2);color:var(--text)}
+.at-nav-link.is-active{background:var(--accent-soft);color:var(--accent);border-color:color-mix(in srgb,var(--accent) 22%,transparent)}
+.at-nav-link.is-danger{color:var(--red)}
+.at-nav-link.is-danger:hover{background:color-mix(in srgb,var(--red) 12%,transparent)}
+
+/* Zona principal */
+.at-main{flex:1;min-width:0;margin-left:248px;display:flex;flex-direction:column}
+.at-topbar{position:sticky;top:0;z-index:40;height:64px;display:flex;align-items:center;gap:14px;
+  padding:0 24px;background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line)}
+.at-topbar .at-tb-title{font-family:'Space Grotesk';font-weight:600;font-size:15px;color:var(--text)}
+.at-topbar .at-tb-spacer{flex:1}
+.at-content{padding:26px 24px 56px;width:100%;max-width:1240px;margin:0 auto}
+
+/* Burger (móvil) */
+.at-burger{display:none;width:40px;height:40px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);color:var(--text);cursor:pointer;place-items:center;font-size:18px}
+.at-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:55}
+
+/* Búsqueda en topbar */
+.at-search{display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--line-2);
+  border-radius:10px;padding:7px 12px;max-width:260px;flex:1}
+.at-search input{background:transparent;border:none;outline:none;color:var(--text);font-size:14px;width:100%;font-family:'Inter'}
+.at-search input::placeholder{color:var(--dim)}
+.at-search i{color:var(--dim)}
+
+/* Menú de usuario */
+.at-usermenu{position:relative}
+.at-usermenu-btn{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--line);
+  border-radius:10px;padding:7px 12px;color:var(--text);cursor:pointer;font-size:14px;font-family:'Inter'}
+.at-usermenu-btn .at-avatar{width:26px;height:26px;border-radius:7px;background:var(--accent-soft);color:var(--accent);
+  display:grid;place-items:center;font-size:14px}
+.at-usermenu-btn small{color:var(--dim)}
+.at-usermenu-pop{position:absolute;right:0;top:calc(100% + 8px);min-width:210px;background:var(--surface);
+  border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:6px;display:none;z-index:70}
+.at-usermenu.is-open .at-usermenu-pop{display:block}
+.at-usermenu-pop a{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:8px;color:var(--text);font-size:14px}
+.at-usermenu-pop a:hover{background:var(--surface-2)}
+.at-usermenu-pop a.is-danger{color:var(--red)}
+.at-usermenu-pop hr{border:none;border-top:1px solid var(--line);margin:5px 2px}
+
+/* Encabezado de página */
+.at-page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.at-page-title{font-family:'Space Grotesk';font-weight:700;font-size:clamp(22px,3vw,30px);margin:0;letter-spacing:-.02em}
+.at-page-sub{color:var(--dim);font-size:14.5px;margin:6px 0 0}
+
+/* Tablas */
+.at-table-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--line)}
+.at-table{width:100%;border-collapse:collapse;font-size:14px;background:var(--surface)}
+.at-table th{text-align:left;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--dim);padding:13px 16px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface-2)}
+.at-table td{padding:13px 16px;border-bottom:1px solid var(--line);color:var(--text);vertical-align:middle}
+.at-table tbody tr{transition:background .15s}
+.at-table tbody tr:hover{background:var(--surface-2)}
+.at-table tbody tr:last-child td{border-bottom:none}
+.at-table .at-mono{font-size:13px}
+
+/* KPI / stat cards (panel: sin contadores espectaculares) */
+.at-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.at-stat{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;
+  display:flex;align-items:center;gap:16px;transition:border-color .2s,transform .2s}
+.at-stat:hover{border-color:var(--line-2);transform:translateY(-2px)}
+.at-stat-ic{width:46px;height:46px;border-radius:12px;background:var(--accent-soft);color:var(--accent);
+  display:grid;place-items:center;font-size:22px;flex-shrink:0}
+.at-stat-ic.g{background:color-mix(in srgb,var(--green) 14%,transparent);color:var(--green)}
+.at-stat-ic.am{background:color-mix(in srgb,var(--amber) 14%,transparent);color:var(--amber)}
+.at-stat-ic.c{background:color-mix(in srgb,var(--accent-2) 14%,transparent);color:var(--accent-2)}
+.at-stat-n{font-family:'Space Grotesk';font-weight:700;font-size:28px;line-height:1.1}
+.at-stat-l{font-size:13px;color:var(--dim);margin-top:2px}
+
+/* Formularios extra */
+.at-select,.at-textarea{width:100%;background:var(--surface-2);border:1.5px solid var(--line-2);border-radius:11px;
+  padding:12px 14px;color:var(--text);font-size:15px;font-family:'Inter';transition:border-color .2s,box-shadow .2s}
+.at-select:focus,.at-textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.at-textarea{min-height:110px;resize:vertical}
+.at-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.at-form-row{margin-bottom:16px}
+
+/* Botones extra */
+.at-btn--sm{padding:8px 13px;font-size:13px;border-radius:9px}
+.at-btn--danger{background:var(--red);color:#fff}
+.at-btn--danger:hover{box-shadow:0 12px 28px -12px var(--red);color:#fff}
+.at-btn--outline{background:transparent;color:var(--text);border-color:var(--line-2)}
+.at-btn--outline:hover{border-color:var(--accent);color:var(--accent)}
+.at-btn--icon{padding:8px 10px}
+
+/* Píldora de estado actual latiendo (solo la "viva") */
+.at-status.is-live{animation:at-pulse 1.8s ease-in-out infinite}
+
+/* Entrada sutil escalonada al cargar */
+.at-rise{opacity:0;transform:translateY(10px);animation:at-rise-in .5s cubic-bezier(.2,.7,.2,1) forwards}
+.at-rise-1{animation-delay:.04s}.at-rise-2{animation-delay:.10s}.at-rise-3{animation-delay:.16s}
+.at-rise-4{animation-delay:.22s}.at-rise-5{animation-delay:.28s}.at-rise-6{animation-delay:.34s}
+@keyframes at-rise-in{to{opacity:1;transform:none}}
+
+/* Filas de detalle / ficha */
+.at-deflist{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px 22px}
+.at-deflist .at-field-v{font-weight:600;font-size:15px}
+
+/* Responsive del panel */
+@media(max-width:992px){
+  .at-sidebar{transform:translateX(-100%);transition:transform .25s ease}
+  .at-app.is-sidebar-open .at-sidebar{transform:none}
+  .at-app.is-sidebar-open .at-overlay{display:block}
+  .at-main{margin-left:0}
+  .at-burger{display:grid}
+  .at-search{max-width:none}
+}
+@media(max-width:640px){
+  .at-form-grid{grid-template-columns:1fr}
+  .at-content{padding:20px 16px 48px}
+  .at-search{display:none}
 }

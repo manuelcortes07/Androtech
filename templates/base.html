@@ -3,453 +3,222 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AndroTech - {% block title %}{% endblock %}</title>
+    <title>AndroTech · {% block title %}{% endblock %}</title>
 
-    <!-- Favicon multi-resolucion -->
+    <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/static/favicons/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="/static/favicons/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="64x64" href="/static/favicons/favicon-64x64.png">
-    <link rel="icon" type="image/png" sizes="128x128" href="/static/favicons/favicon-128x128.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/static/favicons/favicon-192x192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="/static/favicons/favicon-512x512.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/static/favicons/apple-touch-icon.png">
 
     <!-- PWA -->
     <link rel="manifest" href="/static/manifest.json">
-    <meta name="theme-color" content="#2B8AC4">
+    <meta name="theme-color" content="#0A0E17">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-    <!-- Bootstrap -->
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-        rel="stylesheet">
-
-        <!-- Estilos propios -->
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-        <!-- Iconos (Bootstrap Icons) -->
-        <link rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <!-- Aplicar dark mode ANTES del render para evitar parpadeo -->
+    <!-- Tema antes del primer pintado (anti-parpadeo), clave compartida con públicas -->
     <script>
     (function(){
-        var t = localStorage.getItem('at-theme');
-        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        }
+        try{
+            var t = localStorage.getItem('at-theme');
+            document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+        }catch(e){ document.documentElement.setAttribute('data-theme','dark'); }
     })();
     </script>
+
+    <!-- Fuentes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap (capa de utilidades para el contenido) + Iconos -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+    <!-- Sistema de diseño AndroTech (carga al final: gana sobre Bootstrap) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/androtech.css') }}">
+    {% block head_extra %}{% endblock %}
 </head>
 
-<body class="bg-light">
+<body class="at-public {% if session.usuario %}at-app{% endif %}">
 
-<!-- NAVBAR REFINADO -->
-<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
-    <div class="container">
+{% if session.usuario %}
+{# ════════════════════════ PANEL INTERNO (logueado) ════════════════════════ #}
+<div class="at-shell">
 
-        <!-- Logo con enlace a home -->
-        <a class="navbar-brand d-flex align-items-center" href="/">
-            <img src="{{ url_for('static', filename='imagenes/logo.jpg') }}" alt="AndroTech" style="height: 42px; width: auto; object-fit: contain;" class="me-2">
-            <span class="fw-bold text-primary" style="font-size: 1.1rem;">AndroTech</span>
-        </a>
-
-        <!-- Botón toggle para móvil -->
-        <button class="navbar-toggler border-0" type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#navbarContent"
-                aria-controls="navbarContent"
-                aria-expanded="false"
-                aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <!-- Contenido colapsable -->
-        <div class="collapse navbar-collapse" id="navbarContent">
-
-            {% if session.usuario %}
-                <!-- Navbar privada (Admin/Técnico) -->
-                <ul class="navbar-nav me-auto align-items-lg-center">
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'dashboard' %}active fw-semibold{% endif %}"
-                           href="/dashboard">
-                            <i class="bi bi-speedometer2"></i><span>Dashboard</span>
-                        </a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle d-flex align-items-center gap-1 {% if request.endpoint == 'clientes' %}active fw-semibold{% endif %}"
-                           href="#" id="clientesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-people"></i><span>Clientes</span>
-                        </a>
-                        <ul class="dropdown-menu shadow-sm" aria-labelledby="clientesDropdown">
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2" href="/clientes">
-                                    <i class="bi bi-list-ul"></i>Listado
-                                </a>
-                            </li>
-                            {% if session.rol == 'admin' %}
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2" href="/cliente/historial">
-                                    <i class="bi bi-clock-history"></i>Historial
-                                </a>
-                            </li>
-                            {% endif %}
-                        </ul>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'reparaciones' %}active fw-semibold{% endif %}"
-                           href="/reparaciones">
-                            <i class="bi bi-tools"></i><span>Reparaciones</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'calendario' %}active fw-semibold{% endif %}"
-                           href="/calendario">
-                            <i class="bi bi-calendar3"></i><span>Calendario</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'servicios' %}active fw-semibold{% endif %}"
-                           href="/servicios">
-                            <i class="bi bi-wrench"></i><span>Servicios</span>
-                        </a>
-                    </li>
-
-                    <!-- Administración (visible si tiene algun permiso de admin) -->
-                    {% if tiene_permiso('usuarios_ver') or tiene_permiso('roles_gestionar') or tiene_permiso('inventario_ver') or session.rol == 'admin' %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle d-flex align-items-center gap-1 text-danger fw-semibold"
-                           href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-shield-exclamation"></i><span>Admin</span>
-                        </a>
-                        <ul class="dropdown-menu shadow-sm" aria-labelledby="adminDropdown">
-                            {% if tiene_permiso('usuarios_ver') %}
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('admin_usuarios') }}">
-                                    <i class="bi bi-people-fill"></i>Gestion de Usuarios
-                                </a>
-                            </li>
-                            {% endif %}
-                            {% if tiene_permiso('roles_gestionar') %}
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('admin_roles') }}">
-                                    <i class="bi bi-shield-lock"></i>Roles y Permisos
-                                </a>
-                            </li>
-                            {% endif %}
-                            {% if tiene_permiso('inventario_ver') %}
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('inventario') }}">
-                                    <i class="bi bi-box-seam"></i>Inventario de Piezas
-                                </a>
-                            </li>
-                            {% endif %}
-                            {% if session.rol == 'admin' %}
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('admin_auditoria') }}">
-                                    <i class="bi bi-clock-history"></i>Auditoría
-                                </a>
-                            </li>
-                            {% endif %}
-                            {% if tiene_permiso('reparaciones_ver') %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('admin_solicitudes') }}">
-                                    <i class="bi bi-clipboard-check"></i>Solicitudes Web
-                                </a>
-                            </li>
-                            {% endif %}
-                            {% if session.rol == 'admin' %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('admin_sistema') }}">
-                                    <i class="bi bi-gear-fill"></i>Estado del Sistema
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('admin_test_email') }}">
-                                    <i class="bi bi-envelope-check-fill"></i>Prueba de Email
-                                </a>
-                            </li>
-                            {% endif %}
-                        </ul>
-                    </li>
-                    {% endif %}
-                </ul>
-
-                <!-- Búsqueda global en navbar -->
-                <form class="d-flex align-items-center ms-auto me-2" action="/buscar" method="get">
-                    <input class="form-control form-control-sm me-1" type="search" placeholder="Buscar..." aria-label="Buscar" name="q" value="{{ request.args.get('q','') }}" minlength="2" style="width: 150px;">
-                    <button class="btn btn-outline-primary btn-sm" type="submit"><i class="bi bi-search"></i></button>
-                </form>
-
-                <!-- Modo oscuro (privado) -->
-                <button id="darkModeToggle" class="btn btn-sm btn-outline-secondary border-0 px-2 me-1" title="Modo oscuro" aria-label="Cambiar tema">
-                    <i class="bi bi-moon-fill"></i>
-                </button>
-
-                <!-- Usuario y logout -->
-                <ul class="navbar-nav align-items-lg-center">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle d-flex align-items-center gap-1 fw-semibold text-dark border-start ps-2"
-                           href="#" id="userDropdown" role="button"
-                           data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-person-circle"></i>
-                            <span>{{ session.usuario }}</span>
-                            <small class="text-muted">({{ session.rol }})</small>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('perfil') }}">
-                                    <i class="bi bi-person-circle"></i>Mi perfil
-                                </a>
-                            </li>
-                            {% if session.rol == 'admin' %}
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('suscripcion') }}">
-                                    <i class="bi bi-credit-card-2-front"></i>Suscripción
-                                </a>
-                            </li>
-                            {% endif %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item text-danger d-flex align-items-center gap-2" href="/logout">
-                                    <i class="bi bi-box-arrow-right"></i>Cerrar Sesion
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
-                </ul>
-
-            {% else %}
-                <!-- Navbar pública (Cliente) -->
-                <ul class="navbar-nav me-auto align-items-lg-center">
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'index' %}active fw-semibold{% endif %}"
-                           href="/">
-                            <i class="bi bi-house"></i><span>Inicio</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'servicios' %}active fw-semibold{% endif %}"
-                           href="/servicios">
-                            <i class="bi bi-wrench"></i><span>Servicios</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'sobre' %}active fw-semibold{% endif %}"
-                           href="/sobre">
-                            <i class="bi bi-info-circle"></i><span>Sobre Nosotros</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'solicitar_reparacion' %}active fw-semibold{% endif %}"
-                           href="/solicitar-reparacion">
-                            <i class="bi bi-clipboard-plus"></i><span>Solicitar Reparacion</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'consulta' %}active fw-semibold{% endif %}"
-                           href="/consulta">
-                            <i class="bi bi-search"></i><span>Consulta</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'mis_reparaciones' %}active fw-semibold{% endif %}"
-                           href="/mis-reparaciones">
-                            <i class="bi bi-list-check"></i><span>Mis reparaciones</span>
-                        </a>
-                    </li>
-                </ul>
-
-                <!-- Modo oscuro + Acceso técnico -->
-                <div class="d-flex align-items-center gap-2">
-                    <button id="darkModeToggle" class="btn btn-sm btn-outline-secondary border-0 px-2" title="Modo oscuro" aria-label="Cambiar tema">
-                        <i class="bi bi-moon-fill"></i>
-                    </button>
-                    <a href="/login" class="btn at-btn-outline-nav btn-sm px-3 d-flex align-items-center gap-1">
-                        <i class="bi bi-shield-lock"></i><span>Acceso tecnico</span>
-                    </a>
-                </div>
+    <!-- Sidebar -->
+    <aside class="at-sidebar" id="atSidebar">
+        <a class="at-side-brand" href="/dashboard"><span class="at-logo">⬡</span>AndroTech</a>
+        <nav class="at-side-nav">
+            <a class="at-nav-link {% if request.endpoint == 'dashboard' %}is-active{% endif %}" href="/dashboard"><i class="bi bi-speedometer2"></i>Dashboard</a>
+            <a class="at-nav-link {% if request.endpoint == 'clientes' %}is-active{% endif %}" href="/clientes"><i class="bi bi-people"></i>Clientes</a>
+            {% if session.rol == 'admin' %}
+            <a class="at-nav-link {% if request.endpoint == 'historial_cliente' %}is-active{% endif %}" href="/cliente/historial"><i class="bi bi-clock-history"></i>Historial clientes</a>
             {% endif %}
+            <a class="at-nav-link {% if request.endpoint == 'reparaciones' %}is-active{% endif %}" href="/reparaciones"><i class="bi bi-tools"></i>Reparaciones</a>
+            <a class="at-nav-link {% if request.endpoint == 'calendario' %}is-active{% endif %}" href="/calendario"><i class="bi bi-calendar3"></i>Calendario</a>
+            <a class="at-nav-link {% if request.endpoint == 'servicios' %}is-active{% endif %}" href="/servicios"><i class="bi bi-wrench"></i>Servicios</a>
 
+            {% if tiene_permiso('usuarios_ver') or tiene_permiso('roles_gestionar') or tiene_permiso('inventario_ver') or session.rol == 'admin' %}
+            <div class="at-side-sect">Administración</div>
+            {% if tiene_permiso('inventario_ver') %}
+            <a class="at-nav-link {% if request.endpoint == 'inventario' %}is-active{% endif %}" href="{{ url_for('inventario') }}"><i class="bi bi-box-seam"></i>Inventario</a>
+            {% endif %}
+            {% if tiene_permiso('usuarios_ver') %}
+            <a class="at-nav-link {% if request.endpoint == 'admin_usuarios' %}is-active{% endif %}" href="{{ url_for('admin_usuarios') }}"><i class="bi bi-people-fill"></i>Usuarios</a>
+            {% endif %}
+            {% if tiene_permiso('roles_gestionar') %}
+            <a class="at-nav-link {% if request.endpoint == 'admin_roles' %}is-active{% endif %}" href="{{ url_for('admin_roles') }}"><i class="bi bi-shield-lock"></i>Roles y permisos</a>
+            {% endif %}
+            {% if tiene_permiso('reparaciones_ver') %}
+            <a class="at-nav-link {% if request.endpoint == 'admin_solicitudes' %}is-active{% endif %}" href="{{ url_for('admin_solicitudes') }}"><i class="bi bi-clipboard-check"></i>Solicitudes web</a>
+            {% endif %}
+            {% if session.rol == 'admin' %}
+            <a class="at-nav-link {% if request.endpoint == 'admin_auditoria' %}is-active{% endif %}" href="{{ url_for('admin_auditoria') }}"><i class="bi bi-journal-text"></i>Auditoría</a>
+            <a class="at-nav-link {% if request.endpoint == 'admin_sistema' %}is-active{% endif %}" href="{{ url_for('admin_sistema') }}"><i class="bi bi-gear-fill"></i>Estado del sistema</a>
+            <a class="at-nav-link {% if request.endpoint == 'admin_test_email' %}is-active{% endif %}" href="{{ url_for('admin_test_email') }}"><i class="bi bi-envelope-check-fill"></i>Prueba de email</a>
+            {% endif %}
+            {% endif %}
+        </nav>
+    </aside>
+    <div class="at-overlay" id="atOverlay"></div>
+
+    <!-- Zona principal -->
+    <div class="at-main">
+        <header class="at-topbar">
+            <button class="at-burger" id="atBurger" type="button" aria-label="Menú"><i class="bi bi-list"></i></button>
+            <form class="at-search" action="/buscar" method="get" role="search">
+                <i class="bi bi-search"></i>
+                <input type="search" name="q" placeholder="Buscar clientes, reparaciones…" aria-label="Buscar" value="{{ request.args.get('q','') }}" minlength="2">
+            </form>
+            <div class="at-tb-spacer"></div>
+            <button class="at-tgl" id="atThemeToggle" type="button" aria-label="Cambiar tema">☀</button>
+            <div class="at-usermenu" id="atUserMenu">
+                <button class="at-usermenu-btn" type="button" id="atUserBtn">
+                    <span class="at-avatar"><i class="bi bi-person"></i></span>
+                    <span>{{ session.usuario }} <small>({{ session.rol }})</small></span>
+                    <i class="bi bi-chevron-down" style="font-size:12px;"></i>
+                </button>
+                <div class="at-usermenu-pop">
+                    <a href="{{ url_for('perfil') }}"><i class="bi bi-person-circle"></i>Mi perfil</a>
+                    {% if session.rol == 'admin' %}
+                    <a href="{{ url_for('suscripcion') }}"><i class="bi bi-credit-card-2-front"></i>Suscripción</a>
+                    {% endif %}
+                    <hr>
+                    <a href="/logout" class="is-danger"><i class="bi bi-box-arrow-right"></i>Cerrar sesión</a>
+                </div>
+            </div>
+        </header>
+
+        <main class="at-content">
+{% else %}
+{# ════════════════════════ PÚBLICO (sin login) ════════════════════════ #}
+<header class="at-header">
+    <div class="at-wrap at-nav">
+        <a class="at-brand" href="/"><span class="at-logo">⬡</span>AndroTech</a>
+        <nav class="at-navlinks">
+            <a href="/" class="{{ 'is-active' if request.endpoint == 'index' }}">Inicio</a>
+            <a href="/servicios" class="{{ 'is-active' if request.endpoint == 'servicios' }}">Servicios</a>
+            <a href="/sobre" class="{{ 'is-active' if request.endpoint == 'sobre' }}">Sobre nosotros</a>
+            <a href="/consulta" class="{{ 'is-active' if request.endpoint == 'consulta' }}">Seguimiento</a>
+            <a href="/mis-reparaciones" class="{{ 'is-active' if request.endpoint == 'mis_reparaciones' }}">Mis reparaciones</a>
+        </nav>
+        <div class="at-nav-r">
+            <button class="at-tgl" id="atThemeToggle" type="button" aria-label="Cambiar tema">☀</button>
+            <a class="at-btn at-btn--ghost" href="/login"><i class="bi bi-shield-lock"></i><span class="d-none d-sm-inline">Acceso técnico</span></a>
+            <a class="at-btn at-btn--primary" href="/solicitar-reparacion">Solicitar <span class="at-ar">→</span></a>
         </div>
     </div>
-</nav>
+</header>
+<div class="at-public-main">
+{% endif %}
 
-
-<!-- CONTENIDO PRINCIPAL -->
-<div class="container-fluid px-0">
-    <div class="container">
-
-        <!-- Mensajes tipo flash (errores, éxito, etc.) -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="mt-3">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
-
-        {# Aviso NO bloqueante de verificación de email (B3.2) #}
-        {% if email_pendiente_verificar %}
-            <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2" role="alert">
-                <i class="bi bi-envelope-exclamation-fill"></i>
-                <span>Tu email aún no está verificado. Revisa tu correo para activar todas las funciones.</span>
-                <form method="POST" action="{{ url_for('reenviar_verificacion') }}" class="ms-auto mb-0">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <button type="submit" class="btn btn-sm btn-outline-dark">Reenviar enlace</button>
-                </form>
+{# ── Mensajes flash + aviso de verificación (compartidos) ── #}
+<div class="{% if not session.usuario %}at-wrap{% endif %}" {% if not session.usuario %}style="margin-top:18px;"{% endif %}>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="at-alert at-alert--{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'warning' if category == 'warning' else 'info' }}" role="alert" style="margin-bottom:12px;">
+                <i class="bi bi-info-circle-fill"></i><span>{{ message }}</span>
             </div>
+            {% endfor %}
         {% endif %}
-
-        <!-- Bloque de contenido principal -->
-        {% block content %}{% endblock %}
-
+    {% endwith %}
+    {% if session.usuario and email_pendiente_verificar %}
+    <div class="at-alert at-alert--warning" role="alert" style="margin-bottom:12px;">
+        <i class="bi bi-envelope-exclamation-fill"></i>
+        <span>Tu email aún no está verificado. Revisa tu correo para activar todas las funciones.</span>
+        <form method="POST" action="{{ url_for('reenviar_verificacion') }}" style="margin-left:auto;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="at-btn at-btn--outline at-btn--sm">Reenviar enlace</button>
+        </form>
     </div>
+    {% endif %}
 </div>
 
+{% block content %}{% endblock %}
 
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-<!-- Script de validación de formularios (Bootstrap) -->
-<script>
-    (function () {
-        'use strict'
-
-        // Selecciona todos los formularios que requieran validación (usar clase needs-validation)
-        var forms = document.querySelectorAll('.needs-validation')
-
-        Array.prototype.slice.call(forms)
-            .forEach(function (form) {
-                form.addEventListener('submit', function (event) {
-                    if (!form.checkValidity()) {
-                        event.preventDefault()
-                        event.stopPropagation()
-                    }
-                    form.classList.add('was-validated')
-                }, false)
-            })
-    })();
-</script>
-
-<!-- FOOTER -->
+{% if session.usuario %}
+        </main>
+    </div>
+</div>
+{% else %}
+</div>{# /at-public-main #}
 <footer class="at-footer">
-    <div class="container">
-        <div class="row g-4">
-            <!-- Marca + descripción -->
-            <div class="col-md-4 footer-col">
-                <div class="d-flex align-items-center mb-2">
-                    <img src="{{ url_for('static', filename='imagenes/logo.jpg') }}" alt="AndroTech" style="width:36px;height:36px;border-radius:50%;object-fit:cover" class="me-2">
-                    <span class="fw-bold at-footer-brand">AndroTech</span>
-                </div>
-                <p class="at-footer-desc">Taller tecnico en Huelva especializado en reparacion de moviles, tablets y ordenadores. Servicio profesional con garantia.</p>
-            </div>
-
-            <!-- Enlaces -->
-            <div class="col-md-4 footer-col">
-                <h6 class="at-footer-heading">Enlaces</h6>
-                <div class="d-flex flex-column">
-                    {% if session.usuario %}
-                        <a href="/dashboard" class="at-footer-link">Dashboard</a>
-                        <a href="/clientes" class="at-footer-link">Clientes</a>
-                        <a href="/reparaciones" class="at-footer-link">Reparaciones</a>
-                    {% else %}
-                        <a href="/" class="at-footer-link">Inicio</a>
-                        <a href="/servicios" class="at-footer-link">Servicios</a>
-                        <a href="/solicitar-reparacion" class="at-footer-link">Solicitar reparacion</a>
-                        <a href="/consulta" class="at-footer-link">Consultar reparacion</a>
-                        <a href="/mis-reparaciones" class="at-footer-link">Mis reparaciones</a>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Contacto -->
-            <div class="col-md-4 footer-col">
-                <h6 class="at-footer-heading">Contacto</h6>
-                <div class="at-footer-contact">
-                    <div><i class="bi bi-geo-alt me-1"></i>Huelva, España</div>
-                    <div><i class="bi bi-envelope me-1"></i><a href="mailto:manuelcortescontreras11@gmail.com" class="at-footer-link">manuelcortescontreras11@gmail.com</a></div>
-                    <div><i class="bi bi-telephone me-1"></i><a href="tel:+34633234395" class="at-footer-link">+34 633 234 395</a></div>
-                    <div><a href="https://wa.me/34633234395" target="_blank" rel="noopener" class="at-footer-link"><i class="bi bi-whatsapp me-1" style="color:#25D366 !important;"></i>WhatsApp</a></div>
-                </div>
-            </div>
-        </div>
-
-        <hr class="my-3 opacity-25">
-        <div class="text-center">
-            <small class="at-footer-copy">&copy; <span id="footer-year"></span> AndroTech &middot; Proyecto academico</small>
-        </div>
+    <div class="at-wrap at-foot">
+        <a class="at-brand" href="/" style="font-size:16px;"><span class="at-logo" style="width:28px;height:28px;font-size:14px;">⬡</span>AndroTech</a>
+        <div class="at-mono" style="font-size:13px;">Huelva · Lun–Vie 9:30–20:00 · <a href="tel:+34633234395">+34 633 234 395</a></div>
+        <div>© <span id="atYear"></span> AndroTech</div>
     </div>
 </footer>
+{% endif %}
 
-<!-- Script para navbar sticky con sombra dinámica -->
+<!-- Bootstrap JS (modales/colapsables del contenido) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- JS del sistema: tema, burger, menú de usuario, año -->
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const navbar = document.querySelector('.navbar');
-        const navbarToggler = document.querySelector('.navbar-toggler');
-
-        // Función para manejar el scroll
-        function handleScroll() {
-            if (window.scrollY > 10) {
-                navbar.classList.add('navbar-scrolled');
-            } else {
-                navbar.classList.remove('navbar-scrolled');
-            }
-        }
-
-        // Función para cerrar el menú móvil al hacer click en un enlace
-        function closeMobileMenu() {
-            if (window.innerWidth < 992) { // Solo en móvil/tablet
-                const navbarCollapse = document.querySelector('#navbarContent');
-                if (navbarCollapse.classList.contains('show')) {
-                    navbarToggler.click();
-                }
-            }
-        }
-
-        // Event listeners
-        window.addEventListener('scroll', handleScroll);
-        document.querySelectorAll('.navbar-nav .nav-link').forEach(link => {
-            link.addEventListener('click', closeMobileMenu);
+(function(){
+    var html = document.documentElement;
+    var tgl = document.getElementById('atThemeToggle');
+    function syncIcon(){ if(tgl) tgl.textContent = html.getAttribute('data-theme') === 'dark' ? '☀' : '☾'; }
+    syncIcon();
+    if(tgl){
+        tgl.addEventListener('click', function(){
+            var dark = html.getAttribute('data-theme') === 'dark';
+            html.setAttribute('data-theme', dark ? 'light' : 'dark');
+            try{ localStorage.setItem('at-theme', dark ? 'light' : 'dark'); }catch(e){}
+            syncIcon();
         });
+    }
 
-        // Insertar año dinámico en footer
-        const footerYear = document.getElementById('footer-year');
-        if (footerYear) {
-            footerYear.textContent = new Date().getFullYear();
-        }
+    // Año footer
+    var y = document.getElementById('atYear');
+    if(y) y.textContent = new Date().getFullYear();
 
-        // ── Dark mode toggle ──────────────────────────────────
-        const toggleBtn = document.getElementById('darkModeToggle');
-        if (toggleBtn) {
-            const icon = toggleBtn.querySelector('i');
-            const html = document.documentElement;
+    // Burger (sidebar móvil)
+    var app = document.querySelector('.at-app');
+    var burger = document.getElementById('atBurger');
+    var overlay = document.getElementById('atOverlay');
+    function closeSide(){ if(app) app.classList.remove('is-sidebar-open'); }
+    if(burger && app){ burger.addEventListener('click', function(){ app.classList.toggle('is-sidebar-open'); }); }
+    if(overlay){ overlay.addEventListener('click', closeSide); }
 
-            // Sincronizar icono con el estado actual (tema ya aplicado en <head>)
-            if (html.getAttribute('data-theme') === 'dark') {
-                icon.classList.replace('bi-moon-fill', 'bi-sun-fill');
-            }
+    // Menú de usuario
+    var um = document.getElementById('atUserMenu');
+    var ub = document.getElementById('atUserBtn');
+    if(um && ub){
+        ub.addEventListener('click', function(e){ e.stopPropagation(); um.classList.toggle('is-open'); });
+        document.addEventListener('click', function(){ um.classList.remove('is-open'); });
+    }
 
-            toggleBtn.addEventListener('click', function () {
-                const isDark = html.getAttribute('data-theme') === 'dark';
-                if (isDark) {
-                    html.removeAttribute('data-theme');
-                    icon.classList.replace('bi-sun-fill', 'bi-moon-fill');
-                    localStorage.setItem('at-theme', 'light');
-                } else {
-                    html.setAttribute('data-theme', 'dark');
-                    icon.classList.replace('bi-moon-fill', 'bi-sun-fill');
-                    localStorage.setItem('at-theme', 'dark');
-                }
-            });
-        }
+    // Validación Bootstrap (formularios .needs-validation)
+    document.querySelectorAll('.needs-validation').forEach(function(form){
+        form.addEventListener('submit', function(e){
+            if(!form.checkValidity()){ e.preventDefault(); e.stopPropagation(); }
+            form.classList.add('was-validated');
+        }, false);
     });
+})();
 </script>
 
 {% block scripts %}{% endblock %}
@@ -457,8 +226,7 @@
 <!-- Service Worker -->
 <script>
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/static/sw.js', { scope: '/' })
-        .catch(function() {});
+    navigator.serviceWorker.register('/static/sw.js', { scope: '/' }).catch(function(){});
 }
 </script>
 
