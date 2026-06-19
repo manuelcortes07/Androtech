@@ -37,7 +37,7 @@
                         </div>
                     </div>
                     {% if reparacion.descripcion %}
-                    <div class="mt-3 pt-3" style="border-top:1px solid rgba(0,0,0,.06);">
+                    <div class="mt-3 pt-3" style="border-top:1px solid var(--line);">
                         <div class="text-muted" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;">Descripcion</div>
                         <div>{{ reparacion.descripcion }}</div>
                     </div>
@@ -89,7 +89,7 @@
 
                     <div id="firmaMsg" class="mt-3 d-none"></div>
 
-                    <div class="mt-3 pt-3" style="border-top:1px solid rgba(0,0,0,.06);">
+                    <div class="mt-3 pt-3" style="border-top:1px solid var(--line);">
                         <a href="/reparaciones/editar/{{ reparacion.id }}" class="at-btn-outline btn btn-sm">
                             <i class="bi bi-arrow-left me-1"></i>Volver a la reparacion
                         </a>
@@ -97,7 +97,7 @@
                 </div>
             </div>
 
-            <div class="text-center mt-3" style="font-size:.78rem;color:#9ba5b0;">
+            <div class="text-center mt-3" style="font-size:.78rem;color:var(--dim);">
                 <i class="bi bi-lock-fill me-1"></i>La firma se almacena de forma segura y asociada a la reparacion #{{ reparacion.id }}
             </div>
         </div>

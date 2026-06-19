@@ -448,3 +448,92 @@
 
 /* Alertas Bootstrap residuales → look del sistema */
 .at-public .alert{border-radius:12px;border:1px solid var(--line)}
+
+/* ════════════════════════════════════════════════════════════════════════
+   ALIAS LEGADO → tema AndroTech
+   El style.css antiguo ya NO se carga en el panel. Estas reglas reestilan las
+   clases heredadas (at-pill, at-admin-*, at-dash-*, at-btn-primary/outline…)
+   con los tokens nuevos, para que CUALQUIER plantilla aún sin reescribir se vea
+   coherente. Las páginas reescritas usan los componentes nativos (.at-card,
+   .at-btn--…, .at-stat) y no dependen de estos alias.
+   ════════════════════════════════════════════════════════════════════════ */
+.at-public .at-pill{display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono';
+  font-size:12px;letter-spacing:.04em;color:var(--accent);background:var(--accent-soft);
+  border:1px solid color-mix(in srgb,var(--accent) 22%,transparent);padding:5px 12px;border-radius:30px;text-transform:uppercase}
+.at-public .at-section-title{font-family:'Space Grotesk';font-weight:700;letter-spacing:-.02em;
+  font-size:clamp(22px,3vw,30px);color:var(--text)}
+.at-public .at-section-sub{color:var(--dim);font-size:14.5px}
+
+.at-public .at-admin-card,.at-public .at-dash-card{background:var(--surface);border:1px solid var(--line);
+  border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+.at-public .at-admin-card-header,.at-public .at-dash-card-header{padding:16px 20px;border-bottom:1px solid var(--line);
+  font-family:'Space Grotesk';font-weight:600;color:var(--text)}
+.at-public .at-dash-card-body{padding:20px}
+
+.at-public .at-dash-kpi{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;
+  display:flex;align-items:center;gap:16px}
+.at-public .at-dash-kpi-icon{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:22px;flex-shrink:0}
+.at-public .at-dash-kpi-value{font-family:'Space Grotesk';font-weight:700;font-size:26px;line-height:1.1;color:var(--text)}
+.at-public .at-dash-kpi-label{font-size:13px;color:var(--dim);margin-top:2px}
+
+.at-public .at-admin-table{width:100%;color:var(--text)}
+.at-public .at-admin-table thead th{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--dim);
+  background:var(--surface-2);border-bottom:1px solid var(--line);padding:13px 16px}
+.at-public .at-admin-table td{padding:13px 16px;border-bottom:1px solid var(--line)}
+
+.at-public .at-empty-state{color:var(--dim)}
+
+/* Botones legados (con o sin .btn de Bootstrap) */
+.at-public .at-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  background:var(--accent);color:#fff;border:1px solid var(--accent);font-weight:600;border-radius:11px;
+  padding:11px 20px;font-size:14.5px;cursor:pointer;text-decoration:none;box-shadow:0 10px 30px -10px var(--accent)}
+.at-public .at-btn-primary:hover{color:#fff;box-shadow:0 16px 38px -10px var(--accent)}
+.at-public .at-btn-outline{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  background:transparent;color:var(--text);border:1px solid var(--line-2);font-weight:600;border-radius:11px;
+  padding:11px 20px;font-size:14.5px;cursor:pointer;text-decoration:none}
+.at-public .at-btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.at-public .at-btn-outline-nav{color:var(--text);border:1px solid var(--line-2);border-radius:10px}
+
+/* ── Componentes interactivos de la ficha de reparación ─────────────────── */
+.at-dash-dot{width:12px;height:12px;border-radius:50%;display:block}
+
+/* Galería de fotos */
+.at-photo-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.at-photo-gallery-item{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:1;border:1px solid var(--line);background:var(--surface-2)}
+.at-photo-gallery-item img{width:100%;height:100%;object-fit:cover;cursor:pointer;display:block}
+.at-photo-gallery-overlay{position:absolute;inset:auto 0 0 0;display:flex;align-items:center;justify-content:space-between;
+  gap:6px;padding:6px 8px;background:linear-gradient(transparent,rgba(0,0,0,.7));opacity:0;transition:opacity .2s}
+.at-photo-gallery-item:hover .at-photo-gallery-overlay{opacity:1}
+
+/* Dropzone de subida */
+.at-photo-dropzone{border:2px dashed var(--line-2);border-radius:14px;background:var(--surface-2);transition:border-color .2s,background .2s}
+.at-photo-dropzone-active{border-color:var(--accent);background:var(--accent-soft)}
+.at-photo-dropzone-content{padding:22px;text-align:center;cursor:pointer}
+.at-photo-preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.at-photo-preview-item{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+.at-photo-preview-item img{width:100%;height:84px;object-fit:cover;display:block}
+.at-photo-preview-remove{position:absolute;top:4px;right:4px;border:none;border-radius:6px;background:rgba(220,53,69,.85);color:#fff;cursor:pointer;padding:2px 7px}
+.at-photo-preview-name{font-size:.65rem;color:var(--dim);padding:3px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Notas internas */
+.at-notes-list{display:flex;flex-direction:column;gap:10px}
+.at-note-item{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.at-note-important{border-left:3px solid var(--amber)}
+
+/* Autocomplete de piezas */
+.at-autocomplete-dropdown{position:absolute;z-index:30;display:none;width:100%;margin-top:4px;background:var(--surface);
+  border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;max-height:240px;overflow-y:auto}
+.at-autocomplete-item{padding:9px 12px;cursor:pointer;font-size:14px;color:var(--text)}
+.at-autocomplete-item:hover{background:var(--surface-2)}
+
+/* Firma */
+.at-signature-preview{max-width:220px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:6px}
+.at-signature-container{border:2px dashed var(--line-2);border-radius:14px;background:var(--surface-2);overflow:hidden;touch-action:none}
+.at-signature-container canvas{display:block;width:100%;cursor:crosshair}
+
+/* Lightbox */
+.at-lightbox{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.82);display:grid;place-items:center;padding:24px}
+.at-lightbox-content{position:relative;max-width:92vw;max-height:92vh}
+.at-lightbox-content img{max-width:92vw;max-height:92vh;border-radius:12px;display:block}
+.at-lightbox-close{position:absolute;top:-14px;right:-14px;width:36px;height:36px;border-radius:50%;border:none;
+  background:var(--surface);color:var(--text);cursor:pointer;box-shadow:var(--shadow)}
