@@ -342,7 +342,7 @@
 (function() {
     // Detectar tema actual
     const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
-    const textColor = () => isDark() ? '#9ba5b0' : '#6c757d';
+    const textColor = () => isDark() ? 'var(--dim)' : '#6c757d';
     const gridColor = () => isDark() ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
 
     // Defaults globales
@@ -391,7 +391,7 @@
                     tooltip: {
                         backgroundColor: isDark() ? '#1a2332' : '#fff',
                         titleColor: isDark() ? '#e4e8ec' : '#212529',
-                        bodyColor: isDark() ? '#9ba5b0' : '#6c757d',
+                        bodyColor: isDark() ? 'var(--dim)' : '#6c757d',
                         borderColor: isDark() ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.1)',
                         borderWidth: 1,
                         cornerRadius: 10,
@@ -439,7 +439,7 @@
                     tooltip: {
                         backgroundColor: isDark() ? '#1a2332' : '#fff',
                         titleColor: isDark() ? '#e4e8ec' : '#212529',
-                        bodyColor: isDark() ? '#9ba5b0' : '#6c757d',
+                        bodyColor: isDark() ? 'var(--dim)' : '#6c757d',
                         borderColor: isDark() ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.1)',
                         borderWidth: 1,
                         cornerRadius: 10,
@@ -496,7 +496,7 @@
                     tooltip: {
                         backgroundColor: isDark() ? '#1a2332' : '#fff',
                         titleColor: isDark() ? '#e4e8ec' : '#212529',
-                        bodyColor: isDark() ? '#9ba5b0' : '#6c757d',
+                        bodyColor: isDark() ? 'var(--dim)' : '#6c757d',
                         borderColor: isDark() ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.1)',
                         borderWidth: 1,
                         cornerRadius: 10,
@@ -555,7 +555,7 @@
                     tooltip: {
                         backgroundColor: isDark() ? '#1a2332' : '#fff',
                         titleColor: isDark() ? '#e4e8ec' : '#212529',
-                        bodyColor: isDark() ? '#9ba5b0' : '#6c757d',
+                        bodyColor: isDark() ? 'var(--dim)' : '#6c757d',
                         borderColor: isDark() ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.1)',
                         borderWidth: 1,
                         cornerRadius: 10,

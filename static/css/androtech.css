@@ -449,6 +449,40 @@
 /* Alertas Bootstrap residuales → look del sistema */
 .at-public .alert{border-radius:12px;border:1px solid var(--line)}
 
+/* Cards / botones / texto Bootstrap dentro del panel y públicas */
+.at-public .card{background:var(--surface);border:1px solid var(--line);color:var(--text);border-radius:16px;box-shadow:var(--shadow)}
+.at-public .card-title,.at-public .card-header{color:var(--text)}
+.at-public .card-header{background:var(--surface-2);border-color:var(--line)}
+.at-public .card-footer{background:var(--surface-2);border-color:var(--line)}
+.at-public .text-muted{color:var(--dim)!important}
+.at-public .text-dark{color:var(--text)!important}
+.at-public .bg-light{background:var(--surface-2)!important}
+.at-public .border-top,.at-public .border-bottom,.at-public .border{border-color:var(--line)!important}
+.at-public .btn-primary{background:var(--accent);border-color:var(--accent)}
+.at-public .btn-primary:hover{background:color-mix(in srgb,var(--accent) 88%,#000);border-color:var(--accent)}
+.at-public .btn-outline-primary{color:var(--accent);border-color:var(--accent)}
+.at-public .btn-outline-primary:hover{background:var(--accent);color:#fff}
+.at-public .btn-outline-secondary{color:var(--text);border-color:var(--line-2)}
+.at-public .btn-outline-secondary:hover{background:var(--surface-2);color:var(--text);border-color:var(--line-2)}
+.at-public .btn-secondary{background:var(--surface-2);border-color:var(--line-2);color:var(--text)}
+
+/* ── Alias legado de páginas públicas/marketing (servicios, sobre, contacto…) ── */
+.at-public .at-hero{padding:48px 0 24px;text-align:center}
+.at-public .at-hero-title{font-family:'Space Grotesk';font-weight:700;letter-spacing:-.02em;font-size:clamp(28px,4vw,42px);color:var(--text)}
+.at-public .at-hero-sub{color:var(--dim);font-size:17px;max-width:60ch;margin:14px auto 0}
+.at-public .at-section{padding:48px 0}
+.at-public .at-services-grid,.at-public .at-about-features{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.at-public .at-service-card,.at-public .at-feature{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;box-shadow:var(--shadow);transition:transform .2s,border-color .2s}
+.at-public .at-service-card:hover,.at-public .at-feature:hover{transform:translateY(-3px);border-color:var(--line-2)}
+.at-public .at-service-icon,.at-public .at-feature-icon{width:48px;height:48px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:22px;margin-bottom:14px}
+.at-public .at-service-title,.at-public .at-feature-title{font-family:'Space Grotesk';font-weight:600;font-size:18px;color:var(--text)}
+.at-public .at-service-desc,.at-public .at-feature-desc{color:var(--dim);font-size:14.5px;margin-top:6px}
+.at-public .at-service-price{display:inline-block;margin-top:12px;font-family:'JetBrains Mono';font-weight:600;color:var(--accent);background:var(--accent-soft);padding:5px 12px;border-radius:20px;font-size:13px}
+.at-public .at-about-section{padding:40px 0}
+.at-public .at-about-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center}
+.at-public .at-about-text,.at-public .at-about-desc{color:var(--dim)}
+@media(max-width:760px){.at-public .at-about-grid{grid-template-columns:1fr}}
+
 /* ════════════════════════════════════════════════════════════════════════
    ALIAS LEGADO → tema AndroTech
    El style.css antiguo ya NO se carga en el panel. Estas reglas reestilan las

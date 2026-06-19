@@ -54,7 +54,7 @@
             <!-- Header -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h3 class="fw-bold mb-1" style="color: #0F1923;">Hola, {{ cliente_nombre }}</h3>
+                    <h3 class="fw-bold mb-1" style="color: var(--text);">Hola, {{ cliente_nombre }}</h3>
                     <p class="text-muted mb-0">Tienes {{ reparaciones|length }} reparacion{{ 'es' if reparaciones|length != 1 else '' }} registrada{{ 's' if reparaciones|length != 1 else '' }}.</p>
                 </div>
                 <span class="at-pill">{{ email_buscado }}</span>
@@ -89,7 +89,7 @@
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <div>
-                            <h5 class="fw-bold mb-1" style="color: #0F1923;">
+                            <h5 class="fw-bold mb-1" style="color: var(--text);">
                                 #{{ rep.id }} &mdash; {{ rep.dispositivo }}
                             </h5>
                             <p class="text-muted small mb-0">{{ rep.descripcion or 'Sin descripcion' }}</p>
