@@ -144,7 +144,7 @@
                         <!-- Estado -->
                         <div class="mt-3">
                             <label for="estado" class="form-label">Estado</label>
-                            <select id="estado" name="estado" class="form-select" onchange="verificarCambioEstado(this)">
+                            <select id="estado" name="estado" class="form-select">
                                 {% for est in estados_disponibles %}
                                 <option value="{{ est }}" {% if reparacion.estado == est %}selected{% endif %}>{{ est }}</option>
                                 {% endfor %}
@@ -216,11 +216,11 @@
                             <div class="at-photo-gallery-item">
                                 <img src="{{ url_for('static', filename='uploads/reparaciones/' + foto.filename) }}"
                                      alt="Foto reparacion"
-                                     onclick="abrirLightbox('{{ url_for('static', filename='uploads/reparaciones/' + foto.filename) }}')">
+                                     data-lightbox-src="{{ url_for('static', filename='uploads/reparaciones/' + foto.filename) }}">
                                 <div class="at-photo-gallery-overlay">
                                     <small class="text-white">{{ foto.fecha_subida|strftime('%d/%m/%Y') }}</small>
                                     <form action="/reparaciones/fotos/{{ foto.id }}/eliminar" method="POST"
-                                          onsubmit="return confirm('Eliminar esta foto?');" class="at-u185">
+                                          data-confirm="Eliminar esta foto?" class="at-u185">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                         <button type="submit" class="btn btn-sm at-u186">
                                             <i class="bi bi-trash"></i>
@@ -242,7 +242,7 @@
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                             <div class="at-photo-dropzone" id="photoDropzone">
                                 <input type="file" name="fotos" id="fotosInput" multiple accept="image/*" class="d-none">
-                                <div class="at-photo-dropzone-content" onclick="document.getElementById('fotosInput').click()">
+                                <div class="at-photo-dropzone-content">
                                     <i class="bi bi-cloud-arrow-up at-u189"></i>
                                     <p class="mb-0 fw-semibold at-u190">Arrastra fotos o haz clic para seleccionar</p>
                                     <small class="text-muted">PNG, JPG, WebP o GIF &middot; Max 5MB por foto</small>
@@ -319,7 +319,7 @@
                                     <td class="text-muted">{{ p.fecha_uso|strftime('%d/%m/%Y') }}</td>
                                     <td class="text-end">
                                         <form action="/reparaciones/piezas/{{ p.id }}/eliminar" method="POST"
-                                              onsubmit="return confirm('Quitar esta pieza? Se devolvera al inventario.');" class="at-u185">
+                                              data-confirm="Quitar esta pieza? Se devolvera al inventario." class="at-u185">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                             <button type="submit" class="btn btn-sm at-u195" title="Quitar pieza">
                                                 <i class="bi bi-x-lg at-u196"></i>
@@ -396,7 +396,7 @@
                                 </div>
                                 {% if nota.usuario == session.get('usuario') or session.get('rol') == 'admin' %}
                                 <form action="/reparaciones/notas/{{ nota.id }}/eliminar" method="POST"
-                                      onsubmit="return confirm('Eliminar esta nota?');" class="at-u185">
+                                      data-confirm="Eliminar esta nota?" class="at-u185">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                     <button type="submit" class="btn btn-sm at-u195" title="Eliminar nota">
                                         <i class="bi bi-trash at-u202"></i>
@@ -531,7 +531,7 @@
             <div class="modal-footer at-u210">
                 <button type="button" class="at-btn-outline btn btn-sm" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="at-btn-primary btn btn-sm at-u214" id="confirmEstadoBtn"
-                        onclick="confirmarCambioEstado()">
+                        >
                     <i class="bi bi-check-lg me-1"></i>Si, cambiar estado
                 </button>
             </div>
@@ -687,17 +687,28 @@ function confirmarCambioEstado() {
 function abrirLightbox(src) {
     const overlay = document.createElement('div');
     overlay.className = 'at-lightbox';
-    overlay.innerHTML = `
-        <div class="at-lightbox-content">
-            <img src="${src}" alt="Foto ampliada">
-            <button class="at-lightbox-close" onclick="this.closest('.at-lightbox').remove()">
-                <i class="bi bi-x-lg"></i>
-            </button>
-        </div>
-    `;
+    var content = document.createElement('div'); content.className = 'at-lightbox-content';
+    var img = document.createElement('img'); img.src = src; img.alt = 'Foto ampliada';
+    var close = document.createElement('button'); close.className = 'at-lightbox-close';
+    close.innerHTML = '<i class="bi bi-x-lg"></i>';
+    close.addEventListener('click', function(){ overlay.remove(); });
+    content.appendChild(img); content.appendChild(close); overlay.appendChild(content);
     overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
     document.body.appendChild(overlay);
 }
+
+// ── Wiring de eventos (ex-handlers inline) ──
+(function(){
+    var est = document.getElementById('estado');
+    if(est) est.addEventListener('change', function(){ verificarCambioEstado(est); });
+    var ceb = document.getElementById('confirmEstadoBtn');
+    if(ceb) ceb.addEventListener('click', confirmarCambioEstado);
+    var dzc = document.querySelector('.at-photo-dropzone-content');
+    if(dzc) dzc.addEventListener('click', function(){ document.getElementById('fotosInput').click(); });
+    document.querySelectorAll('[data-lightbox-src]').forEach(function(el){
+        el.addEventListener('click', function(){ abrirLightbox(el.getAttribute('data-lightbox-src')); });
+    });
+})();
 </script>
 
 {% endblock %}

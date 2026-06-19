@@ -128,7 +128,7 @@
                     </div>
                     {% elif s.estado == 'rechazada' %}
                     <form method="POST" action="{{ url_for('borrar_solicitud', id=s.id) }}" class="d-inline"
-                          onsubmit="return confirm('Eliminar esta solicitud permanentemente?');">
+                          data-confirm="Eliminar esta solicitud permanentemente?">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <button class="btn btn-outline-danger btn-sm px-3">
                             <i class="bi bi-trash me-1"></i>Eliminar

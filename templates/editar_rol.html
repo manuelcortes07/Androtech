@@ -57,10 +57,10 @@
                         <span><i class="bi bi-key me-2"></i>Permisos ({{ permisos_actuales|length }} activos)</span>
                         {% if rol.nombre != 'admin' %}
                         <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="marcarTodos(true)">
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-marcar="true">
                                 <i class="bi bi-check-all me-1"></i>Todos
                             </button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="marcarTodos(false)">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-marcar="false">
                                 <i class="bi bi-x-circle me-1"></i>Ninguno
                             </button>
                         </div>
@@ -81,7 +81,7 @@
                                 </h6>
                                 {% if rol.nombre != 'admin' %}
                                 <button type="button" class="btn btn-sm btn-link p-0 text-muted"
-                                        onclick="toggleCategoria('{{ cat_name }}')">
+                                        data-toggle-cat="{{ cat_name }}">
                                     <small>Todos/Ninguno</small>
                                 </button>
                                 {% endif %}
@@ -152,13 +152,15 @@
 
 {% block scripts %}
 <script>
-function marcarTodos(estado) {
-    document.querySelectorAll('.permiso-check:not(:disabled)').forEach(cb => cb.checked = estado);
-}
-function toggleCategoria(cat) {
-    const checks = document.querySelectorAll(`.permiso-check[data-cat="${cat}"]:not(:disabled)`);
-    const allChecked = Array.from(checks).every(cb => cb.checked);
-    checks.forEach(cb => cb.checked = !allChecked);
-}
+(function(){
+    function marcarTodos(estado){ document.querySelectorAll('.permiso-check:not(:disabled)').forEach(function(cb){ cb.checked = estado; }); }
+    function toggleCategoria(cat){
+        var checks = document.querySelectorAll('.permiso-check[data-cat="'+cat+'"]:not(:disabled)');
+        var allChecked = Array.from(checks).every(function(cb){ return cb.checked; });
+        checks.forEach(function(cb){ cb.checked = !allChecked; });
+    }
+    document.querySelectorAll('[data-marcar]').forEach(function(b){ b.addEventListener('click', function(){ marcarTodos(b.getAttribute('data-marcar') === 'true'); }); });
+    document.querySelectorAll('[data-toggle-cat]').forEach(function(b){ b.addEventListener('click', function(){ toggleCategoria(b.getAttribute('data-toggle-cat')); }); });
+})();
 </script>
 {% endblock %}

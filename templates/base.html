@@ -224,6 +224,17 @@
     document.querySelectorAll('[data-bgcolor]').forEach(function(e){ e.style.background = e.getAttribute('data-bgcolor'); });
     document.querySelectorAll('[data-fgcolor]').forEach(function(e){ e.style.color = e.getAttribute('data-fgcolor'); });
     document.querySelectorAll('[data-pct]').forEach(function(e){ e.style.width = e.getAttribute('data-pct') + '%'; });
+
+    // Confirmaciones genéricas (sustituyen onclick/onsubmit="return confirm()"):
+    // enlaces con data-confirm → click; formularios con data-confirm → submit.
+    document.addEventListener('click', function(e){
+        var a = e.target.closest('a[data-confirm]');
+        if(a && !confirm(a.getAttribute('data-confirm'))) e.preventDefault();
+    });
+    document.addEventListener('submit', function(e){
+        var f = e.target.closest('form[data-confirm]');
+        if(f && !confirm(f.getAttribute('data-confirm'))) e.preventDefault();
+    }, true);
 })();
 </script>
 

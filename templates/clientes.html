@@ -53,7 +53,7 @@
                             {% if session.rol == 'admin' %}
                             <button type="button" class="at-btn at-btn--icon at-btn--sm at-u97"
                                     data-bs-toggle="modal" data-bs-target="#confirmBorrarModal"
-                                    onclick="setConfirmData('/clientes/borrar/{{ c.id }}', 'Borrar Cliente', '¿Estas seguro de que deseas borrar este cliente ({{ c.nombre }}) y todos sus registros? Esta accion no se puede deshacer.')" title="Borrar"><i class="bi bi-trash"></i></button>
+                                    data-confirm-url="/clientes/borrar/{{ c.id }}" data-confirm-title="Borrar Cliente" data-confirm-msg="¿Estas seguro de que deseas borrar este cliente ({{ c.nombre }}) y todos sus registros? Esta accion no se puede deshacer." title="Borrar"><i class="bi bi-trash"></i></button>
                             {% endif %}
                         </div>
                     </td>
@@ -110,9 +110,7 @@
                 </div>
                 <div class="modal-footer border-0 at-u106">
                     <button type="button" class="at-btn-outline btn btn-sm" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-sm at-u107" id="confirmBorrarBtn"
-                           
-                            onclick="confirmarAccion()">
+                    <button type="button" class="btn btn-sm at-u107" id="confirmBorrarBtn">
                         <i class="bi bi-trash me-1"></i>Si, borrar
                     </button>
                 </div>
@@ -121,24 +119,19 @@
     </div>
 
     <script>
-    let confirmData = {
-        url: null,
-        title: null,
-        message: null
-    };
-
-    function setConfirmData(url, title, message) {
-        confirmData.url = url;
-        confirmData.title = title;
-        confirmData.message = message;
-        document.getElementById('confirmBorrarLabel').textContent = title;
-        document.getElementById('confirmBorrarMsg').textContent = message;
-    }
-
-    function confirmarAccion() {
-        if (confirmData.url) {
-            window.location.href = confirmData.url;
-        }
-    }
+    (function(){
+        var confirmUrl = null;
+        document.addEventListener('click', function(e){
+            var b = e.target.closest('[data-confirm-url]');
+            if(!b) return;
+            confirmUrl = b.getAttribute('data-confirm-url');
+            var label = document.getElementById('confirmBorrarLabel');
+            var msg = document.getElementById('confirmBorrarMsg');
+            if(label) label.textContent = b.getAttribute('data-confirm-title');
+            if(msg) msg.textContent = b.getAttribute('data-confirm-msg');
+        });
+        var cb = document.getElementById('confirmBorrarBtn');
+        if(cb) cb.addEventListener('click', function(){ if(confirmUrl) window.location.href = confirmUrl; });
+    })();
     </script>
 {% endblock %}

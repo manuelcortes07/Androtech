@@ -75,7 +75,7 @@
                         <td>{{ pieza.proveedor or '—' }}</td>
                         <td class="text-end">
                             <a href="{{ url_for('editar_pieza', id=pieza.id) }}" class="at-btn at-btn--ghost at-btn--icon at-btn--sm" title="Editar"><i class="bi bi-pencil"></i></a>
-                            <a href="{{ url_for('eliminar_pieza', id=pieza.id) }}" class="at-btn at-btn--icon at-btn--sm at-u97" title="Eliminar" onclick="return confirm('Eliminar esta pieza del inventario?');"><i class="bi bi-trash"></i></a>
+                            <a href="{{ url_for('eliminar_pieza', id=pieza.id) }}" class="at-btn at-btn--icon at-btn--sm at-u97" title="Eliminar" data-confirm="Eliminar esta pieza del inventario?"><i class="bi bi-trash"></i></a>
                         </td>
                     </tr>
                     {% else %}

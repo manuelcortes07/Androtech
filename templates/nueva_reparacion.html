@@ -67,7 +67,7 @@
                             <label class="form-label fw-semibold"><i class="bi bi-camera me-1"></i>Fotos del dispositivo</label>
                             <div class="at-photo-dropzone" id="photoDropzone">
                                 <input type="file" name="fotos" id="fotosInput" multiple accept="image/*" class="d-none">
-                                <div class="at-photo-dropzone-content" onclick="document.getElementById('fotosInput').click()">
+                                <div class="at-photo-dropzone-content">
                                     <i class="bi bi-cloud-arrow-up at-u266"></i>
                                     <p class="mb-1 fw-semibold at-u42">Arrastra fotos aqui o haz clic para seleccionar</p>
                                     <small class="text-muted">PNG, JPG, WebP o GIF &middot; Max 5MB por foto</small>
@@ -102,6 +102,8 @@
     const dropzone = document.getElementById('photoDropzone');
     const preview = document.getElementById('photoPreview');
     let files = new DataTransfer();
+    var dzc = dropzone.querySelector('.at-photo-dropzone-content');
+    if(dzc) dzc.addEventListener('click', function(){ input.click(); });
 
     function updatePreview() {
         preview.innerHTML = '';

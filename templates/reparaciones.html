@@ -121,7 +121,9 @@
                             {% if user_role == 'admin' %}
                             <button type="button" class="at-btn at-btn--icon at-btn--sm at-u97"
                                     data-bs-toggle="modal" data-bs-target="#confirmBorrarModal"
-                                    onclick="setConfirmData('/reparaciones/borrar/{{ r.id }}', 'Borrar Reparación', '¿Estás seguro de que deseas borrar esta reparación (#{{ r.id }})? Esta acción no se puede deshacer.')"
+                                    data-confirm-url="/reparaciones/borrar/{{ r.id }}"
+                                    data-confirm-title="Borrar Reparación"
+                                    data-confirm-msg="¿Estás seguro de que deseas borrar esta reparación (#{{ r.id }})? Esta acción no se puede deshacer."
                                     title="Borrar"><i class="bi bi-trash"></i></button>
                             {% endif %}
                         </div>
@@ -164,7 +166,7 @@
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="at-btn-outline btn btn-sm" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-sm text-white at-u278" id="confirmBorrarBtn" onclick="confirmarAccion()">
+                <button type="button" class="btn btn-sm text-white at-u278" id="confirmBorrarBtn">
                     <i class="bi bi-trash me-1"></i>Sí, borrar
                 </button>
             </div>
@@ -173,25 +175,20 @@
 </div>
 
 <script>
-let confirmData = {
-    url: null,
-    title: null,
-    message: null
-};
-
-function setConfirmData(url, title, message) {
-    confirmData.url = url;
-    confirmData.title = title;
-    confirmData.message = message;
-    document.getElementById('confirmBorrarLabel').innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>' + title;
-    document.getElementById('confirmBorrarMsg').textContent = message;
-}
-
-function confirmarAccion() {
-    if (confirmData.url) {
-        window.location.href = confirmData.url;
-    }
-}
+(function(){
+    var confirmUrl = null;
+    document.addEventListener('click', function(e){
+        var b = e.target.closest('[data-confirm-url]');
+        if(!b) return;
+        confirmUrl = b.getAttribute('data-confirm-url');
+        var label = document.getElementById('confirmBorrarLabel');
+        var msg = document.getElementById('confirmBorrarMsg');
+        if(label){ label.textContent=''; var ic=document.createElement('i'); ic.className='bi bi-exclamation-triangle me-2'; label.appendChild(ic); label.appendChild(document.createTextNode(b.getAttribute('data-confirm-title'))); }
+        if(msg) msg.textContent = b.getAttribute('data-confirm-msg');
+    });
+    var cb = document.getElementById('confirmBorrarBtn');
+    if(cb) cb.addEventListener('click', function(){ if(confirmUrl) window.location.href = confirmUrl; });
+})();
 </script>
 
 {% endblock %}

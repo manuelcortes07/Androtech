@@ -92,7 +92,7 @@
                         {% if not rol.es_sistema %}
                         <a href="{{ url_for('borrar_rol', id=rol.id) }}"
                            class="btn btn-sm at-u20"
-                           onclick="return confirm('Eliminar el rol {{ rol.nombre }}?');">
+                           data-confirm="Eliminar el rol {{ rol.nombre }}?">
                             <i class="bi bi-trash"></i>
                         </a>
                         {% endif %}
