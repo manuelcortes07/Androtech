@@ -11,7 +11,7 @@
         <div class="col">
             <span class="at-pill"><i class="bi bi-clock-history me-1"></i>Historial</span>
             <h1 class="at-section-title mt-2 mb-1">Mi Historial de Reparaciones</h1>
-            <p class="at-section-sub" style="margin:0;max-width:none;">Consulta el estado de todas tus reparaciones, descargar presupuestos y facturas.</p>
+            <p class="at-section-sub at-u76">Consulta el estado de todas tus reparaciones, descargar presupuestos y facturas.</p>
         </div>
     </div>
 
@@ -19,44 +19,44 @@
     <div class="row g-3 mb-4">
         <div class="col-6 col-lg-3">
             <div class="at-dash-kpi">
-                <div class="at-dash-kpi-icon" style="background: rgba(43,138,196,.1);">
-                    <i class="bi bi-tools" style="color: #2B8AC4;"></i>
+                <div class="at-dash-kpi-icon at-u10">
+                    <i class="bi bi-tools at-u12"></i>
                 </div>
                 <div>
-                    <div class="at-dash-kpi-value" style="color: #2B8AC4;">{{ stats.total_reparaciones }}</div>
+                    <div class="at-dash-kpi-value at-u12">{{ stats.total_reparaciones }}</div>
                     <div class="at-dash-kpi-label">Total reparaciones</div>
                 </div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
             <div class="at-dash-kpi">
-                <div class="at-dash-kpi-icon" style="background: rgba(25,135,84,.1);">
-                    <i class="bi bi-check-circle-fill" style="color: #198754;"></i>
+                <div class="at-dash-kpi-icon at-u13">
+                    <i class="bi bi-check-circle-fill at-u15"></i>
                 </div>
                 <div>
-                    <div class="at-dash-kpi-value" style="color: #198754;">{{ stats.pagadas }}</div>
+                    <div class="at-dash-kpi-value at-u15">{{ stats.pagadas }}</div>
                     <div class="at-dash-kpi-label">Pagadas</div>
                 </div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
             <div class="at-dash-kpi">
-                <div class="at-dash-kpi-icon" style="background: rgba(255,193,7,.1);">
-                    <i class="bi bi-hourglass-split" style="color: #ffc107;"></i>
+                <div class="at-dash-kpi-icon at-u237">
+                    <i class="bi bi-hourglass-split at-u238"></i>
                 </div>
                 <div>
-                    <div class="at-dash-kpi-value" style="color: #e6a800;">{{ stats.pendientes }}</div>
+                    <div class="at-dash-kpi-value at-u177">{{ stats.pendientes }}</div>
                     <div class="at-dash-kpi-label">Pendientes de pago</div>
                 </div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
             <div class="at-dash-kpi">
-                <div class="at-dash-kpi-icon" style="background: rgba(43,138,196,.1);">
-                    <i class="bi bi-cash-coin" style="color: #2B8AC4;"></i>
+                <div class="at-dash-kpi-icon at-u10">
+                    <i class="bi bi-cash-coin at-u12"></i>
                 </div>
                 <div>
-                    <div class="at-dash-kpi-value" style="color: #2B8AC4;">{{ "%.2f"|format(stats.total_invertido) }}&euro;</div>
+                    <div class="at-dash-kpi-value at-u12">{{ "%.2f"|format(stats.total_invertido) }}&euro;</div>
                     <div class="at-dash-kpi-label">Inversi&oacute;n total</div>
                 </div>
             </div>
@@ -101,7 +101,7 @@
                 </div>
             </form>
             {% if cliente_filtro %}
-            <div class="mt-2 pt-2" style="border-top:1px solid rgba(0,0,0,.06);">
+            <div class="mt-2 pt-2 at-u163">
                 <a href="/cliente/{{ cliente_filtro }}/historial-pdf" class="at-btn-outline btn btn-sm">
                     <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF del cliente seleccionado
                 </a>
@@ -137,20 +137,20 @@
                 <tbody>
                     {% for rep in reparaciones %}
                     <tr class="align-middle">
-                        <td class="text-center fw-semibold" style="color:#2B8AC4;">#{{ rep.id }}</td>
+                        <td class="text-center fw-semibold at-u12">#{{ rep.id }}</td>
                         <td>
                             <div class="fw-semibold">{{ rep.dispositivo }}</div>
                             <small class="text-muted">{{ rep.descripcion[:50] if rep.descripcion else 'Sin descripci&oacute;n' }}</small>
                         </td>
                         <td class="text-center">
                             {% if rep.estado == 'Pendiente' %}
-                                <span class="badge" style="background:rgba(255,193,7,.15);color:#997a00;">{{ rep.estado }}</span>
+                                <span class="badge at-u78">{{ rep.estado }}</span>
                             {% elif rep.estado == 'En proceso' %}
-                                <span class="badge" style="background:rgba(43,138,196,.12);color:#2B8AC4;">{{ rep.estado }}</span>
+                                <span class="badge at-u77">{{ rep.estado }}</span>
                             {% elif rep.estado in ['Terminado', 'Entregado'] %}
-                                <span class="badge" style="background:rgba(25,135,84,.12);color:#198754;">{{ rep.estado }}</span>
+                                <span class="badge at-u79">{{ rep.estado }}</span>
                             {% else %}
-                                <span class="badge" style="background:rgba(108,117,125,.12);color:#6c757d;">{{ rep.estado }}</span>
+                                <span class="badge at-u80">{{ rep.estado }}</span>
                             {% endif %}
                         </td>
                         <td>{{ rep.fecha_entrada }}</td>
@@ -163,9 +163,9 @@
                         </td>
                         <td class="text-center">
                             {% if rep.estado_pago == 'Pagado' %}
-                                <span class="badge" style="background:rgba(25,135,84,.12);color:#198754;">Pagado</span>
+                                <span class="badge at-u79">Pagado</span>
                             {% else %}
-                                <span class="badge" style="background:rgba(220,53,69,.1);color:#dc3545;">Pendiente</span>
+                                <span class="badge at-u48">Pendiente</span>
                             {% endif %}
                         </td>
                         <td class="text-center">
@@ -187,10 +187,10 @@
     {% for rep in reparaciones %}
     <div class="modal fade" id="detallesModal{{ rep.id }}" tabindex="-1" aria-labelledby="detallesLabel{{ rep.id }}" aria-hidden="true">
         <div class="modal-dialog modal-lg">
-            <div class="modal-content" style="border-top: 3px solid #2B8AC4;">
+            <div class="modal-content at-u137">
                 <div class="modal-header border-0">
-                    <h5 class="modal-title fw-bold" id="detallesLabel{{ rep.id }}" style="color:var(--text);">
-                        <i class="bi bi-info-circle me-2" style="color:#2B8AC4;"></i>Detalles Reparaci&oacute;n #{{ rep.id }}
+                    <h5 class="modal-title fw-bold at-u42" id="detallesLabel{{ rep.id }}">
+                        <i class="bi bi-info-circle me-2 at-u12"></i>Detalles Reparaci&oacute;n #{{ rep.id }}
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -204,13 +204,13 @@
                             <h6 class="fw-semibold text-muted small mb-2">ESTADO ACTUAL</h6>
                             <p class="mb-0">
                                 {% if rep.estado == 'Pendiente' %}
-                                    <span class="badge" style="background:rgba(255,193,7,.15);color:#997a00;">{{ rep.estado }}</span>
+                                    <span class="badge at-u78">{{ rep.estado }}</span>
                                 {% elif rep.estado == 'En proceso' %}
-                                    <span class="badge" style="background:rgba(43,138,196,.12);color:#2B8AC4;">{{ rep.estado }}</span>
+                                    <span class="badge at-u77">{{ rep.estado }}</span>
                                 {% elif rep.estado in ['Terminado', 'Entregado'] %}
-                                    <span class="badge" style="background:rgba(25,135,84,.12);color:#198754;">{{ rep.estado }}</span>
+                                    <span class="badge at-u79">{{ rep.estado }}</span>
                                 {% else %}
-                                    <span class="badge" style="background:rgba(108,117,125,.12);color:#6c757d;">{{ rep.estado }}</span>
+                                    <span class="badge at-u80">{{ rep.estado }}</span>
                                 {% endif %}
                             </p>
                         </div>
@@ -248,7 +248,7 @@
                             <h6 class="fw-semibold text-muted small mb-2">ESTADO DE PAGO</h6>
                             <p class="mb-0">
                                 {% if rep.estado_pago == 'Pagado' %}
-                                    <span class="badge" style="background:rgba(25,135,84,.12);color:#198754;">Pagado</span>
+                                    <span class="badge at-u79">Pagado</span>
                                     {% if rep.fecha_pago %}
                                         <small class="text-muted d-block mt-1">{{ rep.fecha_pago }}</small>
                                     {% endif %}
@@ -256,7 +256,7 @@
                                         <small class="text-muted d-block">{{ rep.metodo_pago }}</small>
                                     {% endif %}
                                 {% else %}
-                                    <span class="badge" style="background:rgba(220,53,69,.1);color:#dc3545;">Pendiente de pago</span>
+                                    <span class="badge at-u48">Pendiente de pago</span>
                                 {% endif %}
                             </p>
                         </div>
@@ -264,7 +264,7 @@
                 </div>
                 <div class="modal-footer border-top">
                     {% if rep.precio and rep.estado_pago != 'Pagado' %}
-                        <a href="/consulta?id={{ rep.id }}" class="btn btn-sm" style="background:rgba(25,135,84,.12);color:#198754;font-weight:600;">
+                        <a href="/consulta?id={{ rep.id }}" class="btn btn-sm at-u239">
                             <i class="bi bi-credit-card me-1"></i>Pagar Ahora
                         </a>
                     {% endif %}
@@ -305,11 +305,11 @@
             {% for i in range(1, total_pages + 1) %}
                 {% if i == page %}
                     <li class="page-item active">
-                        <span class="page-link" style="background:#2B8AC4;border-color:#2B8AC4;">{{ i }}</span>
+                        <span class="page-link at-u240">{{ i }}</span>
                     </li>
                 {% else %}
                     <li class="page-item">
-                        <a class="page-link" style="color:#2B8AC4;" href="?page={{ i }}{% if cliente_filtro %}&cliente_id={{ cliente_filtro }}{% endif %}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">{{ i }}</a>
+                        <a class="page-link at-u12" href="?page={{ i }}{% if cliente_filtro %}&cliente_id={{ cliente_filtro }}{% endif %}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">{{ i }}</a>
                     </li>
                 {% endif %}
             {% endfor %}

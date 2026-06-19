@@ -23,7 +23,7 @@
             <!-- Búsqueda global -->
             <form method="get" class="mb-3">
                 <div class="d-flex gap-2 flex-wrap">
-                    <input type="search" name="q" class="at-input" style="flex:1;min-width:220px;" placeholder="Buscar por ID, nombre, teléfono, dispositivo…" value="{{ filters.q if filters.q is defined else '' }}">
+                    <input type="search" name="q" class="at-input at-u91" placeholder="Buscar por ID, nombre, teléfono, dispositivo…" value="{{ filters.q if filters.q is defined else '' }}">
                     <button class="at-btn at-btn--primary" type="submit"><i class="bi bi-search"></i> Buscar</button>
                 </div>
             </form>
@@ -77,20 +77,20 @@
 
     <!-- TABLA -->
     <div class="at-card">
-        <div class="at-table-wrap" style="border:none;border-radius:0;">
+        <div class="at-table-wrap at-u1">
             <table class="at-table">
                 <thead>
                     <tr>
-                        <th style="width:70px;">ID</th><th>Cliente</th><th>Dispositivo</th>
-                        <th style="width:130px;">Estado</th><th style="width:140px;">Alertas</th>
-                        <th style="width:110px;">Pago</th><th style="width:120px;">Actualizado</th>
-                        <th style="width:130px;">Fecha entrada</th><th style="width:200px;">Acciones</th>
+                        <th class="at-u271">ID</th><th>Cliente</th><th>Dispositivo</th>
+                        <th class="at-u5">Estado</th><th class="at-u4">Alertas</th>
+                        <th class="at-u272">Pago</th><th class="at-u273">Actualizado</th>
+                        <th class="at-u5">Fecha entrada</th><th class="at-u3">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                 {% for r in reparaciones %}
                 <tr>
-                    <td class="at-mono"><span style="color:var(--accent);font-weight:600;">#{{ r.id }}</span></td>
+                    <td class="at-mono"><span class="at-u94">#{{ r.id }}</span></td>
                     <td>{{ r.cliente }}</td>
                     <td>{{ r.dispositivo }}</td>
                     <td><span class="at-status at-status--{{ r.estado|lower|replace(' ','-') }}">{{ r.estado }}</span></td>
@@ -98,7 +98,7 @@
                         {% if r.alertas_info.tiene_alertas %}
                             <div class="d-flex gap-1 flex-wrap">
                                 {% for alerta in r.alertas_info.alertas %}
-                                <span class="badge small" title="{{ alerta.mensaje }}" style="background:color-mix(in srgb,var(--amber) 16%,transparent);color:var(--amber);">{{ alerta.icono }} {{ alerta.tipo|replace('_', ' ')|title }}</span>
+                                <span class="badge small at-u274" title="{{ alerta.mensaje }}">{{ alerta.icono }} {{ alerta.tipo|replace('_', ' ')|title }}</span>
                                 {% endfor %}
                             </div>
                         {% else %}<span class="at-dim">—</span>{% endif %}
@@ -117,9 +117,9 @@
                             <a href="/reparaciones/editar/{{ r.id }}" class="at-btn at-btn--outline at-btn--icon at-btn--sm" title="Editar"><i class="bi bi-pencil-square"></i></a>
                             <a href="/reparaciones/pdf/{{ r.id }}?tipo=presupuesto" class="at-btn at-btn--ghost at-btn--icon at-btn--sm" target="_blank" title="Presupuesto"><i class="bi bi-file-earmark-text"></i></a>
                             <a href="/reparaciones/pdf/{{ r.id }}?tipo=factura" class="at-btn at-btn--ghost at-btn--icon at-btn--sm" target="_blank" title="Factura"><i class="bi bi-receipt"></i></a>
-                            <a href="/reparaciones/{{ r.id }}/ticket" class="at-btn at-btn--ghost at-btn--icon at-btn--sm" title="Ticket QR" style="color:var(--green);border-color:color-mix(in srgb,var(--green) 40%,transparent);"><i class="bi bi-qr-code"></i></a>
+                            <a href="/reparaciones/{{ r.id }}/ticket" class="at-btn at-btn--ghost at-btn--icon at-btn--sm at-u275" title="Ticket QR"><i class="bi bi-qr-code"></i></a>
                             {% if user_role == 'admin' %}
-                            <button type="button" class="at-btn at-btn--icon at-btn--sm" style="color:var(--red);border:1px solid color-mix(in srgb,var(--red) 40%,transparent);"
+                            <button type="button" class="at-btn at-btn--icon at-btn--sm at-u97"
                                     data-bs-toggle="modal" data-bs-target="#confirmBorrarModal"
                                     onclick="setConfirmData('/reparaciones/borrar/{{ r.id }}', 'Borrar Reparación', '¿Estás seguro de que deseas borrar esta reparación (#{{ r.id }})? Esta acción no se puede deshacer.')"
                                     title="Borrar"><i class="bi bi-trash"></i></button>
@@ -130,9 +130,9 @@
                 {% else %}
                 <tr>
                     <td colspan="9">
-                        <div class="text-center" style="padding:48px 0;">
-                            <i class="bi bi-tools" style="font-size:2.5rem;color:var(--accent);opacity:.4;"></i>
-                            <p class="at-dim" style="margin:10px 0 0;">No se encontraron reparaciones con los filtros actuales.</p>
+                        <div class="text-center at-u7">
+                            <i class="bi bi-tools at-u276"></i>
+                            <p class="at-dim at-u9">No se encontraron reparaciones con los filtros actuales.</p>
                         </div>
                     </td>
                 </tr>
@@ -152,9 +152,9 @@
 <!-- Modal de Confirmación -->
 <div class="modal fade" id="confirmBorrarModal" tabindex="-1" aria-labelledby="confirmBorrarLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border:none;border-left:4px solid #dc3545;border-radius:.5rem;">
+        <div class="modal-content at-u277">
             <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold" id="confirmBorrarLabel" style="color:#dc3545;">
+                <h5 class="modal-title fw-bold at-u44" id="confirmBorrarLabel">
                     <i class="bi bi-exclamation-triangle me-2"></i>Confirmación de acción
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -164,7 +164,7 @@
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="at-btn-outline btn btn-sm" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-sm text-white" style="background:#dc3545;border-color:#dc3545;" id="confirmBorrarBtn" onclick="confirmarAccion()">
+                <button type="button" class="btn btn-sm text-white at-u278" id="confirmBorrarBtn" onclick="confirmarAccion()">
                     <i class="bi bi-trash me-1"></i>Sí, borrar
                 </button>
             </div>

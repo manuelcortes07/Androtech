@@ -18,7 +18,7 @@
     </div>
 
     <!-- Diagnostico de la configuracion -->
-    <div class="card shadow-sm mb-4" style="border-left: 5px solid {% if diagnostico.configured %}#198754{% else %}#dc3545{% endif %};">
+    <div class="card shadow-sm mb-4 {% if diagnostico.configured %}at-bl-ok{% else %}at-bl-bad{% endif %}">
         <div class="card-body">
             <h5 class="fw-bold mb-3">
                 <i class="bi bi-{% if diagnostico.configured %}check-circle-fill text-success{% else %}x-circle-fill text-danger{% endif %} me-2"></i>
@@ -92,7 +92,7 @@
     </div>
 
     <!-- Ayuda -->
-    <div class="card shadow-sm border-0" style="background: #f8f9fb;">
+    <div class="card shadow-sm border-0 at-u56">
         <div class="card-body">
             <h6 class="fw-bold mb-2"><i class="bi bi-info-circle me-1 text-primary"></i>Como configurar Gmail</h6>
             <ol class="mb-0 small">

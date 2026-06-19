@@ -2,32 +2,32 @@
 {% block title %}Sigue tu reparación{% endblock %}
 
 {% block content %}
-<section class="at-hero" style="padding:54px 0 40px;">
+<section class="at-hero at-u108">
     <div class="at-glow at-g1"></div>
-    <div class="at-wrap" style="position:relative;z-index:1;max-width:760px;">
+    <div class="at-wrap at-u109">
 
         <!-- Cabecera -->
-        <div style="text-align:center;margin-bottom:30px;" class="at-reveal at-reveal--load">
+        <div class="at-reveal at-reveal--load at-u110">
             <span class="at-live"><span class="at-pdot"></span>Seguimiento en vivo</span>
-            <h1 style="font-size:clamp(30px,4.4vw,44px);margin:18px 0 0;">Sigue tu <span class="at-hl">reparación</span></h1>
-            <p class="at-lead" style="margin:14px auto 0;">Introduce tu número de reparación y te decimos exactamente dónde está tu dispositivo.</p>
+            <h1 class="at-u111">Sigue tu <span class="at-hl">reparación</span></h1>
+            <p class="at-lead at-u112">Introduce tu número de reparación y te decimos exactamente dónde está tu dispositivo.</p>
         </div>
 
         <!-- Buscador -->
-        <div class="at-card at-reveal at-reveal--load" style="margin-bottom:26px;">
+        <div class="at-card at-reveal at-reveal--load at-u113">
             <div class="at-card__body">
                 <form method="POST" novalidate>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <label class="at-label" for="id_reparacion"><i class="bi bi-hash"></i> Número de reparación</label>
-                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                        <input class="at-input" type="number" id="id_reparacion" name="id_reparacion" required min="1"
-                               placeholder="Ej: 123" value="{{ id_prefill if id_prefill else '' }}" style="flex:1;min-width:180px;">
+                    <div class="at-u114">
+                        <input class="at-input at-u115" type="number" id="id_reparacion" name="id_reparacion" required min="1"
+                               placeholder="Ej: 123" value="{{ id_prefill if id_prefill else '' }}">
                         <button type="submit" class="at-btn at-btn--primary"><i class="bi bi-search"></i> Consultar</button>
                     </div>
-                    <p class="at-dim" style="font-size:13px;margin:10px 0 0;">El número aparece en tu resguardo o recibo de entrega.</p>
+                    <p class="at-dim at-u116">El número aparece en tu resguardo o recibo de entrega.</p>
                 </form>
                 {% if error %}
-                <div class="at-alert at-alert--danger" style="margin-top:16px;" role="alert">
+                <div class="at-alert at-alert--danger at-u117" role="alert">
                     <i class="bi bi-exclamation-triangle-fill"></i><span>{{ error }}</span>
                 </div>
                 {% endif %}
@@ -47,18 +47,18 @@
         ] %}
 
         <!-- Resultado -->
-        <div class="at-card at-reveal" style="margin-bottom:22px;">
+        <div class="at-card at-reveal at-u118">
             <div class="at-card__head">
                 <span class="at-tk-dev">
                     <span class="at-tk-ic"><i class="bi bi-phone"></i></span>
-                    <span><b style="font-family:'Space Grotesk';">{{ reparacion.dispositivo }}</b><br><small class="at-mono at-dim">#REP-{{ '%04d'|format(reparacion.id) }}</small></span>
+                    <span><b class="at-u119">{{ reparacion.dispositivo }}</b><br><small class="at-mono at-dim">#REP-{{ '%04d'|format(reparacion.id) }}</small></span>
                 </span>
                 <span class="at-status at-status--{{ reparacion.estado|lower|replace(' ','-') }}">{{ reparacion.estado }}</span>
             </div>
             <div class="at-card__body">
 
                 <!-- Datos -->
-                <div class="at-fields" style="margin-bottom:24px;">
+                <div class="at-fields at-u120">
                     <div class="at-field"><span class="at-label">Cliente</span><div class="at-field-v">{{ reparacion.cliente or 'No especificado' }}</div></div>
                     <div class="at-field"><span class="at-label">Fecha de entrada</span><div class="at-field-v at-mono">{{ reparacion.fecha_entrada or 'No especificada' }}</div></div>
                     <div class="at-field"><span class="at-label">Importe</span><div class="at-field-v at-mono">{% if reparacion.precio %}{{ "%.2f"|format(reparacion.precio) }} €{% else %}Por confirmar{% endif %}</div></div>
@@ -75,7 +75,7 @@
                 <div class="at-tprog"><div class="at-fill" id="atFill" data-fill="{{ fill }}"></div></div>
 
                 <!-- Línea de seguimiento (elemento firma) -->
-                <span class="at-label" style="margin:20px 0 14px;">Estado del seguimiento</span>
+                <span class="at-label at-u121">Estado del seguimiento</span>
                 <ul class="at-track" id="atTrack">
                     {% for titulo, desc, icono in etapas %}
                     <li class="at-track-step {% if loop.index0 < etapa %}is-done{% elif loop.index0 == etapa %}is-cur{% else %}is-pending{% endif %}">
@@ -90,8 +90,8 @@
 
                 {% if reparacion.estado_pago == 'Pagado' and (reparacion.fecha_pago or reparacion.metodo_pago) %}
                 <hr class="at-divider">
-                <div class="at-dim" style="font-size:13.5px;">
-                    <i class="bi bi-check-circle-fill" style="color:var(--green);"></i>
+                <div class="at-dim at-u122">
+                    <i class="bi bi-check-circle-fill at-u123"></i>
                     Pago confirmado{% if reparacion.fecha_pago %} el {{ reparacion.fecha_pago }}{% endif %}{% if reparacion.metodo_pago %} · {{ reparacion.metodo_pago }}{% endif %}.
                 </div>
                 {% endif %}
@@ -100,18 +100,18 @@
 
         {# ─── Pago pendiente: formulario Stripe (flujo de reparaciones) ─── #}
         {% if reparacion.precio and reparacion.estado_pago != 'Pagado' %}
-        <div class="at-card at-reveal" style="margin-bottom:22px;">
+        <div class="at-card at-reveal at-u118">
             <div class="at-card__head">
-                <span style="font-family:'Space Grotesk';font-weight:600;"><i class="bi bi-credit-card-2-front"></i> Proceder al pago</span>
-                <span class="at-mono at-dim" style="font-size:12px;">Stripe · TLS</span>
+                <span class="at-u124"><i class="bi bi-credit-card-2-front"></i> Proceder al pago</span>
+                <span class="at-mono at-dim at-u68">Stripe · TLS</span>
             </div>
             <div class="at-card__body">
                 <!-- Resumen -->
-                <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:20px;">
-                    <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span class="at-dim">Subtotal</span><span class="at-mono">{{ "%.2f"|format(reparacion.precio * 0.79) }} €</span></div>
-                    <div style="display:flex;justify-content:space-between;margin-bottom:10px;"><span class="at-dim">IVA (21%)</span><span class="at-mono">{{ "%.2f"|format(reparacion.precio * 0.21) }} €</span></div>
-                    <hr class="at-divider" style="margin:10px 0;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;"><strong>Total a pagar</strong><strong class="at-mono" style="font-size:18px;color:var(--green);">{{ "%.2f"|format(reparacion.precio) }} €</strong></div>
+                <div class="at-u125">
+                    <div class="at-u126"><span class="at-dim">Subtotal</span><span class="at-mono">{{ "%.2f"|format(reparacion.precio * 0.79) }} €</span></div>
+                    <div class="at-u127"><span class="at-dim">IVA (21%)</span><span class="at-mono">{{ "%.2f"|format(reparacion.precio * 0.21) }} €</span></div>
+                    <hr class="at-divider at-u128">
+                    <div class="at-u129"><strong>Total a pagar</strong><strong class="at-mono at-u130">{{ "%.2f"|format(reparacion.precio) }} €</strong></div>
                 </div>
 
                 <form action="/publico/pagar/{{ reparacion.id }}" method="POST" id="atPagoForm" novalidate>
@@ -119,17 +119,17 @@
                     <label class="at-label" for="cliente_email"><i class="bi bi-envelope-check"></i> Correo de verificación</label>
                     <input class="at-input" type="email" id="cliente_email" name="cliente_email" required
                            placeholder="tu.email@ejemplo.com" autocomplete="email">
-                    <p class="at-dim" style="font-size:13px;margin:8px 0 16px;"><i class="bi bi-info-circle"></i> Debe coincidir con el email registrado para esta reparación.</p>
+                    <p class="at-dim at-u131"><i class="bi bi-info-circle"></i> Debe coincidir con el email registrado para esta reparación.</p>
 
-                    <label style="display:flex;gap:10px;align-items:flex-start;font-size:14px;margin-bottom:18px;cursor:pointer;">
-                        <input type="checkbox" id="terms" required style="margin-top:3px;">
-                        <span>Acepto los <a href="/servicios" target="_blank" style="color:var(--accent);">términos de pago</a> y la <a href="/servicios" target="_blank" style="color:var(--accent);">política de privacidad</a>.</span>
+                    <label class="at-u132">
+                        <input type="checkbox" id="terms" required class="at-u133">
+                        <span>Acepto los <a href="/servicios" target="_blank" class="at-u134">términos de pago</a> y la <a href="/servicios" target="_blank" class="at-u134">política de privacidad</a>.</span>
                     </label>
 
                     <button type="submit" class="at-btn at-btn--primary at-btn--block at-btn--lg">
                         <i class="bi bi-lock-fill"></i> Pagar {{ "%.2f"|format(reparacion.precio) }} € con Stripe
                     </button>
-                    <p class="at-dim" style="text-align:center;font-size:12.5px;margin:12px 0 0;">
+                    <p class="at-dim at-u135">
                         <i class="bi bi-shield-check"></i> Pago seguro procesado por Stripe. AndroTech nunca almacena tu tarjeta.
                     </p>
                 </form>
@@ -137,10 +137,10 @@
         </div>
         {% endif %}
 
-        <p class="at-dim" style="text-align:center;font-size:13.5px;">
+        <p class="at-dim at-u136">
             ¿Dudas sobre tu reparación? Escríbenos por
-            <a href="https://wa.me/34633234395{% if reparacion %}?text=Hola%2C%20consulto%20sobre%20mi%20reparacion%20%23{{ reparacion.id }}{% endif %}" target="_blank" rel="noopener" style="color:var(--green);">WhatsApp</a>
-            o llama al <a href="tel:+34633234395" class="at-mono" style="color:var(--accent);">+34 633 234 395</a>.
+            <a href="https://wa.me/34633234395{% if reparacion %}?text=Hola%2C%20consulto%20sobre%20mi%20reparacion%20%23{{ reparacion.id }}{% endif %}" target="_blank" rel="noopener" class="at-u123">WhatsApp</a>
+            o llama al <a href="tel:+34633234395" class="at-mono at-u134">+34 633 234 395</a>.
         </p>
         {% endif %}
 

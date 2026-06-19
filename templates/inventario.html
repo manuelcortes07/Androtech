@@ -19,7 +19,7 @@
             <div><div class="at-stat-n">{{ total }}</div><div class="at-stat-l">Total piezas</div></div>
         </div>
         <div class="at-stat">
-            <div class="at-stat-ic" style="background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red);"><i class="bi bi-exclamation-triangle"></i></div>
+            <div class="at-stat-ic at-u243"><i class="bi bi-exclamation-triangle"></i></div>
             <div><div class="at-stat-n">{{ stock_bajo }}</div><div class="at-stat-l">Stock bajo</div></div>
         </div>
         <div class="at-stat">
@@ -33,8 +33,8 @@
         <div class="at-card__body">
             <form method="GET" action="{{ url_for('inventario') }}">
                 <div class="d-flex gap-2 flex-wrap align-items-center">
-                    <input type="text" name="q" class="at-input" style="flex:1;min-width:220px;" placeholder="Buscar por nombre o proveedor…" value="{{ buscar }}">
-                    <select name="categoria" class="at-select" style="max-width:220px;">
+                    <input type="text" name="q" class="at-input at-u91" placeholder="Buscar por nombre o proveedor…" value="{{ buscar }}">
+                    <select name="categoria" class="at-select at-u244">
                         <option value="">Todas las categorías</option>
                         {% for cat in ['Pantallas', 'Baterias', 'Conectores', 'Placas', 'Carcasas', 'Accesorios', 'General'] %}
                         <option value="{{ cat }}" {% if categoria == cat %}selected{% endif %}>{{ cat }}</option>
@@ -49,7 +49,7 @@
 
     <!-- Tabla -->
     <div class="at-card">
-        <div class="at-table-wrap" style="border:none;border-radius:0;">
+        <div class="at-table-wrap at-u1">
             <table class="at-table">
                 <thead>
                     <tr><th>Pieza</th><th>Categoría</th><th class="text-center">Stock</th><th>P. coste</th><th>P. venta</th><th>Proveedor</th><th class="text-end">Acciones</th></tr>
@@ -58,7 +58,7 @@
                     {% for pieza in piezas %}
                     <tr>
                         <td>
-                            <div style="font-weight:600;">{{ pieza.nombre }}</div>
+                            <div class="at-u96">{{ pieza.nombre }}</div>
                             {% if pieza.ubicacion %}<small class="at-dim"><i class="bi bi-geo-alt"></i> {{ pieza.ubicacion }}</small>{% endif %}
                         </td>
                         <td><span class="at-status at-status--en-proceso">{{ pieza.categoria }}</span></td>
@@ -68,22 +68,22 @@
                             {% else %}
                             <span class="at-status at-status--terminado">{{ pieza.cantidad }}</span>
                             {% endif %}
-                            <div class="at-dim" style="font-size:.7rem;">min: {{ pieza.cantidad_minima }}</div>
+                            <div class="at-dim at-u196">min: {{ pieza.cantidad_minima }}</div>
                         </td>
                         <td class="at-mono">{{ "%.2f"|format(pieza.precio_coste or 0) }}€</td>
-                        <td class="at-mono" style="font-weight:600;">{{ "%.2f"|format(pieza.precio_venta or 0) }}€</td>
+                        <td class="at-mono at-u96">{{ "%.2f"|format(pieza.precio_venta or 0) }}€</td>
                         <td>{{ pieza.proveedor or '—' }}</td>
                         <td class="text-end">
                             <a href="{{ url_for('editar_pieza', id=pieza.id) }}" class="at-btn at-btn--ghost at-btn--icon at-btn--sm" title="Editar"><i class="bi bi-pencil"></i></a>
-                            <a href="{{ url_for('eliminar_pieza', id=pieza.id) }}" class="at-btn at-btn--icon at-btn--sm" style="color:var(--red);border:1px solid color-mix(in srgb,var(--red) 40%,transparent);" title="Eliminar" onclick="return confirm('Eliminar esta pieza del inventario?');"><i class="bi bi-trash"></i></a>
+                            <a href="{{ url_for('eliminar_pieza', id=pieza.id) }}" class="at-btn at-btn--icon at-btn--sm at-u97" title="Eliminar" onclick="return confirm('Eliminar esta pieza del inventario?');"><i class="bi bi-trash"></i></a>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
                         <td colspan="7">
-                            <div class="text-center" style="padding:40px 0;">
-                                <i class="bi bi-box-seam" style="font-size:2rem;color:var(--accent);opacity:.4;"></i>
-                                <p class="at-dim" style="margin:10px 0;">No hay piezas en el inventario</p>
+                            <div class="text-center at-u245">
+                                <i class="bi bi-box-seam at-u246"></i>
+                                <p class="at-dim at-u128">No hay piezas en el inventario</p>
                                 <a href="{{ url_for('nueva_pieza') }}" class="at-btn at-btn--primary at-btn--sm"><i class="bi bi-plus-lg"></i> Añadir primera pieza</a>
                             </div>
                         </td>

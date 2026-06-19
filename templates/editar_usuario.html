@@ -12,7 +12,7 @@
             <div class="at-admin-card mt-4">
                 <div class="at-admin-card-header d-flex align-items-center justify-content-between">
                     <span><i class="bi bi-pencil-square me-2"></i>Formulario de Edicion</span>
-                    <span class="badge" style="background: #EBF5FB; color: #2B8AC4;">Administracion</span>
+                    <span class="badge at-u162">Administracion</span>
                 </div>
                 <div class="p-4">
                     <form method="POST" class="at-admin-form needs-validation" novalidate>
@@ -29,7 +29,7 @@
                             </div>
                         </div>
 
-                        <div class="mb-3 p-3 rounded" style="background: #EBF5FB;">
+                        <div class="mb-3 p-3 rounded at-u49">
                             <label for="nueva_contraseña" class="form-label fw-semibold">
                                 <i class="bi bi-lock me-1"></i>Cambiar Contraseña (Opcional)
                             </label>
@@ -37,8 +37,8 @@
                             <input type="password" class="form-control form-control-lg" id="nueva_contraseña"
                                    name="nueva_contraseña" placeholder="Nueva contraseña (minimo 8 caracteres)" minlength="8">
                             <div class="mt-2" id="pwd-strength">
-                                <div class="progress" style="height: 6px;">
-                                    <div class="progress-bar" id="pwd-bar" style="width: 0%;"></div>
+                                <div class="progress at-u217">
+                                    <div class="progress-bar at-u218" id="pwd-bar"></div>
                                 </div>
                                 <small id="pwd-text" class="text-muted mt-1 d-block"></small>
                             </div>
@@ -70,7 +70,7 @@
                             </div>
                         </div>
 
-                        <div class="alert mb-4" style="background: #EBF5FB; color: #1a6fbd; border: 1px solid #4da6d8;">
+                        <div class="alert mb-4 at-u216">
                             <i class="bi bi-info-circle me-1"></i>
                             <strong>Auditoria:</strong> Todos los cambios se registran automaticamente en los logs del sistema
                         </div>
@@ -102,7 +102,7 @@
                             <small class="text-muted">Rol Actual</small>
                             <p class="mb-0">
                                 {% if usuario.rol == 'admin' %}
-                                    <span class="badge" style="background: #2B8AC4;">Administrador</span>
+                                    <span class="badge at-u32">Administrador</span>
                                 {% else %}
                                     <span class="badge bg-secondary">Tecnico</span>
                                 {% endif %}

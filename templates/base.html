@@ -96,7 +96,7 @@
                 <button class="at-usermenu-btn" type="button" id="atUserBtn">
                     <span class="at-avatar"><i class="bi bi-person"></i></span>
                     <span>{{ session.usuario }} <small>({{ session.rol }})</small></span>
-                    <i class="bi bi-chevron-down" style="font-size:12px;"></i>
+                    <i class="bi bi-chevron-down at-u68"></i>
                 </button>
                 <div class="at-usermenu-pop">
                     <a href="{{ url_for('perfil') }}"><i class="bi bi-person-circle"></i>Mi perfil</a>
@@ -133,21 +133,21 @@
 {% endif %}
 
 {# ── Mensajes flash + aviso de verificación (compartidos) ── #}
-<div class="{% if not session.usuario %}at-wrap{% endif %}" {% if not session.usuario %}style="margin-top:18px;"{% endif %}>
+<div class="{% if not session.usuario %}at-wrap at-u69{% endif %}">
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-            <div class="at-alert at-alert--{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'warning' if category == 'warning' else 'info' }}" role="alert" style="margin-bottom:12px;">
+            <div class="at-alert at-alert--{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'warning' if category == 'warning' else 'info' }} at-u70" role="alert">
                 <i class="bi bi-info-circle-fill"></i><span>{{ message }}</span>
             </div>
             {% endfor %}
         {% endif %}
     {% endwith %}
     {% if session.usuario and email_pendiente_verificar %}
-    <div class="at-alert at-alert--warning" role="alert" style="margin-bottom:12px;">
+    <div class="at-alert at-alert--warning at-u70" role="alert">
         <i class="bi bi-envelope-exclamation-fill"></i>
         <span>Tu email aún no está verificado. Revisa tu correo para activar todas las funciones.</span>
-        <form method="POST" action="{{ url_for('reenviar_verificacion') }}" style="margin-left:auto;">
+        <form method="POST" action="{{ url_for('reenviar_verificacion') }}" class="at-u71">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <button type="submit" class="at-btn at-btn--outline at-btn--sm">Reenviar enlace</button>
         </form>
@@ -165,8 +165,8 @@
 </div>{# /at-public-main #}
 <footer class="at-footer">
     <div class="at-wrap at-foot">
-        <a class="at-brand" href="/" style="font-size:16px;"><span class="at-logo" style="width:28px;height:28px;font-size:14px;">⬡</span>AndroTech</a>
-        <div class="at-mono" style="font-size:13px;">Huelva · Lun–Vie 9:30–20:00 · <a href="tel:+34633234395">+34 633 234 395</a></div>
+        <a class="at-brand at-u72" href="/"><span class="at-logo at-u73">⬡</span>AndroTech</a>
+        <div class="at-mono at-u74">Huelva · Lun–Vie 9:30–20:00 · <a href="tel:+34633234395">+34 633 234 395</a></div>
         <div>© <span id="atYear"></span> AndroTech</div>
     </div>
 </footer>
@@ -218,6 +218,12 @@
             form.classList.add('was-validated');
         }, false);
     });
+
+    // Estilos dinámicos vía CSSOM (sustituyen ex-inline con valores de BD/%):
+    // CSP-safe: no son atributos inline en el HTML.
+    document.querySelectorAll('[data-bgcolor]').forEach(function(e){ e.style.background = e.getAttribute('data-bgcolor'); });
+    document.querySelectorAll('[data-fgcolor]').forEach(function(e){ e.style.color = e.getAttribute('data-fgcolor'); });
+    document.querySelectorAll('[data-pct]').forEach(function(e){ e.style.width = e.getAttribute('data-pct') + '%'; });
 })();
 </script>
 

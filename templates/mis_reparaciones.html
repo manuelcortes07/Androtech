@@ -4,10 +4,10 @@
 {% block content %}
 
 <!-- HERO -->
-<section class="at-hero" style="padding: 3rem 0 2rem;">
+<section class="at-hero at-u262">
     <div class="container text-center">
-        <h1 class="at-hero-title" style="font-size: 2.2rem;">Mis reparaciones</h1>
-        <p class="at-hero-sub" style="max-width: 600px; margin: 0 auto;">Introduce tu email para ver el historial completo de tus reparaciones en AndroTech.</p>
+        <h1 class="at-hero-title at-u263">Mis reparaciones</h1>
+        <p class="at-hero-sub at-u264">Introduce tu email para ver el historial completo de tus reparaciones en AndroTech.</p>
     </div>
 </section>
 
@@ -54,30 +54,30 @@
             <!-- Header -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h3 class="fw-bold mb-1" style="color: var(--text);">Hola, {{ cliente_nombre }}</h3>
+                    <h3 class="fw-bold mb-1 at-u42">Hola, {{ cliente_nombre }}</h3>
                     <p class="text-muted mb-0">Tienes {{ reparaciones|length }} reparacion{{ 'es' if reparaciones|length != 1 else '' }} registrada{{ 's' if reparaciones|length != 1 else '' }}.</p>
                 </div>
                 <span class="at-pill">{{ email_buscado }}</span>
             </div>
 
             <!-- Resumen rapido -->
-            <div class="at-stats-bar mb-4" style="border-radius: .75rem; padding: 1.25rem 0;">
+            <div class="at-stats-bar mb-4 at-u265">
                 {% set pendientes = reparaciones|selectattr('estado', 'equalto', 'Pendiente')|list|length %}
                 {% set en_proceso = reparaciones|selectattr('estado', 'equalto', 'En proceso')|list|length %}
                 {% set terminadas = reparaciones|selectattr('estado', 'equalto', 'Terminado')|list|length + reparaciones|selectattr('estado', 'equalto', 'Entregado')|list|length %}
                 <div class="at-stats-grid">
                     <div class="at-stat">
-                        <span class="at-stat-number" style="font-size: 1.5rem;">{{ pendientes }}</span>
+                        <span class="at-stat-number at-u188">{{ pendientes }}</span>
                         <span class="at-stat-label">Pendientes</span>
                     </div>
                     <div class="at-stat-divider"></div>
                     <div class="at-stat">
-                        <span class="at-stat-number" style="font-size: 1.5rem;">{{ en_proceso }}</span>
+                        <span class="at-stat-number at-u188">{{ en_proceso }}</span>
                         <span class="at-stat-label">En proceso</span>
                     </div>
                     <div class="at-stat-divider"></div>
                     <div class="at-stat">
-                        <span class="at-stat-number" style="font-size: 1.5rem;">{{ terminadas }}</span>
+                        <span class="at-stat-number at-u188">{{ terminadas }}</span>
                         <span class="at-stat-label">Completadas</span>
                     </div>
                 </div>
@@ -89,7 +89,7 @@
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <div>
-                            <h5 class="fw-bold mb-1" style="color: var(--text);">
+                            <h5 class="fw-bold mb-1 at-u42">
                                 #{{ rep.id }} &mdash; {{ rep.dispositivo }}
                             </h5>
                             <p class="text-muted small mb-0">{{ rep.descripcion or 'Sin descripcion' }}</p>

@@ -6,7 +6,7 @@
     <div class="row justify-content-center">
         <div class="col-xl-8 col-lg-10">
             <span class="at-pill"><i class="bi bi-pencil-square me-1"></i>Roles</span>
-            <h1 class="at-section-title mt-2 mb-1">Editar Rol: <span style="color:{{ rol.color }}">{{ rol.nombre|capitalize }}</span></h1>
+            <h1 class="at-section-title mt-2 mb-1">Editar Rol: <span data-fgcolor="{{ rol.color }}">{{ rol.nombre|capitalize }}</span></h1>
             <p class="at-section-sub">
                 {% if rol.nombre == 'admin' %}
                 El rol admin siempre tiene todos los permisos. No se pueden modificar.
@@ -70,12 +70,12 @@
                         {% for cat_name, cat_permisos in categorias.items() %}
                         <div class="mb-4">
                             <div class="d-flex align-items-center gap-2 mb-2">
-                                <h6 class="mb-0 fw-bold" style="color:var(--text);">
-                                    {% if cat_name == 'Clientes' %}<i class="bi bi-people me-1" style="color:#2B8AC4;"></i>
-                                    {% elif cat_name == 'Reparaciones' %}<i class="bi bi-tools me-1" style="color:#2B8AC4;"></i>
-                                    {% elif cat_name == 'Inventario' %}<i class="bi bi-box-seam me-1" style="color:#2B8AC4;"></i>
-                                    {% elif cat_name == 'General' %}<i class="bi bi-grid me-1" style="color:#2B8AC4;"></i>
-                                    {% elif cat_name == 'Administracion' %}<i class="bi bi-shield-exclamation me-1" style="color:#dc3545;"></i>
+                                <h6 class="mb-0 fw-bold at-u42">
+                                    {% if cat_name == 'Clientes' %}<i class="bi bi-people me-1 at-u12"></i>
+                                    {% elif cat_name == 'Reparaciones' %}<i class="bi bi-tools me-1 at-u12"></i>
+                                    {% elif cat_name == 'Inventario' %}<i class="bi bi-box-seam me-1 at-u12"></i>
+                                    {% elif cat_name == 'General' %}<i class="bi bi-grid me-1 at-u12"></i>
+                                    {% elif cat_name == 'Administracion' %}<i class="bi bi-shield-exclamation me-1 at-u44"></i>
                                     {% endif %}
                                     {{ cat_name }}
                                 </h6>
@@ -91,15 +91,15 @@
                                 {% for p in cat_permisos %}
                                     {% if p.clave in permisos_actuales %}{% set ns.count = ns.count + 1 %}{% endif %}
                                 {% endfor %}
-                                <span class="badge" style="background:{% if ns.count == cat_permisos|length %}rgba(25,135,84,.1);color:#198754{% else %}rgba(255,193,7,.15);color:#997a00{% endif %};font-size:.7rem;">
+                                <span class="badge at-fs07 {% if ns.count == cat_permisos|length %}at-badge-full{% else %}at-badge-partial{% endif %}">
                                     {{ ns.count }}/{{ cat_permisos|length }}
                                 </span>
                             </div>
                             <div class="row g-2">
                                 {% for p in cat_permisos %}
                                 <div class="col-md-6 col-lg-4">
-                                    <div class="form-check p-2 rounded"
-                                         style="background:{% if p.clave in permisos_actuales %}rgba(25,135,84,.05){% else %}rgba(0,0,0,.02){% endif %};">
+                                    <div class="form-check p-2 rounded {% if p.clave in permisos_actuales %}at-permiso-on{% else %}at-permiso-off{% endif %}"
+                                         >
                                         <input class="form-check-input permiso-check" type="checkbox"
                                                name="permisos" value="{{ p.clave }}"
                                                id="p_{{ p.clave }}" data-cat="{{ cat_name }}"
@@ -117,12 +117,12 @@
                         {% endfor %}
 
                         {% if rol.nombre == 'admin' %}
-                        <div class="alert mb-0" style="background:rgba(220,53,69,.05);color:#dc3545;border:1px solid rgba(220,53,69,.2);">
+                        <div class="alert mb-0 at-u215">
                             <i class="bi bi-lock me-1"></i>
                             <strong>Rol protegido:</strong> El administrador siempre tiene todos los permisos por seguridad.
                         </div>
                         {% elif rol.es_sistema %}
-                        <div class="alert mb-0" style="background:#EBF5FB;color:#1a6fbd;border:1px solid #4da6d8;">
+                        <div class="alert mb-0 at-u216">
                             <i class="bi bi-info-circle me-1"></i>
                             <strong>Rol del sistema:</strong> Puedes modificar sus permisos pero no eliminarlo.
                         </div>

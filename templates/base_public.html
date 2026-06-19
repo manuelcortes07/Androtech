@@ -64,9 +64,9 @@
 {# Mensajes flash (compartidos) #}
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-    <div class="at-wrap" style="margin-top:18px;">
+    <div class="at-wrap at-u69">
         {% for category, message in messages %}
-        <div class="at-alert at-alert--{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'warning' if category == 'warning' else 'info' }}" role="alert" style="margin-bottom:10px;">
+        <div class="at-alert at-alert--{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'warning' if category == 'warning' else 'info' }} at-u75" role="alert">
             <i class="bi bi-info-circle-fill"></i><span>{{ message }}</span>
         </div>
         {% endfor %}
@@ -78,10 +78,10 @@
 
 <footer class="at-footer">
     <div class="at-wrap at-foot">
-        <a class="at-brand" href="/" style="font-size:16px;">
-            <span class="at-logo" style="width:28px;height:28px;font-size:14px;">⬡</span>AndroTech
+        <a class="at-brand at-u72" href="/">
+            <span class="at-logo at-u73">⬡</span>AndroTech
         </a>
-        <div class="at-mono" style="font-size:13px;">Huelva · Lun–Vie 9:30–20:00 · <a href="tel:+34633234395">+34 633 234 395</a></div>
+        <div class="at-mono at-u74">Huelva · Lun–Vie 9:30–20:00 · <a href="tel:+34633234395">+34 633 234 395</a></div>
         <div>© <span id="atYear"></span> AndroTech</div>
     </div>
 </footer>

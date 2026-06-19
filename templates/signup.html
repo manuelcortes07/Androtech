@@ -20,24 +20,24 @@
 </head>
 <body class="at-public">
 
-<button class="at-tgl" id="atThemeToggle" type="button" aria-label="Cambiar tema" style="position:fixed;top:20px;right:20px;z-index:10;">☀</button>
+<button class="at-tgl at-u247" id="atThemeToggle" type="button" aria-label="Cambiar tema">☀</button>
 
 <div class="at-auth">
-    <div class="at-glow at-g1" style="top:-180px;right:-120px;"></div>
-    <div class="at-glow at-g2" style="bottom:-180px;left:-120px;"></div>
+    <div class="at-glow at-g1 at-u248"></div>
+    <div class="at-glow at-g2 at-u249"></div>
 
-    <div class="at-auth-card at-reveal at-reveal--load" style="max-width:460px;">
-        <div style="text-align:center;margin-bottom:24px;">
-            <a class="at-brand" href="/" style="justify-content:center;font-size:22px;"><span class="at-logo" style="width:40px;height:40px;font-size:20px;">⬡</span>AndroTech</a>
-            <h1 class="at-display" style="font-size:1.4rem;margin:14px 0 6px;">Crea tu taller</h1>
-            <p class="at-dim" style="margin:0;">14 días de prueba gratis. Luego 24,99 €/mes. Cancela cuando quieras.</p>
+    <div class="at-auth-card at-reveal at-reveal--load at-u282">
+        <div class="at-u283">
+            <a class="at-brand at-u251" href="/"><span class="at-logo at-u252">⬡</span>AndroTech</a>
+            <h1 class="at-display at-u284">Crea tu taller</h1>
+            <p class="at-dim at-u160">14 días de prueba gratis. Luego 24,99 €/mes. Cancela cuando quieras.</p>
         </div>
 
         <div class="at-card">
             <div class="at-card__body">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}{% for category, message in messages %}
-                        <div class="at-alert at-alert--{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'info' }}" style="margin-bottom:14px;" role="alert">
+                        <div class="at-alert at-alert--{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'info' }} at-u254" role="alert">
                             <i class="bi bi-info-circle-fill"></i><span>{{ message }}</span>
                         </div>
                     {% endfor %}{% endif %}
@@ -58,17 +58,17 @@
                         <label class="at-label" for="usuario"><i class="bi bi-person-fill"></i> Usuario administrador</label>
                         <input class="at-input" type="text" id="usuario" name="usuario" required value="{{ usuario or '' }}" autocomplete="username" placeholder="admin">
                     </div>
-                    <div class="at-form-row" style="margin-bottom:20px;">
+                    <div class="at-form-row at-u285">
                         <label class="at-label" for="password"><i class="bi bi-lock-fill"></i> Contraseña</label>
                         <input class="at-input" type="password" id="password" name="password" required minlength="8" autocomplete="new-password" placeholder="Mínimo 8 caracteres">
                     </div>
 
                     <button type="submit" class="at-btn at-btn--primary at-btn--block at-btn--lg"><i class="bi bi-credit-card"></i> Empezar prueba de 14 días</button>
-                    <p class="at-dim" style="text-align:center;font-size:12.5px;margin:12px 0 0;"><i class="bi bi-shield-check"></i> Se requiere tarjeta. No se cobra hasta el día 15.</p>
+                    <p class="at-dim at-u135"><i class="bi bi-shield-check"></i> Se requiere tarjeta. No se cobra hasta el día 15.</p>
                 </form>
             </div>
-            <div class="at-card__foot" style="text-align:center;">
-                <a href="{{ url_for('login') }}" style="color:var(--accent);">¿Ya tienes cuenta? Inicia sesión</a>
+            <div class="at-card__foot at-u259">
+                <a href="{{ url_for('login') }}" class="at-u134">¿Ya tienes cuenta? Inicia sesión</a>
             </div>
         </div>
     </div>

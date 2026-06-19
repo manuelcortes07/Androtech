@@ -22,9 +22,9 @@
                                 <label for="nombre" class="form-label fw-semibold">
                                     <i class="bi bi-tag me-1"></i>Nombre del Rol <span class="text-danger">*</span>
                                 </label>
-                                <input type="text" class="form-control form-control-lg" id="nombre" name="nombre"
+                                <input type="text" class="form-control form-control-lg at-u267" id="nombre" name="nombre"
                                        placeholder="ej: recepcionista" required minlength="3"
-                                       pattern="[a-zA-Z0-9_-]{3,}" style="text-transform: lowercase;">
+                                       pattern="[a-zA-Z0-9_-]{3,}">
                                 <div class="form-text">
                                     Solo letras, numeros, guiones. Minimo 3 caracteres.
                                 </div>
@@ -64,12 +64,12 @@
                         {% for cat_name, cat_permisos in categorias.items() %}
                         <div class="mb-4">
                             <div class="d-flex align-items-center gap-2 mb-2">
-                                <h6 class="mb-0 fw-bold" style="color:var(--text);">
-                                    {% if cat_name == 'Clientes' %}<i class="bi bi-people me-1" style="color:#2B8AC4;"></i>
-                                    {% elif cat_name == 'Reparaciones' %}<i class="bi bi-tools me-1" style="color:#2B8AC4;"></i>
-                                    {% elif cat_name == 'Inventario' %}<i class="bi bi-box-seam me-1" style="color:#2B8AC4;"></i>
-                                    {% elif cat_name == 'General' %}<i class="bi bi-grid me-1" style="color:#2B8AC4;"></i>
-                                    {% elif cat_name == 'Administracion' %}<i class="bi bi-shield-exclamation me-1" style="color:#dc3545;"></i>
+                                <h6 class="mb-0 fw-bold at-u42">
+                                    {% if cat_name == 'Clientes' %}<i class="bi bi-people me-1 at-u12"></i>
+                                    {% elif cat_name == 'Reparaciones' %}<i class="bi bi-tools me-1 at-u12"></i>
+                                    {% elif cat_name == 'Inventario' %}<i class="bi bi-box-seam me-1 at-u12"></i>
+                                    {% elif cat_name == 'General' %}<i class="bi bi-grid me-1 at-u12"></i>
+                                    {% elif cat_name == 'Administracion' %}<i class="bi bi-shield-exclamation me-1 at-u44"></i>
                                     {% endif %}
                                     {{ cat_name }}
                                 </h6>
@@ -81,7 +81,7 @@
                             <div class="row g-2">
                                 {% for p in cat_permisos %}
                                 <div class="col-md-6 col-lg-4">
-                                    <div class="form-check p-2 rounded" style="background:rgba(0,0,0,.02);">
+                                    <div class="form-check p-2 rounded at-u268">
                                         <input class="form-check-input permiso-check" type="checkbox"
                                                name="permisos" value="{{ p.clave }}"
                                                id="p_{{ p.clave }}" data-cat="{{ cat_name }}">
@@ -95,7 +95,7 @@
                         </div>
                         {% endfor %}
 
-                        <div class="alert mt-3 mb-0" style="background:#EBF5FB;color:#1a6fbd;border:1px solid #4da6d8;">
+                        <div class="alert mt-3 mb-0 at-u216">
                             <i class="bi bi-info-circle me-1"></i>
                             <strong>Nota:</strong> Los permisos de "Administracion" dan acceso a areas sensibles del sistema. Asignalos con precaucion.
                         </div>

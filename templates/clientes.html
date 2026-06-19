@@ -17,10 +17,10 @@
     <div class="at-card">
 
         <!-- Barra de herramientas -->
-        <div class="at-card__body" style="padding-bottom:18px;">
+        <div class="at-card__body at-u89">
             <form method="get" action="{{ url_for('clientes') }}">
-                <div class="d-flex gap-2 flex-wrap" style="max-width:560px;">
-                    <input id="clientes-search" name="q" type="search" class="at-input" style="flex:1;min-width:220px;"
+                <div class="d-flex gap-2 flex-wrap at-u90">
+                    <input id="clientes-search" name="q" type="search" class="at-input at-u91"
                            value="{{ q or '' }}" placeholder="Buscar por nombre, email o teléfono…">
                     <button type="submit" class="at-btn at-btn--primary"><i class="bi bi-search"></i> Buscar</button>
                     {% if q %}<a href="{{ url_for('clientes') }}" class="at-btn at-btn--outline">Limpiar</a>{% endif %}
@@ -29,19 +29,19 @@
         </div>
 
         <!-- Tabla -->
-        <div class="at-table-wrap" id="clientes-table-wrap" style="border:none;border-radius:0;">
+        <div class="at-table-wrap at-u1" id="clientes-table-wrap">
             <table id="clientes-table" class="at-table">
                 <thead>
-                    <tr><th style="width:90px;">ID</th><th>Nombre</th><th style="width:160px;">Teléfono</th><th>Email</th><th style="width:200px;">Acciones</th></tr>
+                    <tr><th class="at-u92">ID</th><th>Nombre</th><th class="at-u93">Teléfono</th><th>Email</th><th class="at-u3">Acciones</th></tr>
                 </thead>
                 <tbody>
                 {% for c in clientes %}
                 <tr>
-                    <td class="at-mono"><span style="color:var(--accent);font-weight:600;">#{{ c.id }}</span></td>
+                    <td class="at-mono"><span class="at-u94">#{{ c.id }}</span></td>
                     <td>
                         <div class="d-flex align-items-center gap-2">
-                            <span class="at-stat-ic" style="width:32px;height:32px;font-size:14px;border-radius:8px;"><i class="bi bi-person-fill"></i></span>
-                            <span style="font-weight:600;">{{ c.nombre }}</span>
+                            <span class="at-stat-ic at-u95"><i class="bi bi-person-fill"></i></span>
+                            <span class="at-u96">{{ c.nombre }}</span>
                         </div>
                     </td>
                     <td class="at-dim">{% if c.telefono %}<i class="bi bi-telephone"></i> {{ c.telefono }}{% else %}—{% endif %}</td>
@@ -51,7 +51,7 @@
                             <a href="/clientes/editar/{{ c.id }}" class="at-btn at-btn--outline at-btn--sm"><i class="bi bi-pencil"></i> Editar</a>
                             <a href="/cliente/{{ c.id }}/historial-pdf" class="at-btn at-btn--ghost at-btn--icon at-btn--sm" title="Exportar historial PDF"><i class="bi bi-file-pdf"></i></a>
                             {% if session.rol == 'admin' %}
-                            <button type="button" class="at-btn at-btn--icon at-btn--sm" style="color:var(--red);border:1px solid color-mix(in srgb,var(--red) 40%,transparent);"
+                            <button type="button" class="at-btn at-btn--icon at-btn--sm at-u97"
                                     data-bs-toggle="modal" data-bs-target="#confirmBorrarModal"
                                     onclick="setConfirmData('/clientes/borrar/{{ c.id }}', 'Borrar Cliente', '¿Estas seguro de que deseas borrar este cliente ({{ c.nombre }}) y todos sus registros? Esta accion no se puede deshacer.')" title="Borrar"><i class="bi bi-trash"></i></button>
                             {% endif %}
@@ -64,10 +64,10 @@
         </div>
 
         {% if clientes|length == 0 %}
-        <div class="text-center" style="padding:48px 0;">
-            <i class="bi bi-people" style="font-size:3rem;color:var(--accent);opacity:.3;"></i>
-            <h5 style="margin:12px 0 4px;">No hay clientes registrados</h5>
-            <p class="at-dim" style="margin:0 0 16px;">Agrega tu primer cliente para comenzar.</p>
+        <div class="text-center at-u7">
+            <i class="bi bi-people at-u98"></i>
+            <h5 class="at-u99">No hay clientes registrados</h5>
+            <p class="at-dim at-u100">Agrega tu primer cliente para comenzar.</p>
             <a href="/clientes/nuevo" class="at-btn at-btn--primary at-btn--sm"><i class="bi bi-person-plus"></i> Nuevo cliente</a>
         </div>
         {% endif %}
@@ -94,24 +94,24 @@
     <!-- Modal de Confirmacion -->
     <div class="modal fade" id="confirmBorrarModal" tabindex="-1" aria-labelledby="confirmBorrarLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow" style="border-radius: 12px; overflow: hidden;">
-                <div class="modal-header border-0 pb-0" style="padding: 1.5rem 1.5rem .75rem;">
+            <div class="modal-content border-0 shadow at-u101">
+                <div class="modal-header border-0 pb-0 at-u102">
                     <div class="d-flex align-items-center gap-3">
-                        <div class="d-flex align-items-center justify-content-center rounded-circle"
-                             style="width:42px; height:42px; background: rgba(220,53,69,.08); flex-shrink:0;">
-                            <i class="bi bi-exclamation-triangle-fill" style="color: #dc3545; font-size: 1.1rem;"></i>
+                        <div class="d-flex align-items-center justify-content-center rounded-circle at-u103"
+                            >
+                            <i class="bi bi-exclamation-triangle-fill at-u104"></i>
                         </div>
-                        <h5 class="modal-title mb-0 fw-bold" id="confirmBorrarLabel" style="color: var(--text);">Confirmacion de accion</h5>
+                        <h5 class="modal-title mb-0 fw-bold at-u42" id="confirmBorrarLabel">Confirmacion de accion</h5>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body" id="confirmBorrarMsg" style="padding: 1rem 1.5rem 1.5rem; color: var(--dim); border-left: 4px solid #dc3545; margin: 0 1.5rem; border-radius: 4px; background: color-mix(in srgb, var(--red) 6%, transparent);">
+                <div class="modal-body at-u105" id="confirmBorrarMsg">
                     ¿Estas seguro?
                 </div>
-                <div class="modal-footer border-0" style="padding: .75rem 1.5rem 1.5rem;">
+                <div class="modal-footer border-0 at-u106">
                     <button type="button" class="at-btn-outline btn btn-sm" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-sm" id="confirmBorrarBtn"
-                            style="background: #dc3545; color: #fff; border: none; padding: .45rem 1.25rem; border-radius: 8px;"
+                    <button type="button" class="btn btn-sm at-u107" id="confirmBorrarBtn"
+                           
                             onclick="confirmarAccion()">
                         <i class="bi bi-trash me-1"></i>Si, borrar
                     </button>

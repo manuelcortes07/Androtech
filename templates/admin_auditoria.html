@@ -11,10 +11,10 @@
     </div>
 
     <div class="at-card">
-        <div class="at-table-wrap" style="border:none;border-radius:0;">
+        <div class="at-table-wrap at-u1">
             <table class="at-table">
                 <thead>
-                    <tr><th style="width:170px;">Fecha</th><th style="width:200px;">Evento</th><th style="width:140px;">Usuario</th><th>Datos</th><th style="width:130px;">IP</th></tr>
+                    <tr><th class="at-u2">Fecha</th><th class="at-u3">Evento</th><th class="at-u4">Usuario</th><th>Datos</th><th class="at-u5">IP</th></tr>
                 </thead>
                 <tbody>
                 {% for e in eventos %}
@@ -22,7 +22,7 @@
                         <td class="at-mono at-dim">{{ e.timestamp }}</td>
                         <td><span class="at-status at-status--en-proceso">{{ e.event_type }}</span></td>
                         <td>{{ e.usuario or '—' }}</td>
-                        <td class="at-dim" style="max-width:380px;overflow:hidden;text-overflow:ellipsis;">{{ e.evento_datos or '' }}</td>
+                        <td class="at-dim at-u6">{{ e.evento_datos or '' }}</td>
                         <td class="at-mono at-dim">{{ e.ip_address or '—' }}</td>
                     </tr>
                 {% endfor %}
@@ -31,9 +31,9 @@
         </div>
 
         {% if eventos|length == 0 %}
-        <div class="text-center" style="padding:48px 0;">
-            <i class="bi bi-clock-history" style="font-size:2.5rem;color:var(--accent);opacity:.3;"></i>
-            <p class="at-dim" style="margin:10px 0 0;">No hay eventos de auditoría.</p>
+        <div class="text-center at-u7">
+            <i class="bi bi-clock-history at-u8"></i>
+            <p class="at-dim at-u9">No hay eventos de auditoría.</p>
         </div>
         {% endif %}
 

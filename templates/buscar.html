@@ -9,7 +9,7 @@
         <div class="col">
             <span class="at-pill"><i class="bi bi-search me-1"></i>Buscar</span>
             <h1 class="at-section-title mt-2 mb-1">Resultados para "{{ q }}"</h1>
-            <p class="at-section-sub" style="margin:0;max-width:none;">
+            <p class="at-section-sub at-u76">
                 {{ clientes|length }} cliente{{ 's' if clientes|length != 1 else '' }} y {{ reparaciones|length }} reparaci&oacute;n{{ 'es' if reparaciones|length != 1 else '' }} encontrada{{ 's' if reparaciones|length != 1 else '' }}
             </p>
         </div>
@@ -28,9 +28,9 @@
     {% if clientes %}
     <div class="at-admin-card mb-4">
         <div class="d-flex align-items-center px-3 pt-3 pb-2">
-            <i class="bi bi-people me-2" style="color:#2B8AC4;"></i>
-            <h5 class="fw-bold mb-0" style="color:var(--text);">Clientes</h5>
-            <span class="badge ms-2" style="background:rgba(43,138,196,.12);color:#2B8AC4;">{{ clientes|length }}</span>
+            <i class="bi bi-people me-2 at-u12"></i>
+            <h5 class="fw-bold mb-0 at-u42">Clientes</h5>
+            <span class="badge ms-2 at-u77">{{ clientes|length }}</span>
         </div>
         <div class="table-responsive">
             <table class="at-admin-table table table-hover mb-0">
@@ -46,7 +46,7 @@
                 <tbody>
                     {% for c in clientes %}
                     <tr class="align-middle">
-                        <td><span class="badge" style="background:rgba(43,138,196,.12);color:#2B8AC4;">{{ c.id }}</span></td>
+                        <td><span class="badge at-u77">{{ c.id }}</span></td>
                         <td class="fw-semibold">{{ c.nombre }}</td>
                         <td class="text-muted">{{ c.email or '-' }}</td>
                         <td class="text-muted">{{ c.telefono or '-' }}</td>
@@ -67,9 +67,9 @@
     {% if reparaciones %}
     <div class="at-admin-card mb-4">
         <div class="d-flex align-items-center px-3 pt-3 pb-2">
-            <i class="bi bi-tools me-2" style="color:#2B8AC4;"></i>
-            <h5 class="fw-bold mb-0" style="color:var(--text);">Reparaciones</h5>
-            <span class="badge ms-2" style="background:rgba(43,138,196,.12);color:#2B8AC4;">{{ reparaciones|length }}</span>
+            <i class="bi bi-tools me-2 at-u12"></i>
+            <h5 class="fw-bold mb-0 at-u42">Reparaciones</h5>
+            <span class="badge ms-2 at-u77">{{ reparaciones|length }}</span>
         </div>
         <div class="table-responsive">
             <table class="at-admin-table table table-hover mb-0">
@@ -87,25 +87,25 @@
                 <tbody>
                     {% for r in reparaciones %}
                     <tr class="align-middle">
-                        <td><span class="badge" style="background:rgba(43,138,196,.12);color:#2B8AC4;">{{ r.id }}</span></td>
+                        <td><span class="badge at-u77">{{ r.id }}</span></td>
                         <td class="fw-semibold">{{ r.cliente }}</td>
                         <td>{{ r.dispositivo }}</td>
                         <td class="text-center">
                             {% if r.estado == 'Pendiente' %}
-                                <span class="badge" style="background:rgba(255,193,7,.15);color:#997a00;">{{ r.estado }}</span>
+                                <span class="badge at-u78">{{ r.estado }}</span>
                             {% elif r.estado == 'En proceso' %}
-                                <span class="badge" style="background:rgba(43,138,196,.12);color:#2B8AC4;">{{ r.estado }}</span>
+                                <span class="badge at-u77">{{ r.estado }}</span>
                             {% elif r.estado in ['Terminado', 'Entregado'] %}
-                                <span class="badge" style="background:rgba(25,135,84,.12);color:#198754;">{{ r.estado }}</span>
+                                <span class="badge at-u79">{{ r.estado }}</span>
                             {% else %}
-                                <span class="badge" style="background:rgba(108,117,125,.12);color:#6c757d;">{{ r.estado }}</span>
+                                <span class="badge at-u80">{{ r.estado }}</span>
                             {% endif %}
                         </td>
                         <td class="text-center">
                             {% if r.estado_pago == 'Pagado' %}
-                                <span class="badge" style="background:rgba(25,135,84,.12);color:#198754;">Pagado</span>
+                                <span class="badge at-u79">Pagado</span>
                             {% else %}
-                                <span class="badge" style="background:rgba(220,53,69,.1);color:#dc3545;">Pendiente</span>
+                                <span class="badge at-u48">Pendiente</span>
                             {% endif %}
                         </td>
                         <td class="text-end fw-semibold">{% if r.precio %}{{ "%.2f"|format(r.precio) }}&euro;{% else %}<span class="text-muted">-</span>{% endif %}</td>
