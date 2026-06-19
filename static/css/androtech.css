@@ -409,3 +409,42 @@
   .at-content{padding:20px 16px 48px}
   .at-search{display:none}
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   PUENTE BOOTSTRAP → tema AndroTech
+   Donde el contenido del panel aún usa componentes Bootstrap (paginación,
+   formularios, modales, tablas), que respeten los tokens de tema en vez del
+   blanco por defecto. Acotado a .at-public para no tocar nada externo.
+   ════════════════════════════════════════════════════════════════════════ */
+.at-public .form-control,.at-public .form-select{
+  background:var(--surface-2);border:1.5px solid var(--line-2);color:var(--text);border-radius:10px}
+.at-public .form-control:focus,.at-public .form-select:focus{
+  background:var(--surface-2);border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);color:var(--text)}
+.at-public .form-control::placeholder{color:var(--dim)}
+.at-public .form-label,.at-public .form-check-label{color:var(--text)}
+.at-public .input-group-text{background:var(--surface-2);border:1.5px solid var(--line-2);color:var(--dim)}
+
+.at-public .table{color:var(--text);--bs-table-bg:transparent;--bs-table-color:var(--text)}
+.at-public .table>:not(caption)>*>*{background:transparent;color:var(--text);border-color:var(--line)}
+.at-public .table-hover>tbody>tr:hover>*{background:var(--surface-2);color:var(--text)}
+
+.at-public .modal-content{background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:16px}
+.at-public .modal-header,.at-public .modal-footer{border-color:var(--line)}
+[data-theme="dark"] .at-public .btn-close{filter:invert(1) grayscale(1) brightness(1.4)}
+
+/* Paginación (partial _paginacion.html) */
+.at-public .pagination{gap:4px}
+.at-public .page-link{background:var(--surface);border:1px solid var(--line);color:var(--text);
+  border-radius:9px;padding:7px 12px;font-size:13.5px}
+.at-public .page-link:hover{background:var(--surface-2);color:var(--accent);border-color:var(--line-2)}
+.at-public .page-item.active .page-link{background:var(--accent);border-color:var(--accent);color:#fff}
+.at-public .page-item.disabled .page-link{background:var(--surface);color:var(--dim);opacity:.55}
+
+/* Dropdowns Bootstrap (si algún contenido los usa) */
+.at-public .dropdown-menu{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+.at-public .dropdown-item{color:var(--text)}
+.at-public .dropdown-item:hover{background:var(--surface-2);color:var(--text)}
+.at-public .dropdown-divider{border-color:var(--line)}
+
+/* Alertas Bootstrap residuales → look del sistema */
+.at-public .alert{border-radius:12px;border:1px solid var(--line)}

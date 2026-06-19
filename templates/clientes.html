@@ -2,106 +2,58 @@
 {% block title %}Clientes - AndroTech{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="at-rise">
 
     <!-- ENCABEZADO -->
-    <div class="row mb-4 align-items-end">
-        <div class="col">
-            <span class="at-pill"><i class="bi bi-people-fill me-1"></i>Clientes</span>
-            <h1 class="at-section-title mt-2 mb-1">Listado de Clientes</h1>
-            <p class="at-section-sub" style="margin:0;max-width:none;">Gestion y administracion de la base de datos de clientes</p>
+    <div class="at-page-head">
+        <div>
+            <h1 class="at-page-title">Clientes</h1>
+            <p class="at-page-sub">Gestión y administración de la base de datos de clientes.</p>
         </div>
-        <div class="col-auto">
-            <a href="/clientes/nuevo" class="at-btn-primary btn btn-sm">
-                <i class="bi bi-person-plus me-1"></i>Nuevo Cliente
-            </a>
-        </div>
+        <a href="/clientes/nuevo" class="at-btn at-btn--primary at-btn--sm"><i class="bi bi-person-plus"></i> Nuevo cliente</a>
     </div>
 
     <!-- CONTENIDO PRINCIPAL -->
-    <div class="at-admin-card">
+    <div class="at-card">
 
         <!-- Barra de herramientas -->
-        <div class="at-dash-card-body" style="border-bottom: 1px solid rgba(0,0,0,.06);">
-            <form class="at-admin-form" method="get" action="{{ url_for('clientes') }}">
-                <div class="row g-2 align-items-center">
-                    <div class="col-md-6">
-                        <div class="input-group">
-                            <span class="input-group-text border-0" style="background: #EBF5FB; color: #2B8AC4;">
-                                <i class="bi bi-search"></i>
-                            </span>
-                            <input id="clientes-search" name="q" type="search" class="form-control border-0"
-                                   value="{{ q or '' }}"
-                                   placeholder="Buscar por nombre, email o teléfono..."
-                                   style="background: #EBF5FB;">
-                            <button type="submit" class="btn btn-sm at-btn-primary">Buscar</button>
-                            {% if q %}
-                                <a href="{{ url_for('clientes') }}" class="btn btn-sm btn-outline-secondary">Limpiar</a>
-                            {% endif %}
-                        </div>
-                    </div>
+        <div class="at-card__body" style="padding-bottom:18px;">
+            <form method="get" action="{{ url_for('clientes') }}">
+                <div class="d-flex gap-2 flex-wrap" style="max-width:560px;">
+                    <input id="clientes-search" name="q" type="search" class="at-input" style="flex:1;min-width:220px;"
+                           value="{{ q or '' }}" placeholder="Buscar por nombre, email o teléfono…">
+                    <button type="submit" class="at-btn at-btn--primary"><i class="bi bi-search"></i> Buscar</button>
+                    {% if q %}<a href="{{ url_for('clientes') }}" class="at-btn at-btn--outline">Limpiar</a>{% endif %}
                 </div>
             </form>
         </div>
 
         <!-- Tabla -->
-        <div class="table-responsive" id="clientes-table-wrap">
-            <table id="clientes-table" class="at-admin-table table table-hover align-middle mb-0">
+        <div class="at-table-wrap" id="clientes-table-wrap" style="border:none;border-radius:0;">
+            <table id="clientes-table" class="at-table">
                 <thead>
-                <tr style="background: rgba(0,0,0,.02);">
-                    <th class="ps-4" style="width:90px;">ID</th>
-                    <th>Nombre</th>
-                    <th style="width:160px;">Telefono</th>
-                    <th>Email</th>
-                    <th style="width:200px;">Acciones</th>
-                </tr>
+                    <tr><th style="width:90px;">ID</th><th>Nombre</th><th style="width:160px;">Teléfono</th><th>Email</th><th style="width:200px;">Acciones</th></tr>
                 </thead>
-
                 <tbody>
                 {% for c in clientes %}
                 <tr>
-                    <td class="ps-4">
-                        <span class="badge" style="background: rgba(43,138,196,.12); color: #2B8AC4; font-weight: 600;">#{{ c.id }}</span>
-                    </td>
+                    <td class="at-mono"><span style="color:var(--accent);font-weight:600;">#{{ c.id }}</span></td>
                     <td>
                         <div class="d-flex align-items-center gap-2">
-                            <div class="d-flex align-items-center justify-content-center rounded-circle"
-                                 style="width:32px; height:32px; background: rgba(43,138,196,.1); color: #2B8AC4; font-size:.85rem; flex-shrink:0;">
-                                <i class="bi bi-person-fill"></i>
-                            </div>
-                            <span class="fw-semibold">{{ c.nombre }}</span>
+                            <span class="at-stat-ic" style="width:32px;height:32px;font-size:14px;border-radius:8px;"><i class="bi bi-person-fill"></i></span>
+                            <span style="font-weight:600;">{{ c.nombre }}</span>
                         </div>
                     </td>
+                    <td class="at-dim">{% if c.telefono %}<i class="bi bi-telephone"></i> {{ c.telefono }}{% else %}—{% endif %}</td>
+                    <td class="at-dim">{% if c.email %}<i class="bi bi-envelope"></i> {{ c.email }}{% else %}—{% endif %}</td>
                     <td>
-                        {% if c.telefono %}
-                            <span class="text-muted"><i class="bi bi-telephone me-1" style="font-size:.75rem;"></i>{{ c.telefono }}</span>
-                        {% else %}
-                            <span class="text-muted small">—</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if c.email %}
-                            <span class="text-muted"><i class="bi bi-envelope me-1" style="font-size:.75rem;"></i>{{ c.email }}</span>
-                        {% else %}
-                            <span class="text-muted small">—</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <div class="d-flex gap-1">
-                            <a href="/clientes/editar/{{ c.id }}" class="at-btn-outline btn btn-sm">
-                                <i class="bi bi-pencil me-1"></i>Editar
-                            </a>
-                            <a href="/cliente/{{ c.id }}/historial-pdf" class="btn btn-sm"
-                               style="color:#2B8AC4;border:1px solid rgba(43,138,196,.2);" title="Exportar historial PDF">
-                                <i class="bi bi-file-pdf"></i>
-                            </a>
+                        <div class="d-flex gap-1 flex-wrap">
+                            <a href="/clientes/editar/{{ c.id }}" class="at-btn at-btn--outline at-btn--sm"><i class="bi bi-pencil"></i> Editar</a>
+                            <a href="/cliente/{{ c.id }}/historial-pdf" class="at-btn at-btn--ghost at-btn--icon at-btn--sm" title="Exportar historial PDF"><i class="bi bi-file-pdf"></i></a>
                             {% if session.rol == 'admin' %}
-                            <button type="button" class="btn btn-sm"
-                                    style="background: rgba(220,53,69,.08); color: #dc3545; border: 1px solid rgba(220,53,69,.15);"
+                            <button type="button" class="at-btn at-btn--icon at-btn--sm" style="color:var(--red);border:1px solid color-mix(in srgb,var(--red) 40%,transparent);"
                                     data-bs-toggle="modal" data-bs-target="#confirmBorrarModal"
-                                    onclick="setConfirmData('/clientes/borrar/{{ c.id }}', 'Borrar Cliente', '¿Estas seguro de que deseas borrar este cliente ({{ c.nombre }}) y todos sus registros? Esta accion no se puede deshacer.')">
-                                <i class="bi bi-trash me-1"></i>Borrar
-                            </button>
+                                    onclick="setConfirmData('/clientes/borrar/{{ c.id }}', 'Borrar Cliente', '¿Estas seguro de que deseas borrar este cliente ({{ c.nombre }}) y todos sus registros? Esta accion no se puede deshacer.')" title="Borrar"><i class="bi bi-trash"></i></button>
                             {% endif %}
                         </div>
                     </td>
@@ -112,29 +64,21 @@
         </div>
 
         {% if clientes|length == 0 %}
-        <div class="at-empty-state text-center py-5">
-            <div class="mb-3">
-                <i class="bi bi-people" style="font-size: 3rem; color: #2B8AC4; opacity:.3;"></i>
-            </div>
-            <h5 class="text-muted mb-1">No hay clientes registrados</h5>
-            <p class="text-muted small mb-3">Agrega tu primer cliente para comenzar.</p>
-            <a href="/clientes/nuevo" class="at-btn-primary btn btn-sm">
-                <i class="bi bi-person-plus me-1"></i>Nuevo Cliente
-            </a>
+        <div class="text-center" style="padding:48px 0;">
+            <i class="bi bi-people" style="font-size:3rem;color:var(--accent);opacity:.3;"></i>
+            <h5 style="margin:12px 0 4px;">No hay clientes registrados</h5>
+            <p class="at-dim" style="margin:0 0 16px;">Agrega tu primer cliente para comenzar.</p>
+            <a href="/clientes/nuevo" class="at-btn at-btn--primary at-btn--sm"><i class="bi bi-person-plus"></i> Nuevo cliente</a>
         </div>
         {% endif %}
 
         <!-- Paginación server-side (B5) -->
-        <div class="px-4 py-3" style="border-top: 1px solid rgba(0,0,0,.06);">
-            {% include "_paginacion.html" %}
-        </div>
+        <div class="at-card__foot">{% include "_paginacion.html" %}</div>
 
         <!-- Footer -->
-        <div class="px-4 py-3 d-flex justify-content-between align-items-center" style="border-top: 1px solid rgba(0,0,0,.06); background: rgba(0,0,0,.01);">
-            <div class="text-muted small">
-                <i class="bi bi-database me-1"></i><strong>{{ pagina.total }}</strong> clientes{% if q %} (filtrados){% endif %}
-            </div>
-            <div class="text-muted small">Panel administrativo — AndroTech</div>
+        <div class="at-card__foot d-flex justify-content-between align-items-center">
+            <div><i class="bi bi-database"></i> <strong>{{ pagina.total }}</strong> clientes{% if q %} (filtrados){% endif %}</div>
+            <div class="at-dim">Panel administrativo — AndroTech</div>
         </div>
 
     </div>
@@ -157,11 +101,11 @@
                              style="width:42px; height:42px; background: rgba(220,53,69,.08); flex-shrink:0;">
                             <i class="bi bi-exclamation-triangle-fill" style="color: #dc3545; font-size: 1.1rem;"></i>
                         </div>
-                        <h5 class="modal-title mb-0 fw-bold" id="confirmBorrarLabel" style="color: #0F1923;">Confirmacion de accion</h5>
+                        <h5 class="modal-title mb-0 fw-bold" id="confirmBorrarLabel" style="color: var(--text);">Confirmacion de accion</h5>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body" id="confirmBorrarMsg" style="padding: 1rem 1.5rem 1.5rem; color: #555; border-left: 4px solid #dc3545; margin: 0 1.5rem; border-radius: 4px; background: rgba(220,53,69,.03);">
+                <div class="modal-body" id="confirmBorrarMsg" style="padding: 1rem 1.5rem 1.5rem; color: var(--dim); border-left: 4px solid #dc3545; margin: 0 1.5rem; border-radius: 4px; background: color-mix(in srgb, var(--red) 6%, transparent);">
                     ¿Estas seguro?
                 </div>
                 <div class="modal-footer border-0" style="padding: .75rem 1.5rem 1.5rem;">
