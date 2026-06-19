@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AndroTech · {% block title %}{% endblock %}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/static/favicons/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicons/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicons/apple-touch-icon.png">
+
+    <!-- PWA -->
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0A0E17">
+
+    <!-- Aplicar tema ANTES del primer pintado (anti-parpadeo) -->
+    <script>
+    (function(){
+        try{
+            var t = localStorage.getItem('at-theme');
+            document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+        }catch(e){
+            document.documentElement.setAttribute('data-theme','dark');
+        }
+    })();
+    </script>
+
+    <!-- Fuentes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Iconos -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+    <!-- Sistema de diseño AndroTech -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/androtech.css') }}">
+    {% block head_extra %}{% endblock %}
+</head>
+
+<body class="at-public">
+
+<header class="at-header">
+    <div class="at-wrap at-nav">
+        <a class="at-brand" href="/">
+            <span class="at-logo">⬡</span>AndroTech
+        </a>
+        <nav class="at-navlinks">
+            <a href="/" class="{{ 'is-active' if request.endpoint == 'index' }}">Inicio</a>
+            <a href="/servicios" class="{{ 'is-active' if request.endpoint == 'servicios' }}">Servicios</a>
+            <a href="/sobre" class="{{ 'is-active' if request.endpoint == 'sobre' }}">Sobre nosotros</a>
+            <a href="/consulta" class="{{ 'is-active' if request.endpoint == 'consulta' }}">Seguimiento</a>
+            <a href="/mis-reparaciones" class="{{ 'is-active' if request.endpoint == 'mis_reparaciones' }}">Mis reparaciones</a>
+        </nav>
+        <div class="at-nav-r">
+            <button class="at-tgl" id="atThemeToggle" type="button" aria-label="Cambiar tema">☀</button>
+            <a class="at-btn at-btn--ghost" href="/login"><i class="bi bi-shield-lock"></i><span class="d-none d-sm-inline">Acceso técnico</span></a>
+            <a class="at-btn at-btn--primary" href="/solicitar-reparacion">Solicitar <span class="at-ar">→</span></a>
+        </div>
+    </div>
+</header>
+
+{# Mensajes flash (compartidos) #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="at-wrap" style="margin-top:18px;">
+        {% for category, message in messages %}
+        <div class="at-alert at-alert--{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'warning' if category == 'warning' else 'info' }}" role="alert" style="margin-bottom:10px;">
+            <i class="bi bi-info-circle-fill"></i><span>{{ message }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+{% endwith %}
+
+{% block content %}{% endblock %}
+
+<footer class="at-footer">
+    <div class="at-wrap at-foot">
+        <a class="at-brand" href="/" style="font-size:16px;">
+            <span class="at-logo" style="width:28px;height:28px;font-size:14px;">⬡</span>AndroTech
+        </a>
+        <div class="at-mono" style="font-size:13px;">Huelva · Lun–Vie 9:30–20:00 · <a href="tel:+34633234395">+34 633 234 395</a></div>
+        <div>© <span id="atYear"></span> AndroTech</div>
+    </div>
+</footer>
+
+<!-- JS base del sistema de diseño (tema, reveals, partículas, contadores) -->
+<script>
+(function(){
+    var html = document.documentElement;
+    var reduce = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+    // ── Interruptor de tema (persiste en localStorage; clave compartida) ──
+    var tgl = document.getElementById('atThemeToggle');
+    function syncIcon(){ if(tgl) tgl.textContent = html.getAttribute('data-theme') === 'dark' ? '☀' : '☾'; }
+    syncIcon();
+    if(tgl){
+        tgl.addEventListener('click', function(){
+            var dark = html.getAttribute('data-theme') === 'dark';
+            html.setAttribute('data-theme', dark ? 'light' : 'dark');
+            try{ localStorage.setItem('at-theme', dark ? 'light' : 'dark'); }catch(e){}
+            syncIcon();
+        });
+    }
+
+    // ── Año del footer ──
+    var y = document.getElementById('atYear');
+    if(y) y.textContent = new Date().getFullYear();
+
+    // ── Partículas flotantes (cualquier .at-particles) ──
+    if(!reduce){
+        document.querySelectorAll('.at-particles').forEach(function(p){
+            for(var i=0;i<14;i++){
+                var d=document.createElement('i');
+                d.style.left=(Math.random()*100)+'%';
+                d.style.animationDuration=(7+Math.random()*8)+'s';
+                d.style.animationDelay=(Math.random()*8)+'s';
+                var sc=.5+Math.random(); d.style.width=d.style.height=(4*sc)+'px';
+                d.style.opacity=.4;
+                p.appendChild(d);
+            }
+        });
+    }
+
+    // ── Contadores que suben ([data-count]) ──
+    function countUp(el){
+        var target=+el.getAttribute('data-count'), dur=1100, t0=null;
+        function step(ts){ if(!t0)t0=ts; var pr=Math.min((ts-t0)/dur,1);
+            el.textContent=Math.round(target*(1-Math.pow(1-pr,3)));
+            if(pr<1)requestAnimationFrame(step); }
+        requestAnimationFrame(step);
+    }
+
+    // ── Reveals: entrada orquestada al cargar (.at-reveal--load) + scroll ──
+    var loadEls = document.querySelectorAll('.at-reveal--load');
+    if(reduce){
+        document.querySelectorAll('.at-reveal').forEach(function(e){e.classList.add('is-in');});
+        document.querySelectorAll('[data-count]').forEach(function(e){e.textContent=e.getAttribute('data-count');});
+    }else{
+        loadEls.forEach(function(el,i){ setTimeout(function(){ el.classList.add('is-in'); }, 120+i*120); });
+        var io=new IntersectionObserver(function(en){
+            en.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('is-in'); io.unobserve(e.target); } });
+        },{threshold:.16});
+        document.querySelectorAll('.at-reveal:not(.at-reveal--load)').forEach(function(el){ io.observe(el); });
+        setTimeout(function(){ document.querySelectorAll('[data-count]').forEach(countUp); }, 550);
+    }
+
+    // Exponer para que las páginas añadan su propio movimiento.
+    window.AT = { reduce: reduce };
+})();
+</script>
+
+{% block scripts %}{% endblock %}
+
+<!-- Service Worker -->
+<script>
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/static/sw.js', { scope: '/' }).catch(function(){});
+}
+</script>
+
+</body>
+</html>
