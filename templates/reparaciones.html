@@ -25,14 +25,15 @@
     </div>
 
     <!-- FILTROS -->
-    <div class="at-card mb-4">
+    <div class="at-admin-card mb-4">
         <div class="p-3">
             <!-- Búsqueda global -->
             <form method="get" class="at-admin-form mb-3">
                 <div class="row g-2 align-items-center">
                     <div class="col-md-5">
                         <div class="input-group input-group-sm">
-                            <input type="search" name="q" class="form-control" placeholder="Buscar por ID, nombre, teléfono, dispositivo..." value="{{ filters.q if filters.q is defined else '' }}">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search" style="color:#2B8AC4;"></i></span>
+                            <input type="search" name="q" class="form-control border-start-0" placeholder="Buscar por ID, nombre, teléfono, dispositivo..." value="{{ filters.q if filters.q is defined else '' }}">
                         </div>
                     </div>
                     <div class="col-auto">
@@ -99,9 +100,9 @@
     </div>
 
     <!-- TABLA -->
-    <div class="at-card">
+    <div class="at-admin-card">
         <div class="table-responsive">
-            <table class="at-table at-rise">
+            <table class="at-admin-table table align-middle mb-0">
                 <thead>
                 <tr>
                     <th scope="col" style="width:70px;">ID</th>
@@ -118,10 +119,30 @@
                 <tbody>
                 {% for r in reparaciones %}
                 <tr>
-                    <td class="at-mono">#{{ r.id }}</td>
+                    <td><span class="fw-semibold" style="color:#2B8AC4;">#{{ r.id }}</span></td>
                     <td>{{ r.cliente }}</td>
                     <td>{{ r.dispositivo }}</td>
-                    <td><span class="at-status at-status--{{ r.estado|lower|replace(' ','-') }}">{{ r.estado }}</span></td>
+                    <td>
+                        {% if r.estado == 'Pendiente' %}
+                            <span class="badge" style="background:rgba(255,193,7,.15);color:#997a00;">
+                                <i class="bi bi-clock me-1"></i>Pendiente
+                            </span>
+                        {% elif r.estado == 'En proceso' %}
+                            <span class="badge" style="background:rgba(43,138,196,.12);color:#2B8AC4;">
+                                <i class="bi bi-gear me-1"></i>En proceso
+                            </span>
+                        {% elif r.estado == 'Terminado' %}
+                            <span class="badge" style="background:rgba(25,135,84,.12);color:#198754;">
+                                <i class="bi bi-check-circle me-1"></i>Terminado
+                            </span>
+                        {% elif r.estado == 'Entregado' %}
+                            <span class="badge" style="background:rgba(25,135,84,.12);color:#198754;">
+                                <i class="bi bi-box-seam me-1"></i>Entregado
+                            </span>
+                        {% else %}
+                            <span class="badge" style="background:rgba(43,138,196,.12);color:#2B8AC4;">{{ r.estado }}</span>
+                        {% endif %}
+                    </td>
                     <td>
                         {% if r.alertas_info.tiene_alertas %}
                             <div class="d-flex gap-1 flex-wrap">
@@ -138,15 +159,23 @@
                     </td>
                     <td>
                         {% if r.estado_pago == 'Pagado' %}
-                            <span class="at-status at-status--reparado"><i class="bi bi-check"></i>Pagado</span>
+                            <span class="badge" style="background:rgba(25,135,84,.12);color:#198754;">
+                                <i class="bi bi-check-circle me-1"></i>Pagado
+                            </span>
                         {% else %}
-                            <span class="at-status at-status--pendiente"><i class="bi bi-clock"></i>Pendiente</span>
+                            <span class="badge" style="background:rgba(220,53,69,.1);color:#dc3545;">
+                                <i class="bi bi-hourglass-split me-1"></i>Pendiente
+                            </span>
                         {% endif %}
                     </td>
-                    <td class="at-mono at-dim">
-                        {% if r.ultima_actualizacion %}{{ r.ultima_actualizacion|strftime('%d/%m/%Y') }}{% else %}—{% endif %}
+                    <td>
+                        {% if r.ultima_actualizacion %}
+                            <small class="text-muted">{{ r.ultima_actualizacion|strftime('%d/%m/%Y') }}</small>
+                        {% else %}
+                            <small class="text-muted">—</small>
+                        {% endif %}
                     </td>
-                    <td class="at-mono at-dim">{{ r.fecha_entrada }}</td>
+                    <td><small class="text-muted">{{ r.fecha_entrada }}</small></td>
                     <td>
                         <div class="d-flex gap-1 flex-wrap">
                             <a href="/reparaciones/editar/{{ r.id }}" class="at-btn-outline btn btn-sm" title="Editar">
@@ -190,7 +219,7 @@
         </div>
 
         <!-- PAGINACIÓN server-side (B5): partial reutilizable con elipsis -->
-        <div class="px-3 py-3" style="border-top:1px solid var(--line);">
+        <div class="px-3 py-3 border-top" style="background:#fafbfc;">
             {% include "_paginacion.html" %}
         </div>
     </div>

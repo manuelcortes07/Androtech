@@ -1,110 +1,647 @@
 {% extends "base.html" %}
+
 {% block title %}Consulta de Reparación{% endblock %}
 
 {% block content %}
-<div class="at-app" style="background:transparent;">
-<div class="container py-4" style="max-width:720px;">
 
-    <!-- Cabecera -->
-    <div class="text-center mb-4">
-        <div class="at-logo" style="width:52px;height:52px;font-size:1.6rem;margin:0 auto 1rem;"><i class="bi bi-clipboard-check"></i></div>
-        <h1 class="at-display" style="font-size:1.8rem;margin-bottom:.4rem;">Sigue tu reparación</h1>
-        <p class="at-dim" style="margin:0;">Introduce tu número de reparación y te decimos dónde está tu dispositivo.</p>
-    </div>
-
-    <!-- Buscador -->
-    <div class="at-card mb-4">
-        <div class="at-card__body">
-            <form method="POST" novalidate>
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <label class="at-label" for="id_reparacion"><i class="bi bi-hash me-1"></i>Número de reparación</label>
-                <div class="d-flex gap-2">
-                    <input class="at-input" type="number" id="id_reparacion" name="id_reparacion" required
-                           min="1" placeholder="Ej: 123" value="{{ id_prefill if id_prefill else '' }}"
-                           style="flex:1;">
-                    <button type="submit" class="at-btn at-btn--primary"><i class="bi bi-search"></i> Consultar</button>
-                </div>
-                <p class="at-dim" style="font-size:.8rem;margin:.6rem 0 0;">El número aparece en tu resguardo o recibo de entrega.</p>
-            </form>
-            {% if error %}
-            <div class="alert alert-danger mt-3 mb-0" role="alert">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}
-            </div>
-            {% endif %}
+<!-- HERO CLIENTE -->
+<section class="hero text-center py-5">
+    <div class="container">
+        <div class="display-6 text-primary mb-3">
+            <i class="bi bi-clipboard-check" style="font-size: 3rem;"></i>
         </div>
+        <h1 class="display-5 fw-bold mb-2">Consulta tu reparación</h1>
+        <p class="lead text-muted mb-4">Introduce tu número de reparación para ver el estado actual de tu dispositivo de forma sencilla y rápida.</p>
     </div>
+</section>
 
-    {% if reparacion %}
-    {# Mapa estado → etapa actual del seguimiento (0..4) #}
-    {% set etapa = {'Pendiente': 0, 'En proceso': 2, 'Terminado': 3, 'Entregado': 4}.get(reparacion.estado, 0) %}
-    {% set etapas = [
-        ('Recibido', 'Hemos recibido tu dispositivo en el taller.', 'bi-box-arrow-in-down'),
-        ('Diagnóstico', 'Revisamos qué le ocurre y preparamos el presupuesto.', 'bi-search'),
-        ('En reparación', 'Nuestros técnicos están trabajando en él.', 'bi-tools'),
-        ('Listo para recoger', 'Reparado y verificado. ¡Puedes pasar a recogerlo!', 'bi-check-circle'),
-        ('Entregado', 'Has recogido tu dispositivo. ¡Gracias por confiar en nosotros!', 'bi-bag-check'),
-    ] %}
-
-    <div class="at-card at-rise">
-        <div class="at-card__head">
-            <span class="at-display" style="font-size:1.05rem;">Reparación <span class="at-mono">#{{ reparacion.id }}</span></span>
-            <span class="at-status at-status--{{ reparacion.estado|lower|replace(' ','-') }}">{{ reparacion.estado }}</span>
-        </div>
-        <div class="at-card__body">
-            <!-- Resumen del dispositivo -->
-            <div class="row g-3 mb-4">
-                <div class="col-sm-6">
-                    <div class="at-label">Dispositivo</div>
-                    <div style="font-weight:600;">{{ reparacion.dispositivo }}</div>
-                </div>
-                <div class="col-sm-6">
-                    <div class="at-label">Cliente</div>
-                    <div>{{ reparacion.cliente or 'No especificado' }}</div>
-                </div>
-                <div class="col-sm-6">
-                    <div class="at-label">Fecha de entrada</div>
-                    <div class="at-mono at-dim">{{ reparacion.fecha_entrada or 'No especificada' }}</div>
-                </div>
-                <div class="col-sm-6">
-                    <div class="at-label">Importe</div>
-                    <div class="at-mono">{% if reparacion.precio %}{{ "%.2f"|format(reparacion.precio) }} €{% else %}Por confirmar{% endif %}</div>
-                </div>
-            </div>
-
-            <!-- Línea de seguimiento (elemento firma) -->
-            <div class="at-label" style="margin-bottom:1rem;">Estado del seguimiento</div>
-            <ul class="at-timeline">
-                {% for titulo, desc, icono in etapas %}
-                <li class="at-timeline__item {% if loop.index0 < etapa %}is-done{% elif loop.index0 == etapa %}is-current{% endif %}">
-                    <span class="at-timeline__dot">
-                        {% if loop.index0 < etapa %}<i class="bi bi-check"></i>{% elif loop.index0 == etapa %}<i class="bi {{ icono }}"></i>{% endif %}
-                    </span>
-                    <div class="at-timeline__title">{{ titulo }}</div>
-                    <div class="at-timeline__meta">{{ desc }}</div>
-                </li>
-                {% endfor %}
-            </ul>
-
-            <!-- Pago -->
-            <div style="border-top:1px solid var(--line); margin-top:.5rem; padding-top:1rem;">
-                {% if reparacion.estado_pago == 'Pagado' %}
-                    <span class="at-status at-status--reparado"><i class="bi bi-check"></i>Pagado</span>
-                    <span class="at-dim" style="font-size:.85rem;margin-left:.5rem;">
-                        {% if reparacion.fecha_pago %}el {{ reparacion.fecha_pago }}{% endif %}
-                        {% if reparacion.metodo_pago %}· {{ reparacion.metodo_pago }}{% endif %}
-                    </span>
-                {% else %}
-                    <span class="at-status at-status--pendiente"><i class="bi bi-clock"></i>Pago pendiente</span>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <p class="text-center at-dim" style="font-size:.82rem;margin-top:1.25rem;">
-        ¿Dudas sobre tu reparación? Llámanos al <a href="tel:+34633234395" class="at-mono">+34 633 234 395</a>.
-    </p>
-    {% endif %}
-
+<!-- Wave Separator -->
+<div class="wave-separator">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120">
+        <path fill="#ffffff" d="M0,80 C480,160 960,0 1440,80 V120 H0 Z"></path>
+    </svg>
 </div>
-</div>
+
+<!-- FORMULARIO DE CONSULTA -->
+<section class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm" data-sr="enter bottom over 0.6s">
+                <div class="card-body p-5">
+                    <h3 class="card-title text-center mb-4 fw-bold">Buscar tu Reparación</h3>
+
+                    <form method="POST" class="needs-validation" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <div class="mb-4">
+                            <label for="id_reparacion" class="form-label fw-semibold">
+                                <i class="bi bi-hash me-2"></i>Número de Reparación
+                            </label>
+                            <input type="number"
+                                   class="form-control form-control-lg"
+                                   id="id_reparacion"
+                                   name="id_reparacion"
+                                   required
+                                   placeholder="Ejemplo: 123"
+                                   min="1"
+                                   value="{{ id_prefill if id_prefill else '' }}">
+                            <div class="invalid-feedback">
+                                Por favor introduce un número válido.
+                            </div>
+                            <div class="form-text">
+                                Introduce el número que aparece en tu resguardo o recibo de entrega.
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg fw-semibold">
+                                <i class="bi bi-search me-2"></i>Consultar Estado
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Mostrar mensaje de error si existe -->
+                    {% if error %}
+                    <div class="alert alert-danger mt-4" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        {{ error }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- RESULTADO DE LA CONSULTA -->
+{% if reparacion %}
+<section class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <div class="card shadow-sm" data-sr="enter bottom over 0.6s">
+                <div class="card-header
+                    {% if reparacion.estado == 'Entregado' %}bg-success
+                    {% elif reparacion.estado == 'Terminado' %}bg-success
+                    {% elif reparacion.estado == 'En proceso' %}bg-primary
+                    {% elif reparacion.estado == 'Pendiente' %}bg-warning
+                    {% else %}bg-secondary{% endif %} text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        Reparación Encontrada - Número: {{ reparacion.id }}
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-4">
+                        <!-- Cliente -->
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-person-circle text-info me-3" style="font-size: 1.5rem;"></i>
+                                <div>
+                                    <h6 class="mb-1 fw-semibold">Cliente</h6>
+                                    <p class="mb-0 text-muted">{{ reparacion.cliente or 'No especificado' }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dispositivo -->
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-phone text-primary me-3" style="font-size: 1.5rem;"></i>
+                                <div>
+                                    <h6 class="mb-1 fw-semibold">Dispositivo</h6>
+                                    <p class="mb-0 text-muted">{{ reparacion.dispositivo }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Estado -->
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-info-circle text-info me-3" style="font-size: 1.5rem;"></i>
+                                <div>
+                                    <h6 class="mb-1 fw-semibold">Estado</h6>
+                                    <span class="badge
+                                        {% if reparacion.estado == 'Entregado' %}bg-success
+                                        {% elif reparacion.estado == 'Terminado' %}bg-success
+                                        {% elif reparacion.estado == 'En proceso' %}bg-primary
+                                        {% elif reparacion.estado == 'Pendiente' %}bg-warning
+                                        {% else %}bg-secondary{% endif %} fs-6">
+                                        {{ reparacion.estado }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fecha de Entrada -->
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-calendar-check text-success me-3" style="font-size: 1.5rem;"></i>
+                                <div>
+                                    <h6 class="mb-1 fw-semibold">Fecha de Entrada</h6>
+                                    <p class="mb-0 text-muted">{{ reparacion.fecha_entrada or 'No especificada' }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Precio Estimado -->
+                        <div class="col-md-12">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-cash text-warning me-3" style="font-size: 1.5rem;"></i>
+                                <div>
+                                    <h6 class="mb-1 fw-semibold">Precio Estimado</h6>
+                                    <p class="mb-0 text-muted">
+                                        {% if reparacion.precio %}
+                                            {{ "%.2f"|format(reparacion.precio) }} €
+                                        {% else %}
+                                            Pendiente de calcular
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Estado de Pago -->
+                        <div class="col-md-12">
+                            <div class="d-flex align-items-center">
+                                {% if reparacion.estado_pago == 'Pagado' %}
+                                    <i class="bi bi-check-circle-fill text-success me-3" style="font-size: 1.5rem;"></i>
+                                    <div>
+                                        <h6 class="mb-1 fw-semibold">Estado de Pago</h6>
+                                        <p class="mb-0 text-success fw-semibold">
+                                            ✅ Pagado {% if reparacion.fecha_pago %}el {{ reparacion.fecha_pago }}{% endif %}
+                                            {% if reparacion.metodo_pago %}({{ reparacion.metodo_pago }}){% endif %}
+                                        </p>
+                                    </div>
+                                {% else %}
+                                    <i class="bi bi-clock-history text-warning me-3" style="font-size: 1.5rem;"></i>
+                                    <div>
+                                        <h6 class="mb-1 fw-semibold">Estado de Pago</h6>
+                                        <p class="mb-0 text-warning">⏳ Pendiente de pago</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                    <!-- MENSAJE CONTEXTUAL SEGÚN ESTADO -->
+                    <div class="mt-4 p-3
+                        {% if reparacion.estado == 'Entregado' %}bg-success bg-opacity-10 border border-success
+                        {% elif reparacion.estado == 'Terminado' %}bg-success bg-opacity-10 border border-success
+                        {% elif reparacion.estado == 'En proceso' %}bg-primary bg-opacity-10 border border-primary
+                        {% elif reparacion.estado == 'Pendiente' %}bg-warning bg-opacity-10 border border-warning
+                        {% else %}bg-secondary bg-opacity-10 border border-secondary{% endif %} rounded">
+                        <div class="d-flex align-items-start">
+                            <i class="bi
+                                {% if reparacion.estado == 'Entregado' %}bi-check-circle-fill text-success
+                                {% elif reparacion.estado == 'Terminado' %}bi-check-circle-fill text-success
+                                {% elif reparacion.estado == 'En proceso' %}bi-gear-fill text-primary
+                                {% elif reparacion.estado == 'Pendiente' %}bi-clock-fill text-warning
+                                {% else %}bi-question-circle-fill text-secondary{% endif %} me-3" style="font-size: 1.5rem;"></i>
+                            <div>
+                                <h6 class="mb-1 fw-semibold">Estado Actual</h6>
+                                <p class="mb-0">
+                                    {% if reparacion.estado == 'Pendiente' %}
+                                        Tu dispositivo está en cola de revisión. Pronto comenzaremos a trabajar en él.
+                                    {% elif reparacion.estado == 'En proceso' %}
+                                        Tu dispositivo está siendo reparado. Te avisaremos cuando esté listo para recoger.
+                                    {% elif reparacion.estado == 'Terminado' %}
+                                        La reparación ha finalizado correctamente. Tu dispositivo está listo para recoger.
+                                    {% elif reparacion.estado == 'Entregado' %}
+                                        El dispositivo ha sido entregado. ¡Gracias por confiar en AndroTech!
+                                    {% else %}
+                                        Estado desconocido. Contacta con nosotros para más información.
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TIMELINE DE PROGRESO -->
+                    {% set linea1_activa = reparacion.estado in ['Pendiente', 'En proceso', 'Terminado', 'Entregado'] %}
+                    {% set linea2_activa = reparacion.estado in ['En proceso', 'Terminado', 'Entregado'] %}
+                    {% set linea3_activa = reparacion.estado in ['Terminado', 'Entregado'] %}
+                    <div class="mt-4" data-sr="enter bottom over 0.6s">
+                        <h6 class="fw-semibold mb-4">Progreso de la Reparación</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <!-- Paso 1: Recibido -->
+                            <div class="text-center flex-fill px-2">
+                                <div class="mb-3">
+                                    <i class="bi bi-check-circle-fill text-success" style="font-size: 2.5rem;"></i>
+                                </div>
+                                <h6 class="small fw-semibold mb-1">Recibido</h6>
+                                <p class="small text-muted">Dispositivo recibido</p>
+                            </div>
+                            <!-- Línea 1 -->
+                            <div class="flex-grow-1 mx-3">
+                                <hr class="timeline-line {{ 'line-active' if linea1_activa else 'line-inactive' }}">
+                            </div>
+                            <!-- Paso 2: Diagnóstico -->
+                            <div class="text-center flex-fill px-2">
+                                <div class="mb-3">
+                                    <i class="bi {% if reparacion.estado in ['En proceso', 'Terminado', 'Entregado'] %}bi-check-circle-fill text-success{% else %}bi-circle text-muted{% endif %}" style="font-size: 2.5rem;"></i>
+                                </div>
+                                <h6 class="small fw-semibold mb-1">Diagnóstico</h6>
+                                <p class="small text-muted">Evaluación técnica</p>
+                            </div>
+                            <!-- Línea 2 -->
+                            <div class="flex-grow-1 mx-3">
+                                <hr class="timeline-line {{ 'line-active' if linea2_activa else 'line-inactive' }}">
+                            </div>
+                            <!-- Paso 3: Reparación -->
+                            <div class="text-center flex-fill px-2">
+                                <div class="mb-3">
+                                    <i class="bi {% if reparacion.estado in ['Terminado', 'Entregado'] %}bi-check-circle-fill text-success{% else %}bi-circle text-muted{% endif %}" style="font-size: 2.5rem;"></i>
+                                </div>
+                                <h6 class="small fw-semibold mb-1">Reparación</h6>
+                                <p class="small text-muted">Trabajo en curso</p>
+                            </div>
+                            <!-- Línea 3 -->
+                            <div class="flex-grow-1 mx-3">
+                                <hr class="timeline-line {{ 'line-active' if linea3_activa else 'line-inactive' }}">
+                            </div>
+                            <!-- Paso 4: Listo para recoger -->
+                            <div class="text-center flex-fill px-2">
+                                <div class="mb-3">
+                                    <i class="bi {% if reparacion.estado == 'Entregado' %}bi-check-circle-fill text-success{% else %}bi-circle text-muted{% endif %}" style="font-size: 2.5rem;"></i>
+                                </div>
+                                <h6 class="small fw-semibold mb-1">Listo para recoger</h6>
+                                <p class="small text-muted">Disponible para recogida</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{% if reparacion and reparacion.precio and reparacion.estado_pago != 'Pagado' %}
+<!-- FORMULARIO DE PAGO PÚBLICO - MEJORADO -->
+<section class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-7">
+            <!-- Card de Pago Premium -->
+            <div class="card shadow-lg border-0" data-sr="enter bottom over 0.6s">
+                <!-- Header con Stripe -->
+                <div class="card-header bg-gradient" style="background: linear-gradient(135deg, #635bff 0%, #4c45e8 100%); border: none;">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <h5 class="mb-0 text-white fw-bold">
+                            <i class="bi bi-credit-card-fill me-2"></i>Proceder al Pago
+                        </h5>
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='30' height='30' fill='white'%3E%3Cpath d='M3 3h18v6H3z'/%3E%3Crect x='3' y='11' width='18' height='10' rx='1'/%3E%3Ccircle cx='8' cy='16' r='1' fill='%23635bff'/%3E%3C/svg%3E" alt="Stripe" style="width: 40px; height: auto; filter: brightness(0) invert(1);">
+                    </div>
+                </div>
+
+                <div class="card-body p-5">
+                    <!-- Información de la Reparación -->
+                    <div class="row mb-4 pb-3 border-bottom">
+                        <div class="col-sm-6">
+                            <small class="text-muted d-block mb-1">Reparación #</small>
+                            <h6 class="mb-0 fw-bold">{{ reparacion.id }}</h6>
+                        </div>
+                        <div class="col-sm-6">
+                            <small class="text-muted d-block mb-1">Dispositivo</small>
+                            <h6 class="mb-0">{{ reparacion.dispositivo }}</h6>
+                        </div>
+                    </div>
+
+                    <!-- Resumen del Pago -->
+                    <div class="bg-light rounded p-3 mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Subtotal</span>
+                            <span>{{ "%.2f"|format(reparacion.precio * 0.79) }} €</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="text-muted">IVA (21%)</span>
+                            <span>{{ "%.2f"|format(reparacion.precio * 0.21) }} €</span>
+                        </div>
+                        <hr class="my-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong class="text-dark">TOTAL A PAGAR</strong>
+                            <h5 class="mb-0 text-success fw-bold">{{ "%.2f"|format(reparacion.precio) }} €</h5>
+                        </div>
+                    </div>
+
+                    <!-- Formulario de Pago -->
+                    <form action="/publico/pagar/{{ reparacion.id }}" method="POST" class="needs-validation" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        
+                        <!-- Email con Validación -->
+                        <div class="mb-4">
+                            <label for="cliente_email" class="form-label fw-semibold d-flex align-items-center">
+                                <i class="bi bi-envelope-check text-primary me-2"></i>Correo de Verificación
+                            </label>
+                            <input 
+                                type="email" 
+                                id="cliente_email" 
+                                name="cliente_email" 
+                                class="form-control form-control-lg" 
+                                required 
+                                placeholder="tu.email@ejemplo.com"
+                                autocomplete="email">
+                            <div class="invalid-feedback d-block">
+                                Por favor, introduce un correo electrónico válido.
+                            </div>
+                            <small class="form-text text-muted d-block mt-2">
+                                <i class="bi bi-info-circle me-1"></i>Debe coincidir con el email registrado para esta reparación.
+                            </small>
+                        </div>
+
+                        <!-- Checkbox de Términos -->
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" id="terms" required>
+                            <label class="form-check-label" for="terms">
+                                Acepto los <a href="/servicios" target="_blank" class="text-decoration-none">términos de pago</a> y confirmo que he leído la <a href="/servicios" target="_blank" class="text-decoration-none">política de privacidad</a>
+                            </label>
+                            <div class="invalid-feedback">Debes aceptar los términos para continuar.</div>
+                        </div>
+
+                        <!-- Información de Seguridad -->
+                        <div class="alert alert-info alert-sm mb-4 p-3" role="alert">
+                            <div class="d-flex">
+                                <i class="bi bi-shield-check text-info me-3" style="font-size: 1.2rem; min-width: 24px;"></i>
+                                <div>
+                                    <small class="fw-semibold d-block mb-1">✅ Pago 100% Seguro</small>
+                                    <small class="text-muted">Tu información de tarjeta se procesa directamente con Stripe usando encriptación TLS. Anders Tech nunca almacena datos de tu tarjeta.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botón de Pago -->
+                        <div class="d-grid mb-3">
+                            <button 
+                                type="submit" 
+                                class="btn btn-primary btn-lg fw-bold" 
+                                style="background: linear-gradient(135deg, #635bff 0%, #4c45e8 100%); border: none; box-shadow: 0 4px 12px rgba(99, 91, 255, 0.3);">
+                                <i class="bi bi-lock-fill me-2"></i>Pagar {{ "%.2f"|format(reparacion.precio) }} € con Stripe
+                            </button>
+                        </div>
+
+                        <!-- Link para volver a consultar -->
+                        <div class="text-center">
+                            <a href="/consulta" class="text-decoration-none text-muted small">
+                                <i class="bi bi-arrow-left me-1"></i>Volver a consulta
+                            </a>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Footer de Card -->
+                <div class="card-footer bg-light border-top-0 py-3 text-center">
+                    <small class="text-muted d-flex align-items-center justify-content-center">
+                        <i class="bi bi-check-circle-fill text-success me-2" style="font-size: 0.8rem;"></i>
+                        Certificado por Stripe • Encriptación SSL/TLS 256-bit
+                    </small>
+                </div>
+            </div>
+
+            <!-- Info Adicional -->
+            <div class="mt-4 p-4 bg-light rounded" data-sr="enter bottom over 0.8s">
+                <h6 class="mb-3 fw-semibold">
+                    <i class="bi bi-question-circle me-2 text-primary"></i>¿Tienes dudas?
+                </h6>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2"><i class="bi bi-telephone me-2 text-muted"></i><strong>Llamenos:</strong> (+34) 123 456 789</li>
+                    <li class="mb-2"><i class="bi bi-envelope me-2 text-muted"></i><strong>Email:</strong> soporte@androtech.es</li>
+                    <li><i class="bi bi-clock me-2 text-muted"></i><strong>Horario:</strong> Lunes a Viernes, 9:00-18:00</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{% if reparacion and reparacion.estado_pago == 'Pagado' %}
+<!-- CONFIRMACIÓN DE PAGO REALIZADO - MEJORADO -->
+<section class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0 border-success" data-sr="enter bottom over 0.6s">
+                <!-- Header de Éxito -->
+                <div class="card-header bg-gradient" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none;">
+                    <div class="text-center py-2">
+                        <div class="mb-3">
+                            <i class="bi bi-check-circle-fill text-white" style="font-size: 2.5rem;"></i>
+                        </div>
+                        <h5 class="mb-0 text-white fw-bold">¡Pago Confirmado!</h5>
+                    </div>
+                </div>
+
+                <!-- Cuerpo de Confirmación -->
+                <div class="card-body p-5 text-center">
+                    <!-- Animación de éxito (emojis saltando) -->
+                    <div class="mb-4">
+                        <p style="font-size: 3rem; animation: bounce 0.5s ease-in-out;">✅</p>
+                    </div>
+
+                    <!-- Mensaje Principal -->
+                    <h6 class="mb-2 fw-bold text-dark">Tu pago ha sido procesado exitosamente</h6>
+                    <p class="text-muted mb-4">Gracias por confiar en AndroTech. Tu dispositivo está siendo preparado.</p>
+
+                    <!-- Detalles de la Transacción -->
+                    <div class="bg-light rounded p-4 mb-4">
+                        <div class="row mb-3">
+                            <div class="col-6 text-start">
+                                <small class="text-muted d-block mb-1">
+                                    <i class="bi bi-receipt me-1"></i>Reparación #{{ reparacion.id }}
+                                </small>
+                            </div>
+                            <div class="col-6 text-end">
+                                <small class="fw-semibold">
+                                    <span class="badge bg-success">Pagada</span>
+                                </small>
+                            </div>
+                        </div>
+
+                        <hr class="my-3">
+
+                        <div class="row mb-2">
+                            <div class="col-6 text-start">
+                                <small class="text-muted">Dispositivo</small>
+                                <p class="mb-0 fw-semibold">{{ reparacion.dispositivo }}</p>
+                            </div>
+                            <div class="col-6 text-end">
+                                <small class="text-muted">Importe</small>
+                                <p class="mb-0 fw-bold text-success" style="font-size: 1.1rem;">{{ "%.2f"|format(reparacion.precio) }} €</p>
+                            </div>
+                        </div>
+
+                        <hr class="my-3">
+
+                        <div class="row">
+                            {% if reparacion.fecha_pago %}
+                            <div class="col-6 text-start">
+                                <small class="text-muted">
+                                    <i class="bi bi-calendar-check me-1"></i>Fecha de Pago
+                                </small>
+                                <p class="mb-0">{{ reparacion.fecha_pago }}</p>
+                            </div>
+                            {% endif %}
+                            {% if reparacion.metodo_pago %}
+                            <div class="col-6 text-end">
+                                <small class="text-muted">
+                                    <i class="bi bi-credit-card me-1"></i>Método
+                                </small>
+                                <p class="mb-0">{{ reparacion.metodo_pago }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Próximos Pasos -->
+                    <div class="alert alert-info mb-4" role="alert">
+                        <h6 class="alert-heading fw-bold mb-3">
+                            <i class="bi bi-arrow-right-circle me-2"></i>Próximos Pasos
+                        </h6>
+                        <ol class="mb-0 text-start small">
+                            <li class="mb-2">Tu reparación entrará en la siguiente fase de procesamiento</li>
+                            <li class="mb-2">Recibirás un email de confirmación en los próximos minutos</li>
+                            <li>Te avisaremos cuando tu dispositivo esté listo para recoger</li>
+                        </ol>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="d-grid gap-2">
+                        <a href="/consulta" class="btn btn-primary fw-semibold">
+                            <i class="bi bi-search me-2"></i>Consultar Estado Again
+                        </a>
+                        <a href="/" class="btn btn-outline-secondary fw-semibold">
+                            <i class="bi bi-house me-2"></i>Volver al Inicio
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="card-footer bg-light border-top-0 py-3 text-center">
+                    <small class="text-muted">
+                        <i class="bi bi-check-circle me-1"></i>Tu pago está asegurado por Stripe
+                    </small>
+                </div>
+            </div>
+
+            <!-- Card de Soporte -->
+            <div class="mt-4 p-4 rounded border border-info bg-info bg-opacity-10" data-sr="enter bottom over 0.8s">
+                <h6 class="fw-bold text-info mb-3">
+                    <i class="bi bi-chat-dots me-2"></i>¿Necesitas Ayuda?
+                </h6>
+                <p class="small text-muted mb-3">Si tienes alguna pregunta sobre tu pago o reparación, no dudes en contactarnos:</p>
+                <div class="row g-3">
+                    <div class="col-6">
+                        <a href="tel:+34633234395" class="btn btn-sm btn-outline-info w-100">
+                            <i class="bi bi-telephone me-1"></i>Llamar
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="mailto:manuelcortescontreras11@gmail.com" class="btn btn-sm btn-outline-info w-100">
+                            <i class="bi bi-envelope me-1"></i>Email
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+</style>
+{% endif %}
+
+<!-- MENSAJE DE ERROR -->
+{% if error %}
+<section class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="alert alert-danger alert-dismissible fade show shadow" role="alert" data-sr="enter bottom over 0.6s">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <h5 class="alert-heading mb-1">Reparación No Encontrada</h5>
+                        <p class="mb-0">{{ error }}</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- BLOQUE FINAL DE CONTACTO -->
+<section class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <div class="card shadow-sm border-0 bg-light" data-sr="enter bottom over 0.6s">
+                <div class="card-body p-4 text-center">
+                    <i class="bi bi-telephone text-primary mb-3" style="font-size: 2rem;"></i>
+                    <h5 class="card-title fw-semibold">¿Tienes dudas sobre tu reparación?</h5>
+                    <p class="card-text text-muted mb-3">
+                        Estamos aquí para ayudarte. Contacta con nuestro equipo técnico.
+                    </p>
+                    <div class="row g-3 justify-content-center">
+                        <div class="col-auto">
+                            <a href="https://wa.me/34633234395{% if reparacion %}?text=Hola%2C%20consulto%20sobre%20mi%20reparacion%20%23{{ reparacion.id }}{% endif %}" target="_blank" rel="noopener" class="btn btn-success">
+                                <i class="bi bi-whatsapp me-2"></i>WhatsApp
+                            </a>
+                        </div>
+                        <div class="col-auto">
+                            <a href="tel:+34633234395" class="btn btn-outline-primary">
+                                <i class="bi bi-telephone me-2"></i>+34 633 234 395
+                            </a>
+                        </div>
+                        <div class="col-auto">
+                            <a href="mailto:manuelcortescontreras11@gmail.com" class="btn btn-outline-primary">
+                                <i class="bi bi-envelope me-2"></i>manuelcortescontreras11@gmail.com
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- BOTÓN VOLVER AL INICIO -->
+<section class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <a href="/" class="btn btn-secondary btn-lg">
+                <i class="bi bi-house me-2"></i>Volver al Inicio
+            </a>
+        </div>
+    </div>
+</section>
+
 {% endblock %}
+
+<!-- ScrollReveal para animaciones -->
+<script src="https://unpkg.com/scrollreveal@4.0.9/dist/scrollreveal.min.js"></script>
+<script>
+    ScrollReveal().reveal('[data-sr]', {
+        distance: '20px',
+        duration: 600,
+        easing: 'ease-in-out'
+    });
+</script>
+
+<!-- Script de validación de formularios (Bootstrap) -->
+<script>
+    (function () {
+        'use strict'
+
+        var forms = document.querySelectorAll('.needs-validation')
+
+        Array.prototype.slice.call(forms)
+            .forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    form.classList.add('was-validated')
+                }, false)
+            })
+    })();
+</script>

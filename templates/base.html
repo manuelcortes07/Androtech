@@ -30,133 +30,263 @@
         <!-- Iconos (Bootstrap Icons) -->
         <link rel="stylesheet"
             href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-
-    <!-- Rediseño: fuentes + sistema de diseño -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/androtech.css') }}">
-
-    <!-- Tema ANTES del primer pintado (anti-FOUC). Fija data-theme a dark|light. -->
+    <!-- Aplicar dark mode ANTES del render para evitar parpadeo -->
     <script>
     (function(){
         var t = localStorage.getItem('at-theme');
-        var dark = t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
     })();
     </script>
 </head>
 
-<body class="{% if session.usuario %}at-app{% else %}bg-light{% endif %}">
+<body class="bg-light">
 
-{% if session.usuario %}
-{# ===================== SHELL ADMIN (rediseño D1) ===================== #}
-<div class="at-shell" id="atApp">
-    <aside class="at-sidebar" id="atSidebar">
-        <a class="at-sidebar__brand" href="/dashboard">
-            <span class="at-logo"><i class="bi bi-phone"></i></span>
-            <span class="at-display">AndroTech</span>
-        </a>
-        <nav class="at-nav">
-            <a class="at-nav__link {% if request.endpoint == 'dashboard' %}is-active{% endif %}" href="/dashboard"><i class="bi bi-speedometer2"></i>Dashboard</a>
-            <a class="at-nav__link {% if request.endpoint == 'clientes' %}is-active{% endif %}" href="/clientes"><i class="bi bi-people"></i>Clientes</a>
-            <a class="at-nav__link {% if request.endpoint == 'reparaciones' %}is-active{% endif %}" href="/reparaciones"><i class="bi bi-tools"></i>Reparaciones</a>
-            <a class="at-nav__link {% if request.endpoint == 'calendario' %}is-active{% endif %}" href="/calendario"><i class="bi bi-calendar3"></i>Calendario</a>
-            <a class="at-nav__link {% if request.endpoint == 'servicios' %}is-active{% endif %}" href="/servicios"><i class="bi bi-wrench"></i>Servicios</a>
-            {% if tiene_permiso('usuarios_ver') or tiene_permiso('roles_gestionar') or tiene_permiso('inventario_ver') or session.rol == 'admin' %}
-            <div class="at-nav__sep"></div>
-            {% if tiene_permiso('usuarios_ver') %}
-            <a class="at-nav__link {% if request.endpoint == 'admin_usuarios' %}is-active{% endif %}" href="{{ url_for('admin_usuarios') }}"><i class="bi bi-people-fill"></i>Usuarios</a>
-            {% endif %}
-            {% if tiene_permiso('roles_gestionar') %}
-            <a class="at-nav__link {% if request.endpoint == 'admin_roles' %}is-active{% endif %}" href="{{ url_for('admin_roles') }}"><i class="bi bi-shield-lock"></i>Roles y permisos</a>
-            {% endif %}
-            {% if tiene_permiso('inventario_ver') %}
-            <a class="at-nav__link {% if request.endpoint == 'inventario' %}is-active{% endif %}" href="{{ url_for('inventario') }}"><i class="bi bi-box-seam"></i>Inventario</a>
-            {% endif %}
-            {% if tiene_permiso('reparaciones_ver') %}
-            <a class="at-nav__link {% if request.endpoint == 'admin_solicitudes' %}is-active{% endif %}" href="{{ url_for('admin_solicitudes') }}"><i class="bi bi-clipboard-check"></i>Solicitudes web</a>
-            {% endif %}
-            {% if session.rol == 'admin' %}
-            <a class="at-nav__link {% if request.endpoint == 'admin_auditoria' %}is-active{% endif %}" href="{{ url_for('admin_auditoria') }}"><i class="bi bi-clock-history"></i>Auditoría</a>
-            <a class="at-nav__link {% if request.endpoint == 'admin_sistema' %}is-active{% endif %}" href="{{ url_for('admin_sistema') }}"><i class="bi bi-gear-fill"></i>Sistema</a>
-            <a class="at-nav__link {% if request.endpoint == 'admin_test_email' %}is-active{% endif %}" href="{{ url_for('admin_test_email') }}"><i class="bi bi-envelope-check"></i>Prueba de email</a>
-            {% endif %}
-            {% endif %}
-        </nav>
-    </aside>
-
-    <div class="at-main">
-        <header class="at-topbar">
-            <button class="at-burger" id="atBurger" aria-label="Abrir menú"><i class="bi bi-list"></i></button>
-            <span class="at-topbar__taller at-mono">{{ taller_slug or 'androtech' }}</span>
-            <span class="at-topbar__spacer"></span>
-            <form class="d-none d-md-block" action="/buscar" method="get" role="search">
-                <input class="at-input" type="search" name="q" placeholder="Buscar…" minlength="2"
-                       value="{{ request.args.get('q','') }}" style="height:38px;width:190px;" aria-label="Buscar">
-            </form>
-            <button class="at-theme-toggle" id="atThemeToggle" aria-label="Cambiar tema" title="Cambiar tema"><i class="bi bi-circle-half"></i></button>
-            <div class="dropdown">
-                <button class="at-btn at-btn--ghost dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-person-circle"></i>
-                    <span>{{ session.usuario }}</span>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                    <li><a class="dropdown-item" href="{{ url_for('perfil') }}"><i class="bi bi-person-circle me-2"></i>Mi perfil</a></li>
-                    {% if session.rol == 'admin' %}
-                    <li><a class="dropdown-item" href="{{ url_for('suscripcion') }}"><i class="bi bi-credit-card-2-front me-2"></i>Suscripción</a></li>
-                    {% endif %}
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" href="/logout"><i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión</a></li>
-                </ul>
-            </div>
-        </header>
-
-        <main class="at-content">
-{% else %}
-{# ===================== NAV PÚBLICA (se reskina en D5) ===================== #}
+<!-- NAVBAR REFINADO -->
 <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
     <div class="container">
+
+        <!-- Logo con enlace a home -->
         <a class="navbar-brand d-flex align-items-center" href="/">
             <img src="{{ url_for('static', filename='imagenes/logo.jpg') }}" alt="AndroTech" style="height: 42px; width: auto; object-fit: contain;" class="me-2">
             <span class="fw-bold text-primary" style="font-size: 1.1rem;">AndroTech</span>
         </a>
-        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse"
-                data-bs-target="#navbarContent" aria-controls="navbarContent"
-                aria-expanded="false" aria-label="Toggle navigation">
+
+        <!-- Botón toggle para móvil -->
+        <button class="navbar-toggler border-0" type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navbarContent"
+                aria-controls="navbarContent"
+                aria-expanded="false"
+                aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
+
+        <!-- Contenido colapsable -->
         <div class="collapse navbar-collapse" id="navbarContent">
-            <ul class="navbar-nav me-auto align-items-lg-center">
-                <li class="nav-item"><a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'index' %}active fw-semibold{% endif %}" href="/"><i class="bi bi-house"></i><span>Inicio</span></a></li>
-                <li class="nav-item"><a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'servicios' %}active fw-semibold{% endif %}" href="/servicios"><i class="bi bi-wrench"></i><span>Servicios</span></a></li>
-                <li class="nav-item"><a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'sobre' %}active fw-semibold{% endif %}" href="/sobre"><i class="bi bi-info-circle"></i><span>Sobre Nosotros</span></a></li>
-                <li class="nav-item"><a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'solicitar_reparacion' %}active fw-semibold{% endif %}" href="/solicitar-reparacion"><i class="bi bi-clipboard-plus"></i><span>Solicitar Reparacion</span></a></li>
-                <li class="nav-item"><a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'consulta' %}active fw-semibold{% endif %}" href="/consulta"><i class="bi bi-search"></i><span>Consulta</span></a></li>
-                <li class="nav-item"><a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'mis_reparaciones' %}active fw-semibold{% endif %}" href="/mis-reparaciones"><i class="bi bi-list-check"></i><span>Mis reparaciones</span></a></li>
-            </ul>
-            <div class="d-flex align-items-center gap-2">
-                <button id="darkModeToggle" class="btn btn-sm btn-outline-secondary border-0 px-2" title="Modo oscuro" aria-label="Cambiar tema">
+
+            {% if session.usuario %}
+                <!-- Navbar privada (Admin/Técnico) -->
+                <ul class="navbar-nav me-auto align-items-lg-center">
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'dashboard' %}active fw-semibold{% endif %}"
+                           href="/dashboard">
+                            <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center gap-1 {% if request.endpoint == 'clientes' %}active fw-semibold{% endif %}"
+                           href="#" id="clientesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-people"></i><span>Clientes</span>
+                        </a>
+                        <ul class="dropdown-menu shadow-sm" aria-labelledby="clientesDropdown">
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="/clientes">
+                                    <i class="bi bi-list-ul"></i>Listado
+                                </a>
+                            </li>
+                            {% if session.rol == 'admin' %}
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="/cliente/historial">
+                                    <i class="bi bi-clock-history"></i>Historial
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'reparaciones' %}active fw-semibold{% endif %}"
+                           href="/reparaciones">
+                            <i class="bi bi-tools"></i><span>Reparaciones</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'calendario' %}active fw-semibold{% endif %}"
+                           href="/calendario">
+                            <i class="bi bi-calendar3"></i><span>Calendario</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'servicios' %}active fw-semibold{% endif %}"
+                           href="/servicios">
+                            <i class="bi bi-wrench"></i><span>Servicios</span>
+                        </a>
+                    </li>
+
+                    <!-- Administración (visible si tiene algun permiso de admin) -->
+                    {% if tiene_permiso('usuarios_ver') or tiene_permiso('roles_gestionar') or tiene_permiso('inventario_ver') or session.rol == 'admin' %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center gap-1 text-danger fw-semibold"
+                           href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-shield-exclamation"></i><span>Admin</span>
+                        </a>
+                        <ul class="dropdown-menu shadow-sm" aria-labelledby="adminDropdown">
+                            {% if tiene_permiso('usuarios_ver') %}
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('admin_usuarios') }}">
+                                    <i class="bi bi-people-fill"></i>Gestion de Usuarios
+                                </a>
+                            </li>
+                            {% endif %}
+                            {% if tiene_permiso('roles_gestionar') %}
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('admin_roles') }}">
+                                    <i class="bi bi-shield-lock"></i>Roles y Permisos
+                                </a>
+                            </li>
+                            {% endif %}
+                            {% if tiene_permiso('inventario_ver') %}
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('inventario') }}">
+                                    <i class="bi bi-box-seam"></i>Inventario de Piezas
+                                </a>
+                            </li>
+                            {% endif %}
+                            {% if session.rol == 'admin' %}
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('admin_auditoria') }}">
+                                    <i class="bi bi-clock-history"></i>Auditoría
+                                </a>
+                            </li>
+                            {% endif %}
+                            {% if tiene_permiso('reparaciones_ver') %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('admin_solicitudes') }}">
+                                    <i class="bi bi-clipboard-check"></i>Solicitudes Web
+                                </a>
+                            </li>
+                            {% endif %}
+                            {% if session.rol == 'admin' %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('admin_sistema') }}">
+                                    <i class="bi bi-gear-fill"></i>Estado del Sistema
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('admin_test_email') }}">
+                                    <i class="bi bi-envelope-check-fill"></i>Prueba de Email
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                    {% endif %}
+                </ul>
+
+                <!-- Búsqueda global en navbar -->
+                <form class="d-flex align-items-center ms-auto me-2" action="/buscar" method="get">
+                    <input class="form-control form-control-sm me-1" type="search" placeholder="Buscar..." aria-label="Buscar" name="q" value="{{ request.args.get('q','') }}" minlength="2" style="width: 150px;">
+                    <button class="btn btn-outline-primary btn-sm" type="submit"><i class="bi bi-search"></i></button>
+                </form>
+
+                <!-- Modo oscuro (privado) -->
+                <button id="darkModeToggle" class="btn btn-sm btn-outline-secondary border-0 px-2 me-1" title="Modo oscuro" aria-label="Cambiar tema">
                     <i class="bi bi-moon-fill"></i>
                 </button>
-                <a href="/login" class="btn at-btn-outline-nav btn-sm px-3 d-flex align-items-center gap-1">
-                    <i class="bi bi-shield-lock"></i><span>Acceso tecnico</span>
-                </a>
-            </div>
+
+                <!-- Usuario y logout -->
+                <ul class="navbar-nav align-items-lg-center">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center gap-1 fw-semibold text-dark border-start ps-2"
+                           href="#" id="userDropdown" role="button"
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle"></i>
+                            <span>{{ session.usuario }}</span>
+                            <small class="text-muted">({{ session.rol }})</small>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('perfil') }}">
+                                    <i class="bi bi-person-circle"></i>Mi perfil
+                                </a>
+                            </li>
+                            {% if session.rol == 'admin' %}
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('suscripcion') }}">
+                                    <i class="bi bi-credit-card-2-front"></i>Suscripción
+                                </a>
+                            </li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger d-flex align-items-center gap-2" href="/logout">
+                                    <i class="bi bi-box-arrow-right"></i>Cerrar Sesion
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+
+            {% else %}
+                <!-- Navbar pública (Cliente) -->
+                <ul class="navbar-nav me-auto align-items-lg-center">
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'index' %}active fw-semibold{% endif %}"
+                           href="/">
+                            <i class="bi bi-house"></i><span>Inicio</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'servicios' %}active fw-semibold{% endif %}"
+                           href="/servicios">
+                            <i class="bi bi-wrench"></i><span>Servicios</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'sobre' %}active fw-semibold{% endif %}"
+                           href="/sobre">
+                            <i class="bi bi-info-circle"></i><span>Sobre Nosotros</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'solicitar_reparacion' %}active fw-semibold{% endif %}"
+                           href="/solicitar-reparacion">
+                            <i class="bi bi-clipboard-plus"></i><span>Solicitar Reparacion</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'consulta' %}active fw-semibold{% endif %}"
+                           href="/consulta">
+                            <i class="bi bi-search"></i><span>Consulta</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center gap-1 {% if request.endpoint == 'mis_reparaciones' %}active fw-semibold{% endif %}"
+                           href="/mis-reparaciones">
+                            <i class="bi bi-list-check"></i><span>Mis reparaciones</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Modo oscuro + Acceso técnico -->
+                <div class="d-flex align-items-center gap-2">
+                    <button id="darkModeToggle" class="btn btn-sm btn-outline-secondary border-0 px-2" title="Modo oscuro" aria-label="Cambiar tema">
+                        <i class="bi bi-moon-fill"></i>
+                    </button>
+                    <a href="/login" class="btn at-btn-outline-nav btn-sm px-3 d-flex align-items-center gap-1">
+                        <i class="bi bi-shield-lock"></i><span>Acceso tecnico</span>
+                    </a>
+                </div>
+            {% endif %}
+
         </div>
     </div>
 </nav>
+
+
+<!-- CONTENIDO PRINCIPAL -->
 <div class="container-fluid px-0">
     <div class="container">
-{% endif %}
 
-        <!-- Mensajes flash -->
+        <!-- Mensajes tipo flash (errores, éxito, etc.) -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 <div class="mt-3">
                     {% for category, message in messages %}
-                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
                             {{ message }}
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
@@ -180,21 +310,39 @@
         <!-- Bloque de contenido principal -->
         {% block content %}{% endblock %}
 
-{% if session.usuario %}
-        </main>
     </div>
 </div>
-{% else %}
-    </div>
-</div>
-{% endif %}
 
 
-{% if not session.usuario %}
-<!-- FOOTER (solo público) -->
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Script de validación de formularios (Bootstrap) -->
+<script>
+    (function () {
+        'use strict'
+
+        // Selecciona todos los formularios que requieran validación (usar clase needs-validation)
+        var forms = document.querySelectorAll('.needs-validation')
+
+        Array.prototype.slice.call(forms)
+            .forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    form.classList.add('was-validated')
+                }, false)
+            })
+    })();
+</script>
+
+<!-- FOOTER -->
 <footer class="at-footer">
     <div class="container">
         <div class="row g-4">
+            <!-- Marca + descripción -->
             <div class="col-md-4 footer-col">
                 <div class="d-flex align-items-center mb-2">
                     <img src="{{ url_for('static', filename='imagenes/logo.jpg') }}" alt="AndroTech" style="width:36px;height:36px;border-radius:50%;object-fit:cover" class="me-2">
@@ -202,16 +350,26 @@
                 </div>
                 <p class="at-footer-desc">Taller tecnico en Huelva especializado en reparacion de moviles, tablets y ordenadores. Servicio profesional con garantia.</p>
             </div>
+
+            <!-- Enlaces -->
             <div class="col-md-4 footer-col">
                 <h6 class="at-footer-heading">Enlaces</h6>
                 <div class="d-flex flex-column">
-                    <a href="/" class="at-footer-link">Inicio</a>
-                    <a href="/servicios" class="at-footer-link">Servicios</a>
-                    <a href="/solicitar-reparacion" class="at-footer-link">Solicitar reparacion</a>
-                    <a href="/consulta" class="at-footer-link">Consultar reparacion</a>
-                    <a href="/mis-reparaciones" class="at-footer-link">Mis reparaciones</a>
+                    {% if session.usuario %}
+                        <a href="/dashboard" class="at-footer-link">Dashboard</a>
+                        <a href="/clientes" class="at-footer-link">Clientes</a>
+                        <a href="/reparaciones" class="at-footer-link">Reparaciones</a>
+                    {% else %}
+                        <a href="/" class="at-footer-link">Inicio</a>
+                        <a href="/servicios" class="at-footer-link">Servicios</a>
+                        <a href="/solicitar-reparacion" class="at-footer-link">Solicitar reparacion</a>
+                        <a href="/consulta" class="at-footer-link">Consultar reparacion</a>
+                        <a href="/mis-reparaciones" class="at-footer-link">Mis reparaciones</a>
+                    {% endif %}
                 </div>
             </div>
+
+            <!-- Contacto -->
             <div class="col-md-4 footer-col">
                 <h6 class="at-footer-heading">Contacto</h6>
                 <div class="at-footer-contact">
@@ -222,73 +380,76 @@
                 </div>
             </div>
         </div>
+
         <hr class="my-3 opacity-25">
         <div class="text-center">
             <small class="at-footer-copy">&copy; <span id="footer-year"></span> AndroTech &middot; Proyecto academico</small>
         </div>
     </div>
 </footer>
-{% endif %}
 
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-<!-- Validación de formularios (Bootstrap) + tema + año + burger -->
+<!-- Script para navbar sticky con sombra dinámica -->
 <script>
-    (function () {
-        'use strict';
-        // Validación
-        document.querySelectorAll('.needs-validation').forEach(function (form) {
-            form.addEventListener('submit', function (event) {
-                if (!form.checkValidity()) { event.preventDefault(); event.stopPropagation(); }
-                form.classList.add('was-validated');
-            }, false);
+    document.addEventListener('DOMContentLoaded', function () {
+        const navbar = document.querySelector('.navbar');
+        const navbarToggler = document.querySelector('.navbar-toggler');
+
+        // Función para manejar el scroll
+        function handleScroll() {
+            if (window.scrollY > 10) {
+                navbar.classList.add('navbar-scrolled');
+            } else {
+                navbar.classList.remove('navbar-scrolled');
+            }
+        }
+
+        // Función para cerrar el menú móvil al hacer click en un enlace
+        function closeMobileMenu() {
+            if (window.innerWidth < 992) { // Solo en móvil/tablet
+                const navbarCollapse = document.querySelector('#navbarContent');
+                if (navbarCollapse.classList.contains('show')) {
+                    navbarToggler.click();
+                }
+            }
+        }
+
+        // Event listeners
+        window.addEventListener('scroll', handleScroll);
+        document.querySelectorAll('.navbar-nav .nav-link').forEach(link => {
+            link.addEventListener('click', closeMobileMenu);
         });
 
-        // Año del footer
-        var fy = document.getElementById('footer-year');
-        if (fy) fy.textContent = new Date().getFullYear();
-
-        var html = document.documentElement;
-        function setTheme(theme) {
-            html.setAttribute('data-theme', theme);
-            try { localStorage.setItem('at-theme', theme); } catch (e) {}
-        }
-        function toggleTheme() {
-            setTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+        // Insertar año dinámico en footer
+        const footerYear = document.getElementById('footer-year');
+        if (footerYear) {
+            footerYear.textContent = new Date().getFullYear();
         }
 
-        // Interruptor de tema del shell (admin)
-        var atToggle = document.getElementById('atThemeToggle');
-        if (atToggle) atToggle.addEventListener('click', toggleTheme);
+        // ── Dark mode toggle ──────────────────────────────────
+        const toggleBtn = document.getElementById('darkModeToggle');
+        if (toggleBtn) {
+            const icon = toggleBtn.querySelector('i');
+            const html = document.documentElement;
 
-        // Interruptor de tema público (legacy)
-        var darkBtn = document.getElementById('darkModeToggle');
-        if (darkBtn) {
-            var icon = darkBtn.querySelector('i');
-            if (html.getAttribute('data-theme') === 'dark' && icon) icon.classList.replace('bi-moon-fill', 'bi-sun-fill');
-            darkBtn.addEventListener('click', function () {
-                toggleTheme();
-                if (icon) {
-                    var dark = html.getAttribute('data-theme') === 'dark';
-                    icon.classList.toggle('bi-sun-fill', dark);
-                    icon.classList.toggle('bi-moon-fill', !dark);
+            // Sincronizar icono con el estado actual (tema ya aplicado en <head>)
+            if (html.getAttribute('data-theme') === 'dark') {
+                icon.classList.replace('bi-moon-fill', 'bi-sun-fill');
+            }
+
+            toggleBtn.addEventListener('click', function () {
+                const isDark = html.getAttribute('data-theme') === 'dark';
+                if (isDark) {
+                    html.removeAttribute('data-theme');
+                    icon.classList.replace('bi-sun-fill', 'bi-moon-fill');
+                    localStorage.setItem('at-theme', 'light');
+                } else {
+                    html.setAttribute('data-theme', 'dark');
+                    icon.classList.replace('bi-moon-fill', 'bi-sun-fill');
+                    localStorage.setItem('at-theme', 'dark');
                 }
             });
         }
-
-        // Burger del sidebar (móvil)
-        var burger = document.getElementById('atBurger');
-        var appEl = document.getElementById('atApp');
-        if (burger && appEl) {
-            burger.addEventListener('click', function () { appEl.classList.toggle('at-sidebar-open'); });
-            appEl.addEventListener('click', function (e) {
-                if (appEl.classList.contains('at-sidebar-open') && e.target === appEl) {
-                    appEl.classList.remove('at-sidebar-open');
-                }
-            });
-        }
-    })();
+    });
 </script>
 
 {% block scripts %}{% endblock %}
@@ -296,7 +457,8 @@
 <!-- Service Worker -->
 <script>
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/static/sw.js', { scope: '/' }).catch(function() {});
+    navigator.serviceWorker.register('/static/sw.js', { scope: '/' })
+        .catch(function() {});
 }
 </script>
 
