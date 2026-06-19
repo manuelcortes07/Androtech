@@ -1,316 +1,105 @@
-{% extends "base.html" %}
+{% extends "base_public.html" %}
+{% block title %}Reparación de dispositivos en Huelva{% endblock %}
 
 {% block content %}
 
-<!-- HERO — full width, centrado, grande y abierto -->
-<section class="at-home-hero">
-    <div class="at-home-hero-bg">
-        <div class="at-home-hero-orb at-home-hero-orb--1"></div>
-        <div class="at-home-hero-orb at-home-hero-orb--2"></div>
-        <div class="at-home-hero-orb at-home-hero-orb--3"></div>
-    </div>
-    <div class="container position-relative">
-        <div class="at-home-hero-content">
-            <div class="at-home-hero-badge">
-                <span class="at-home-hero-badge-dot"></span>
-                Servicio Tecnico Profesional en Huelva
+<!-- ════════════════ HERO ════════════════ -->
+<section class="at-hero">
+    <div class="at-glow at-g1"></div>
+    <div class="at-glow at-g2"></div>
+    <div class="at-particles"></div>
+    <div class="at-wrap at-herogrid">
+        <div>
+            <span class="at-live at-reveal at-reveal--load"><span class="at-pdot"></span>Servicio técnico · Huelva</span>
+            <h1 class="at-reveal at-reveal--load">Reparamos tus <span class="at-hl">dispositivos</span> con garantía</h1>
+            <p class="at-lead at-reveal at-reveal--load">Móviles, tablets y ordenadores. Diagnóstico gratuito, piezas de calidad y seguimiento en tiempo real de tu reparación.</p>
+            <div class="at-cta-row at-reveal at-reveal--load">
+                <a class="at-btn at-btn--primary at-btn--lg" href="/solicitar-reparacion">Solicitar reparación <span class="at-ar">→</span></a>
+                <a class="at-btn at-btn--ghost at-btn--lg" href="/consulta">Consultar estado</a>
+                <a class="at-btn at-btn--wa at-btn--lg" href="https://wa.me/34633234395?text=Hola%2C%20necesito%20informacion%20sobre%20una%20reparacion" target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i> WhatsApp</a>
             </div>
-            <h1 class="at-home-hero-title">
-                Reparamos tus<br>
-                <span class="at-home-hero-accent">dispositivos</span> con garantia
-            </h1>
-            <p class="at-home-hero-desc">
-                Moviles, tablets y ordenadores. Diagnostico gratuito, piezas de calidad
-                y seguimiento en tiempo real de tu reparacion.
-            </p>
-            <div class="at-home-hero-actions">
-                <a href="/solicitar-reparacion" class="at-home-btn-main">
-                    <i class="bi bi-send me-2"></i>Solicitar reparacion
-                </a>
-                <a href="/consulta" class="at-home-btn-ghost">
-                    <i class="bi bi-search me-2"></i>Consultar estado
-                </a>
-                <a href="https://wa.me/34633234395?text=Hola%2C%20necesito%20informacion%20sobre%20una%20reparacion"
-                   target="_blank" rel="noopener" class="at-home-btn-wa">
-                    <i class="bi bi-whatsapp me-2"></i>WhatsApp
-                </a>
+            <div class="at-mini at-reveal at-reveal--load">
+                <div class="at-m"><span class="at-mn a" data-count="{{ total_clientes }}">0</span><span class="at-ml">Clientes</span></div>
+                <div class="at-m"><span class="at-mn g" data-count="{{ terminadas }}">0</span><span class="at-ml">Completadas</span></div>
+                <div class="at-m"><span class="at-mn am" data-count="{{ activas }}">0</span><span class="at-ml">En curso</span></div>
             </div>
         </div>
 
-        <!-- Floating stats cards -->
-        <div class="at-home-float-stats">
-            <div class="at-home-fcard at-home-fcard--1">
-                <div class="at-home-fcard-icon"><i class="bi bi-people-fill"></i></div>
-                <div>
-                    <span class="at-home-fcard-num">{{ total_clientes }}</span>
-                    <span class="at-home-fcard-label">Clientes</span>
-                </div>
+        <!-- Tarjeta de seguimiento (ejemplo en vivo de la función) -->
+        <div class="at-tracker at-reveal at-reveal--load" aria-hidden="true">
+            <div class="at-scanline"></div>
+            <div class="at-tk-top">
+                <div class="at-tk-dev"><span class="at-tk-ic"><i class="bi bi-phone"></i></span><div><b>Tu dispositivo</b><small>#REP-····</small></div></div>
+                <span class="at-tk-state"><span class="at-pdot"></span>En reparación</span>
             </div>
-            <div class="at-home-fcard at-home-fcard--2">
-                <div class="at-home-fcard-icon" style="background:rgba(16,185,129,.12);color:#10b981;"><i class="bi bi-check-circle-fill"></i></div>
-                <div>
-                    <span class="at-home-fcard-num">{{ terminadas }}</span>
-                    <span class="at-home-fcard-label">Completadas</span>
-                </div>
-            </div>
-            <div class="at-home-fcard at-home-fcard--3">
-                <div class="at-home-fcard-icon" style="background:rgba(245,158,11,.12);color:#f59e0b;"><i class="bi bi-tools"></i></div>
-                <div>
-                    <span class="at-home-fcard-num">{{ activas }}</span>
-                    <span class="at-home-fcard-label">En curso</span>
-                </div>
+            <div class="at-tprog"><div class="at-fill" id="atHeroFill"></div></div>
+            <div class="at-tk-stages" id="atHeroStages">
+                <div class="at-tg is-done"><span class="at-b"><i class="bi bi-check"></i></span><span class="at-nm">Recibido</span><span class="at-tm">Lun 09:14</span></div>
+                <div class="at-tg is-done"><span class="at-b"><i class="bi bi-check"></i></span><span class="at-nm">Diagnóstico</span><span class="at-tm">Lun 11:30</span></div>
+                <div class="at-tg is-cur"><span class="at-b">●</span><span class="at-nm">En reparación</span><span class="at-tm">Ahora</span></div>
+                <div class="at-tg"><span class="at-b">4</span><span class="at-nm">Listo para recoger</span><span class="at-tm">—</span></div>
+                <div class="at-tg"><span class="at-b">5</span><span class="at-nm">Entregado</span><span class="at-tm">—</span></div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- COMO FUNCIONA — pasos horizontales -->
-<section class="at-home-process">
-    <div class="container">
-        <div class="text-center mb-5">
-            <h2 class="at-section-title">Como funciona</h2>
-            <p class="at-section-sub">En 4 pasos sencillos, tu dispositivo vuelve a estar como nuevo</p>
+<!-- ════════════════ STRIP DE FEATURES ════════════════ -->
+<div class="at-strip">
+    <div class="at-wrap at-feats">
+        <div class="at-ft at-reveal"><div class="at-fi"><i class="bi bi-broadcast"></i></div><h3>Seguimiento en vivo</h3><p>Consulta el estado de tu reparación desde el móvil, a cualquier hora, sin llamar.</p></div>
+        <div class="at-ft at-reveal"><div class="at-fi"><i class="bi bi-shield-check"></i></div><h3>Garantía real</h3><p>Diagnóstico gratuito y garantía por escrito en cada reparación que hacemos.</p></div>
+        <div class="at-ft at-reveal"><div class="at-fi"><i class="bi bi-tools"></i></div><h3>Técnicos de verdad</h3><p>Piezas de calidad y manos expertas. Nada de soluciones temporales.</p></div>
+    </div>
+</div>
+
+<!-- ════════════════ CÓMO FUNCIONA ════════════════ -->
+<section class="at-block">
+    <div class="at-wrap">
+        <div class="at-section-head at-reveal">
+            <h2 class="at-h2">Cómo funciona</h2>
+            <p class="at-sub">En 4 pasos sencillos, tu dispositivo vuelve a estar como nuevo.</p>
         </div>
-        <div class="at-home-steps">
-            <div class="at-home-step">
-                <div class="at-home-step-num">1</div>
-                <div class="at-home-step-line"></div>
-                <h5 class="at-home-step-title">Solicita</h5>
-                <p class="at-home-step-desc">Rellena el formulario online o contactanos por WhatsApp</p>
-            </div>
-            <div class="at-home-step">
-                <div class="at-home-step-num">2</div>
-                <div class="at-home-step-line"></div>
-                <h5 class="at-home-step-title">Diagnostico</h5>
-                <p class="at-home-step-desc">Analizamos tu dispositivo y te damos presupuesto sin compromiso</p>
-            </div>
-            <div class="at-home-step">
-                <div class="at-home-step-num">3</div>
-                <div class="at-home-step-line"></div>
-                <h5 class="at-home-step-title">Reparacion</h5>
-                <p class="at-home-step-desc">Nuestros tecnicos reparan con piezas de calidad garantizada</p>
-            </div>
-            <div class="at-home-step">
-                <div class="at-home-step-num">4</div>
-                <h5 class="at-home-step-title">Entrega</h5>
-                <p class="at-home-step-desc">Recoge tu dispositivo reparado con 3 meses de garantia</p>
+        <div class="at-steps">
+            <div class="at-step at-reveal"><div class="at-step-n">1</div><h5>Solicita</h5><p>Rellena el formulario online o escríbenos por WhatsApp.</p></div>
+            <div class="at-step at-reveal"><div class="at-step-n">2</div><h5>Diagnóstico</h5><p>Analizamos tu dispositivo y te damos presupuesto sin compromiso.</p></div>
+            <div class="at-step at-reveal"><div class="at-step-n">3</div><h5>Reparación</h5><p>Reparamos con piezas de calidad y garantía.</p></div>
+            <div class="at-step at-reveal"><div class="at-step-n">4</div><h5>Entrega</h5><p>Recoge tu dispositivo y síguelo en todo momento online.</p></div>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════ CTA FINAL ════════════════ -->
+<section class="at-block" style="padding-top:0;">
+    <div class="at-wrap">
+        <div class="at-final at-reveal">
+            <h2 class="at-h2">¿Tu dispositivo necesita una mano?</h2>
+            <p class="at-sub">Diagnóstico gratuito y sin compromiso. Tráelo o solicítalo online y síguelo en tiempo real.</p>
+            <div class="at-cta-row" style="justify-content:center;margin-top:28px;">
+                <a class="at-btn at-btn--primary at-btn--lg" href="/solicitar-reparacion">Solicitar reparación <span class="at-ar">→</span></a>
+                <a class="at-btn at-btn--wa at-btn--lg" href="https://wa.me/34633234395?text=Hola%2C%20necesito%20informacion%20sobre%20una%20reparacion" target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i> Escríbenos por WhatsApp</a>
             </div>
         </div>
     </div>
 </section>
 
-<!-- SERVICIOS — tarjetas con hover -->
-<section class="container at-section">
-    <div class="text-center mb-5">
-        <h2 class="at-section-title">Nuestros servicios</h2>
-        <p class="at-section-sub">Soluciones completas para todos tus dispositivos</p>
-    </div>
-    <div class="at-services-grid">
-        <div class="at-service-card">
-            <div class="at-service-icon">
-                <i class="bi bi-phone" style="font-size:1.4rem;color:#2B8AC4"></i>
-            </div>
-            <h5 class="at-service-title">Reparacion de moviles</h5>
-            <p class="at-service-desc">Pantallas, baterias, conectores y mas. Todas las marcas.</p>
-            <span class="at-service-price">Desde 29&euro;</span>
-        </div>
-        <div class="at-service-card">
-            <div class="at-service-icon">
-                <i class="bi bi-laptop" style="font-size:1.4rem;color:#2B8AC4"></i>
-            </div>
-            <h5 class="at-service-title">Reparacion de ordenadores</h5>
-            <p class="at-service-desc">Portatiles y sobremesa. Hardware y software.</p>
-            <span class="at-service-price">Desde 39&euro;</span>
-        </div>
-        <div class="at-service-card">
-            <div class="at-service-icon">
-                <i class="bi bi-tablet" style="font-size:1.4rem;color:#2B8AC4"></i>
-            </div>
-            <h5 class="at-service-title">Reparacion de tablets</h5>
-            <p class="at-service-desc">iPad, Samsung Galaxy Tab y todas las marcas del mercado.</p>
-            <span class="at-service-price">Desde 35&euro;</span>
-        </div>
-        <div class="at-service-card">
-            <div class="at-service-icon">
-                <i class="bi bi-cloud-arrow-down" style="font-size:1.4rem;color:#2B8AC4"></i>
-            </div>
-            <h5 class="at-service-title">Recuperacion de datos</h5>
-            <p class="at-service-desc">Discos duros, memorias USB, tarjetas SD y moviles.</p>
-            <span class="at-service-price">Desde 49&euro;</span>
-        </div>
-        <div class="at-service-card">
-            <div class="at-service-icon">
-                <i class="bi bi-shield-check" style="font-size:1.4rem;color:#2B8AC4"></i>
-            </div>
-            <h5 class="at-service-title">Mantenimiento preventivo</h5>
-            <p class="at-service-desc">Limpieza, optimizacion y revision completa del equipo.</p>
-            <span class="at-service-price">Desde 25&euro;</span>
-        </div>
-        <div class="at-service-card">
-            <div class="at-service-icon">
-                <i class="bi bi-search" style="font-size:1.4rem;color:#2B8AC4"></i>
-            </div>
-            <h5 class="at-service-title">Diagnostico profesional</h5>
-            <p class="at-service-desc">Analisis completo y presupuesto sin compromiso.</p>
-            <span class="at-service-price">Gratis</span>
-        </div>
-    </div>
-    <div class="text-center mt-4">
-        <a href="/servicios" class="at-home-btn-ghost">Ver todos los servicios <i class="bi bi-arrow-right ms-1"></i></a>
-    </div>
-</section>
+{% endblock %}
 
-<!-- POR QUE ANDROTECH — asimetrico -->
-<section class="at-home-why">
-    <div class="container">
-        <div class="row align-items-center g-5">
-            <div class="col-lg-5">
-                <span class="at-pill">Por que elegirnos</span>
-                <h2 class="at-section-title" style="text-align:left;">Un taller en el que<br>puedes <span style="color:#2B8AC4;">confiar</span></h2>
-                <p class="at-about-desc">Somos un equipo tecnico en Huelva especializado en reparacion de dispositivos. Transparencia, rapidez y garantia en cada servicio.</p>
-                <a href="/sobre" class="at-home-btn-ghost mt-2">Conocenos <i class="bi bi-arrow-right ms-1"></i></a>
-            </div>
-            <div class="col-lg-7">
-                <div class="at-home-why-grid">
-                    <div class="at-home-why-card">
-                        <div class="at-home-why-icon"><i class="bi bi-lightning-charge-fill"></i></div>
-                        <h6>Rapido</h6>
-                        <p>La mayoria de reparaciones listas en 24-48h</p>
-                    </div>
-                    <div class="at-home-why-card">
-                        <div class="at-home-why-icon" style="background:rgba(16,185,129,.1);color:#10b981;"><i class="bi bi-shield-fill-check"></i></div>
-                        <h6>Garantia</h6>
-                        <p>3 meses en todas las reparaciones y piezas</p>
-                    </div>
-                    <div class="at-home-why-card">
-                        <div class="at-home-why-icon" style="background:rgba(139,92,246,.1);color:#8b5cf6;"><i class="bi bi-eye-fill"></i></div>
-                        <h6>Transparente</h6>
-                        <p>Consulta el estado de tu reparacion online 24/7</p>
-                    </div>
-                    <div class="at-home-why-card">
-                        <div class="at-home-why-icon" style="background:rgba(245,158,11,.1);color:#f59e0b;"><i class="bi bi-currency-euro"></i></div>
-                        <h6>Sin sorpresas</h6>
-                        <p>Presupuesto antes de empezar, sin costes ocultos</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- TESTIMONIOS -->
-<section class="container at-section">
-    <div class="text-center mb-5">
-        <h2 class="at-section-title">Lo que dicen nuestros clientes</h2>
-        <p class="at-section-sub">Opiniones reales de personas que confiaron en nosotros</p>
-    </div>
-    <div class="row g-4">
-        <div class="col-md-6 col-lg-4">
-            <div class="at-testimonial">
-                <span class="at-testimonial-quote">&ldquo;</span>
-                <p class="at-testimonial-text">Excelente servicio, personal muy profesional y rapido. Repararon mi movil en 48 horas y quedo como nuevo. Muy recomendado.</p>
-                <div class="at-testimonial-stars">
-                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
-                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
-                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
-                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
-                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
-                </div>
-                <div class="at-testimonial-author">
-                    <strong>Carlos Martinez</strong>
-                    <span>Cliente verificado</span>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6 col-lg-4">
-            <div class="at-testimonial">
-                <span class="at-testimonial-quote">&ldquo;</span>
-                <p class="at-testimonial-text">Taller de confianza, con garantia en todos los servicios. El diagnostico fue preciso y el precio justo. Volvere sin dudarlo.</p>
-                <div class="at-testimonial-stars">
-                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
-                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
-                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
-                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
-                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
-                </div>
-                <div class="at-testimonial-author">
-                    <strong>Elena Garcia</strong>
-                    <span>Cliente verificado</span>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6 col-lg-4">
-            <div class="at-testimonial">
-                <span class="at-testimonial-quote">&ldquo;</span>
-                <p class="at-testimonial-text">Increible atencion al cliente. Solucionaron mi problema tecnico de manera profesional y meticulosa. Equipo excepcional.</p>
-                <div class="at-testimonial-stars">
-                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
-                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
-                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
-                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
-                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
-                </div>
-                <div class="at-testimonial-author">
-                    <strong>Jorge Fernandez</strong>
-                    <span>Cliente verificado</span>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- CTA FINAL — horario + contacto -->
-<section class="at-home-cta-final">
-    <div class="container">
-        <div class="at-home-cta-inner">
-            <div class="at-home-cta-left">
-                <h2>Tu dispositivo necesita<br><span style="color:#4da6d8;">una segunda oportunidad?</span></h2>
-                <p>Estamos en el centro de Huelva, listos para atenderte.</p>
-                <div class="at-home-cta-btns">
-                    <a href="/solicitar-reparacion" class="at-home-btn-main">
-                        <i class="bi bi-send me-2"></i>Solicitar reparacion
-                    </a>
-                    <a href="https://wa.me/34633234395?text=Hola%2C%20necesito%20informacion%20sobre%20una%20reparacion"
-                       target="_blank" rel="noopener" class="at-home-btn-wa">
-                        <i class="bi bi-whatsapp me-2"></i>WhatsApp
-                    </a>
-                </div>
-            </div>
-            <div class="at-home-cta-right">
-                <div class="at-home-schedule-card">
-                    <h6><i class="bi bi-clock me-2"></i>Horario</h6>
-                    <div class="at-home-schedule-row">
-                        <span>Lunes - Viernes</span>
-                        <span>09:30 - 14:00 / 17:00 - 20:00</span>
-                    </div>
-                    <div class="at-home-schedule-row">
-                        <span>Sabados</span>
-                        <span>10:00 - 13:30</span>
-                    </div>
-                    <div class="at-home-schedule-row at-home-schedule-closed">
-                        <span>Domingos</span>
-                        <span>Cerrado</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ScrollReveal -->
-<script src="https://unpkg.com/scrollreveal"></script>
+{% block scripts %}
 <script>
-    var sr = ScrollReveal({ duration: 900, distance: '30px', easing: 'ease-out' });
-    sr.reveal('.at-home-hero-content', { origin: 'bottom', delay: 100 });
-    sr.reveal('.at-home-fcard--1', { origin: 'left', delay: 400 });
-    sr.reveal('.at-home-fcard--2', { origin: 'bottom', delay: 550 });
-    sr.reveal('.at-home-fcard--3', { origin: 'right', delay: 700 });
-    sr.reveal('.at-home-step', { interval: 150, origin: 'bottom' });
-    sr.reveal('.at-service-card', { interval: 100, origin: 'bottom', distance: '25px' });
-    sr.reveal('.at-home-why-card', { interval: 120, origin: 'right', distance: '30px' });
-    sr.reveal('.at-testimonial', { interval: 130, origin: 'bottom' });
-    sr.reveal('.at-home-cta-left', { origin: 'left', delay: 100 });
-    sr.reveal('.at-home-cta-right', { origin: 'right', delay: 250 });
+(function(){
+    // Anima la barra y las etapas del tracker de ejemplo del hero.
+    if(window.AT && window.AT.reduce){
+        document.querySelectorAll('#atHeroStages .at-tg').forEach(function(s){s.classList.add('is-on');});
+        var f0=document.getElementById('atHeroFill'); if(f0) f0.style.width='55%';
+        return;
+    }
+    setTimeout(function(){
+        document.querySelectorAll('#atHeroStages .at-tg').forEach(function(s,i){
+            setTimeout(function(){ s.classList.add('is-on'); }, i*200);
+        });
+        var f=document.getElementById('atHeroFill'); if(f) setTimeout(function(){ f.style.width='55%'; }, 420);
+    }, 700);
+})();
 </script>
-
 {% endblock %}
