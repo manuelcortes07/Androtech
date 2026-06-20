@@ -119,6 +119,11 @@ class Usuario(Base):
     usuario = Column(Text, nullable=False)
     password = Column("contraseña", Text, nullable=False)
     rol = Column(Text, default="tecnico", server_default=text("'tecnico'"))
+    # SUPERADMIN DE PLATAFORMA (H1): dueño del SaaS, por encima de los admins de
+    # taller. SOLO él puede crear/editar/borrar los ROLES GLOBALES (afectan a
+    # todos los talleres). NO se puede activar desde la app: se designa por
+    # CLI (scripts/set_superadmin.py) o seed controlado.
+    es_superadmin = Column(Integer, default=0, server_default="0")
 
     __table_args__ = (
         UniqueConstraint("taller_id", "usuario", name="uq_usuarios_taller_usuario"),

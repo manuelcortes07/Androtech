@@ -113,6 +113,29 @@ def asegurar_codigo_publico() -> None:
         )
 
 
+def asegurar_es_superadmin() -> None:
+    """H1: garantiza `usuarios.es_superadmin` (flag del superadmin de plataforma).
+
+    Idempotente y agnóstica de motor. Default 0 (nadie es superadmin hasta que
+    se designe explícitamente por CLI/seed — nunca desde la app).
+    """
+    from database import is_postgres
+
+    engine = get_engine()
+    with engine.begin() as conn:
+        if is_postgres():
+            conn.exec_driver_sql(
+                "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS es_superadmin INTEGER DEFAULT 0"
+            )
+        else:
+            if not _table_exists(conn, "usuarios"):
+                return
+            if not _has_column(conn, "usuarios", "es_superadmin"):
+                conn.exec_driver_sql(
+                    "ALTER TABLE usuarios ADD COLUMN es_superadmin INTEGER DEFAULT 0"
+                )
+
+
 def _has_column(conn, table: str, col: str) -> bool:
     rows = conn.exec_driver_sql(f"PRAGMA table_info({table})").fetchall()
     return any(r[1] == col for r in rows)

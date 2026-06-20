@@ -14,9 +14,20 @@ Fecha: 2026-06-20 · Alcance: `app.py`, `tenancy.py`, `auth.py`, `utils/security
 
 | Gravedad | Nº | Hallazgos |
 |---|---|---|
-| 🔴 Crítica | **1** | H3 |
-| 🟠 Media | **3** | H1, H2, H4 |
+| 🔴 Crítica | **1** | ~~H3~~ ✅ **ARREGLADO** |
+| 🟠 Media | **3** | ~~H1~~ ✅ **ARREGLADO** · H2, H4 (pendientes) |
 | 🟡 Baja | **7** | H5, H6, H7, H8, H9, H10, H11 |
+
+> **Remediación aplicada (2ª tanda):**
+> - **H3** ✅ El portal `/consulta` localiza por **código público no adivinable**
+>   (`reparaciones.codigo_publico`, `secrets.token_urlsafe`, único+indexado,
+>   backfill idempotente en ambos motores). Se **retiró el acceso por `?id=`**
+>   secuencial; QR/PDF/ticket llevan `?codigo=`; rate-limit en el portal.
+> - **H1** ✅ Introducido el **superadmin de plataforma** (`usuarios.es_superadmin`,
+>   designable SOLO por `scripts/set_superadmin.py`, nunca desde la app). Las
+>   rutas de roles globales (`admin_roles`, `nuevo_rol`, `editar_rol`, `borrar_rol`)
+>   requieren superadmin (403 para admins de taller). Roles siguen globales.
+> - Reproductores H3/H1 convertidos de *exploit* a *regresión*. Suite **152/152**.
 
 **Lo bien hecho (no son hallazgos, confirmado):** filtro ORM automático por
 `taller_id` + JUEZ; `s.get()`/SELECT ORM con scope (IDOR **interno** cubierto);

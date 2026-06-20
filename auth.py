@@ -12,7 +12,7 @@ ignora internamente — cada función abre su propia `Session`.
 
 from functools import wraps
 
-from flask import flash, redirect, session, url_for
+from flask import abort, flash, redirect, session, url_for
 from sqlalchemy import select
 
 from database import Base, get_engine, get_session, insert_or_ignore
@@ -171,6 +171,22 @@ def role_required(rol_requerido):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+
+def superadmin_requerido(f):
+    """Sólo el SUPERADMIN DE PLATAFORMA (H1) puede acceder.
+
+    Para superficies GLOBALES que afectan a todos los talleres (p. ej. la
+    edición de roles/permisos del sistema). Un admin de taller normal recibe
+    403 — NO puede tocar datos compartidos entre talleres.
+    """
+    @wraps(f)
+    @login_required
+    def decorated_function(*args, **kwargs):
+        if not session.get("es_superadmin"):
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 def permiso_requerido(permiso):

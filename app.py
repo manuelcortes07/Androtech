@@ -62,6 +62,7 @@ from auth import (
     login_required,
     obtener_permisos_usuario,
     permiso_requerido,
+    superadmin_requerido,
     tiene_permiso,
 )
 from database import get_engine, get_session, insert_or_ignore, is_postgres
@@ -271,6 +272,7 @@ from database import Base as _Base
 from migrations import (
     aplicar_migracion_multitenant,
     asegurar_codigo_publico,
+    asegurar_es_superadmin,
     asegurar_taller_1,
     crear_esquema_sqlite_defensivo,
 )
@@ -292,6 +294,8 @@ else:
 
 # H3: código público no adivinable para el portal /consulta (ambos motores).
 asegurar_codigo_publico()
+# H1: flag de superadmin de plataforma (sólo él edita roles globales).
+asegurar_es_superadmin()
 
 # Configuración de subida de fotos/firmas.
 # La ruta base sale de UPLOADS_DIR. En Railway se monta ahí un VOLUMEN
@@ -666,6 +670,8 @@ def login(slug=None):
             # rutas internas en las siguientes peticiones).
             session["taller_id"] = user.taller_id
             session["taller_slug"] = g.taller_slug
+            # H1: flag de superadmin de plataforma (edita roles globales).
+            session["es_superadmin"] = bool(getattr(user, "es_superadmin", 0))
             flash(f"Bienvenido, {user.usuario}!", "success")
 
             # Registrar auditoría
@@ -3568,7 +3574,7 @@ def borrar_usuario(id):
 
 @app.route("/admin/roles")
 @login_required
-@permiso_requerido('roles_gestionar')
+@superadmin_requerido
 def admin_roles():
     from sqlalchemy import func as _func
     with get_session() as s:
@@ -3612,7 +3618,7 @@ def admin_roles():
 
 @app.route("/admin/roles/nuevo", methods=["GET", "POST"])
 @login_required
-@permiso_requerido('roles_gestionar')
+@superadmin_requerido
 def nuevo_rol():
     if request.method == "POST":
         nombre = request.form.get("nombre", "").strip().lower()
@@ -3665,7 +3671,7 @@ def nuevo_rol():
 
 @app.route("/admin/roles/editar/<int:id>", methods=["GET", "POST"])
 @login_required
-@permiso_requerido('roles_gestionar')
+@superadmin_requerido
 def editar_rol(id):
     from sqlalchemy import delete as _delete
     with get_session() as s:
@@ -3721,7 +3727,7 @@ def editar_rol(id):
 
 @app.route("/admin/roles/borrar/<int:id>")
 @login_required
-@permiso_requerido('roles_gestionar')
+@superadmin_requerido
 def borrar_rol(id):
     from sqlalchemy import delete as _delete
     from sqlalchemy import func as _func
@@ -4958,6 +4964,19 @@ def stripe_webhook():
 # el primero registrado, así que esto era código muerto.
 
 # Global error handlers
+@app.errorhandler(403)
+def forbidden_error(error):
+    try:
+        logger.warning(json.dumps({
+            "event": "error_403", "path": request.path,
+            "usuario": session.get("usuario"), "ip": request.remote_addr
+        }, ensure_ascii=False))
+    except Exception:
+        logger.warning(f"error_403 path={request.path}")
+    return render_template('error.html', code=403,
+                           message='No tienes permiso para acceder a esto.'), 403
+
+
 @app.errorhandler(404)
 def not_found_error(error):
     try:

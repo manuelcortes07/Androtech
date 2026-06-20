@@ -18,11 +18,10 @@ from tests.test_aislamiento import (  # noqa: F401
 
 
 # ════════════════════════════════════════════════════════════════════════
-# HALLAZGO H1 (🟠) — Roles GLOBALES editables por cualquier admin de taller:
-# un admin del taller A reescribe el rol 'tecnico' GLOBAL → afecta a los
-# técnicos de TODOS los talleres (incluido B). Rompe el aislamiento en la
-# superficie de roles (que está fuera del scope por decisión de producto,
-# pero las rutas /admin/roles/* permiten mutarlo).
+# HALLAZGO H1 (🟠) — ARREGLADO. Los roles siguen GLOBALES pero su edición queda
+# reservada al SUPERADMIN DE PLATAFORMA. Tests de REGRESIÓN:
+# (1) un admin de taller normal recibe 403 al intentar editar un rol global,
+#     y el rol NO cambia; (2) el superadmin SÍ puede.
 # ════════════════════════════════════════════════════════════════════════
 class TestH1RolesGlobalesCrossTenant:
     def _id_rol(self, db_conn, nombre):
@@ -31,9 +30,7 @@ class TestH1RolesGlobalesCrossTenant:
         ).fetchone()
         return row["id"] if row else None
 
-    def test_admin_A_reescribe_rol_tecnico_global(self, admin_A, db_conn):
-        # Asegura que existe el rol global 'tecnico' (lo siembra init_permisos_db;
-        # si el entorno de test no lo tiene, lo creamos para el reproductor).
+    def _asegura_tecnico(self, db_conn):
         tid = self._id_rol(db_conn, "tecnico")
         if tid is None:
             db_conn.execute(
@@ -45,35 +42,56 @@ class TestH1RolesGlobalesCrossTenant:
             )
             db_conn.commit()
             tid = self._id_rol(db_conn, "tecnico")
+        return tid
 
-        # Snapshot del estado GLOBAL para restaurarlo (el cambio es global y, de
-        # hecho, contaminaría otros tests: eso ES la prueba del fallo).
+    def test_admin_taller_no_puede_editar_rol_global(self, admin_A, db_conn):
+        # admin_A está logueado como admin del taller A SIN es_superadmin.
+        tid = self._asegura_tecnico(db_conn)
+        original = {row["permiso"] for row in db_conn.execute(
+            "SELECT permiso FROM permisos_rol WHERE rol_nombre = 'tecnico'"
+        ).fetchall()}
+
+        r = admin_A.post(
+            f"/admin/roles/editar/{tid}",
+            data={"descripcion": "secuestrado", "color": "#000000",
+                  "permisos": ["usuarios_borrar", "reparaciones_borrar"]},
+            follow_redirects=False,
+        )
+        # REGRESIÓN H1: un admin de taller normal NO puede tocar roles globales.
+        assert r.status_code == 403
+        # y el rol global quedó intacto.
+        despues = {row["permiso"] for row in db_conn.execute(
+            "SELECT permiso FROM permisos_rol WHERE rol_nombre = 'tecnico'"
+        ).fetchall()}
+        assert despues == original
+
+    def test_superadmin_si_puede_editar_rol_global(self, client, dos_talleres, db_conn):
+        from auth import PERMISOS_ADMIN
+        tid = self._asegura_tecnico(db_conn)
         original = [row["permiso"] for row in db_conn.execute(
             "SELECT permiso FROM permisos_rol WHERE rol_nombre = 'tecnico'"
         ).fetchall()]
         try:
-            # Admin del taller A (1) reescribe el rol 'tecnico' GLOBAL con un
-            # permiso peligroso (borrar usuarios). editar_rol NO tiene @csrf_protect.
-            r = admin_A.post(
+            with client.session_transaction() as s:
+                s["usuario"] = "admin"
+                s["rol"] = "admin"
+                s["permisos"] = PERMISOS_ADMIN
+                s["taller_id"] = 1
+                s["taller_slug"] = "androtech"
+                s["csrf_token"] = "tk"
+                s["es_superadmin"] = True  # designado por la plataforma
+            r = client.post(
                 f"/admin/roles/editar/{tid}",
-                data={"descripcion": "secuestrado por A", "color": "#000000",
-                      "permisos": ["usuarios_borrar", "reparaciones_borrar"]},
+                data={"descripcion": "ok", "color": "#222222",
+                      "permisos": ["reparaciones_ver", "clientes_ver"]},
                 follow_redirects=False,
             )
             assert r.status_code in (302, 303)
-
-            # El cambio quedó en la tabla GLOBAL permisos_rol (no scoped por taller):
             perms = {row["permiso"] for row in db_conn.execute(
                 "SELECT permiso FROM permisos_rol WHERE rol_nombre = 'tecnico'"
             ).fetchall()}
-            # PRUEBA DEL FALLO: el admin del taller A acaba de conceder a TODOS los
-            # técnicos (de cualquier taller, incluido B) el permiso de borrar usuarios.
-            assert "usuarios_borrar" in perms, (
-                "REPRO H1: si esto falla, el rol global ya está aislado/bloqueado "
-                "(el fallo estaría arreglado)."
-            )
+            assert perms == {"reparaciones_ver", "clientes_ver"}
         finally:
-            # Restaurar el estado global para no contaminar el resto de la suite.
             db_conn.execute("DELETE FROM permisos_rol WHERE rol_nombre = 'tecnico'")
             for p in original:
                 db_conn.execute(

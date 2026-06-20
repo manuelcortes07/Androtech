@@ -93,7 +93,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     usuario TEXT NOT NULL UNIQUE,
     contraseña TEXT NOT NULL,
-    rol TEXT DEFAULT 'tecnico'
+    rol TEXT DEFAULT 'tecnico',
+    es_superadmin INTEGER DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS reparaciones_historial (
