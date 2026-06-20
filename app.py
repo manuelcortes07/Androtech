@@ -148,22 +148,27 @@ def ratelimit_handler(e):
     flash("Demasiados intentos. Espera un minuto antes de volver a intentarlo.", "danger")
     return redirect(url_for("login"))
 
-# Content-Security-Policy. Allowlist REAL de orígenes que usa el front (CDNs de
-# bootstrap/icons/chart.js/fullcalendar/signature_pad en jsdelivr y scrollreveal
-# en unpkg). 'unsafe-inline' es necesario porque las plantillas tienen scripts y
-# estilos inline + handlers onclick; endurecer con nonces queda como deuda
-# futura (ver recomendaciones). No hay fetch/XHR externos → connect-src 'self'.
-_CSP = "; ".join([
-    "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com",
-    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com",
-    "img-src 'self' data: https:",
-    "font-src 'self' https://cdn.jsdelivr.net data:",
-    "connect-src 'self'",
-    "frame-ancestors 'self'",
-    "base-uri 'self'",
-    "form-action 'self'",
-])
+# Content-Security-Policy ENDURECIDA con nonce por petición (sin 'unsafe-inline').
+# - Todo <script>/<style> inline de las plantillas lleva nonce="{{ csp_nonce }}".
+#   No quedan atributos style="" ni handlers on*= en el HTML (movidos a CSS/JS).
+# - Allowlist de hosts EXTERNOS realmente usados:
+#     · scripts: jsdelivr (bootstrap, chart.js, fullcalendar, signature_pad)
+#     · estilos: jsdelivr (bootstrap/icons) + fonts.googleapis.com (Google Fonts)
+#     · fuentes: fonts.gstatic.com (ficheros) + jsdelivr (bootstrap-icons) + data:
+# - Ninguna librería requiere 'unsafe-eval'. No hay fetch externos → connect 'self'.
+def _build_csp(nonce: str) -> str:
+    n = f"'nonce-{nonce}'"
+    return "; ".join([
+        "default-src 'self'",
+        f"script-src 'self' {n} https://cdn.jsdelivr.net",
+        f"style-src 'self' {n} https://cdn.jsdelivr.net https://fonts.googleapis.com",
+        "img-src 'self' data: https:",
+        "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:",
+        "connect-src 'self'",
+        "frame-ancestors 'self'",
+        "base-uri 'self'",
+        "form-action 'self'",
+    ])
 
 
 @app.after_request
@@ -171,7 +176,7 @@ def add_security_headers(response):
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-    response.headers['Content-Security-Policy'] = _CSP
+    response.headers['Content-Security-Policy'] = _build_csp(getattr(g, 'csp_nonce', ''))
     response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
     # HSTS sólo en producción (HTTPS). Los navegadores lo ignoran sobre http,
     # así que no estorba en local, pero lo limitamos a prod por higiene.

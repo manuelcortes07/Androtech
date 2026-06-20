@@ -12,6 +12,23 @@ def test_cabeceras_de_seguridad_presentes(client):
     assert "default-src 'self'" in csp
     assert "https://cdn.jsdelivr.net" in csp
     assert "frame-ancestors 'self'" in csp
+    # ENDURECIDA: nonce por petición y SIN 'unsafe-inline' en script/style.
+    assert "'unsafe-inline'" not in csp
+    assert "'unsafe-eval'" not in csp
+    assert "'nonce-" in csp
+    # Google Fonts permitido (estilos + ficheros).
+    assert "https://fonts.googleapis.com" in csp
+    assert "https://fonts.gstatic.com" in csp
+
+
+def test_nonce_distinto_por_peticion(client):
+    # El nonce de la CSP debe ser único por request (no reusar entre páginas).
+    import re
+    a = client.get("/login").headers.get("Content-Security-Policy", "")
+    b = client.get("/login").headers.get("Content-Security-Policy", "")
+    na = re.search(r"'nonce-([^']+)'", a)
+    nb = re.search(r"'nonce-([^']+)'", b)
+    assert na and nb and na.group(1) != nb.group(1)
 
 
 def test_signup_password_sin_mayuscula_rechazada(client, db_conn):
