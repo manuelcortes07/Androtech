@@ -18,6 +18,8 @@ nombre SQL real `contraseña` con el primer argumento de `Column()`.
 
 from __future__ import annotations
 
+import secrets
+
 from sqlalchemy import (
     Column,
     Float,
@@ -28,6 +30,16 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
+
+
+def generar_codigo_publico() -> str:
+    """Código público NO adivinable para el seguimiento de una reparación.
+
+    ~12 caracteres URL-safe (72 bits). Sustituye al id secuencial en el portal
+    público: el cliente lo recibe en su enlace/QR, no se puede enumerar
+    iterando ids (hallazgo de seguridad H3). Único e indexado.
+    """
+    return secrets.token_urlsafe(9)
 
 from database import Base
 
@@ -244,6 +256,10 @@ class Reparacion(Base):
     fecha_pago = Column(Text)
     metodo_pago = Column(Text)
     firma = Column(Text)
+    # Código público no adivinable (H3): el portal /consulta localiza por aquí,
+    # NO por el id secuencial. Se genera al crear la reparación (ORM default);
+    # los inserts crudos y el backfill lo rellenan en migrations.py.
+    codigo_publico = Column(Text, index=True, default=generar_codigo_publico)
 
     __table_args__ = (
         # El dashboard agrupa/filtra por (taller_id, estado) constantemente.

@@ -64,6 +64,55 @@ def _table_exists(conn, table: str) -> bool:
     return row is not None
 
 
+def asegurar_codigo_publico() -> None:
+    """H3: garantiza `reparaciones.codigo_publico` (no adivinable) + backfill.
+
+    Idempotente y agnóstica de motor (SQLite y Postgres). Pasos:
+      1. Añade la columna si falta (SQLite: ALTER simple guardado por PRAGMA;
+         Postgres: ADD COLUMN IF NOT EXISTS — o ya existe vía create_all).
+      2. Backfilla las filas con código NULL/'' generando un token único.
+      3. Crea un índice UNIQUE sobre la columna (CREATE UNIQUE INDEX IF NOT EXISTS).
+    """
+    from database import is_postgres
+    from models import generar_codigo_publico
+
+    engine = get_engine()
+    with engine.begin() as conn:
+        if is_postgres():
+            conn.exec_driver_sql(
+                "ALTER TABLE reparaciones ADD COLUMN IF NOT EXISTS codigo_publico TEXT"
+            )
+        else:
+            if not _table_exists(conn, "reparaciones"):
+                return  # esquema aún sin crear (no debería pasar en arranque)
+            if not _has_column(conn, "reparaciones", "codigo_publico"):
+                conn.exec_driver_sql(
+                    "ALTER TABLE reparaciones ADD COLUMN codigo_publico TEXT"
+                )
+
+        # Backfill de filas sin código (NULL o vacío).
+        pendientes = conn.execute(_text(
+            "SELECT id FROM reparaciones "
+            "WHERE codigo_publico IS NULL OR codigo_publico = ''"
+        )).scalars().all()
+        usados: set[str] = set()
+        for rid in pendientes:
+            codigo = generar_codigo_publico()
+            while codigo in usados:
+                codigo = generar_codigo_publico()
+            usados.add(codigo)
+            conn.execute(
+                _text("UPDATE reparaciones SET codigo_publico = :c WHERE id = :id"),
+                {"c": codigo, "id": rid},
+            )
+
+        # Índice único (tras backfill: ya no quedan NULL a colisionar).
+        conn.exec_driver_sql(
+            "CREATE UNIQUE INDEX IF NOT EXISTS ux_reparaciones_codigo "
+            "ON reparaciones (codigo_publico)"
+        )
+
+
 def _has_column(conn, table: str, col: str) -> bool:
     rows = conn.exec_driver_sql(f"PRAGMA table_info({table})").fetchall()
     return any(r[1] == col for r in rows)

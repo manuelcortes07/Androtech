@@ -10,7 +10,7 @@
         <div class="at-reveal at-reveal--load at-u110">
             <span class="at-live"><span class="at-pdot"></span>Seguimiento en vivo</span>
             <h1 class="at-u111">Sigue tu <span class="at-hl">reparación</span></h1>
-            <p class="at-lead at-u112">Introduce tu número de reparación y te decimos exactamente dónde está tu dispositivo.</p>
+            <p class="at-lead at-u112">Introduce tu código de seguimiento y te decimos exactamente dónde está tu dispositivo.</p>
         </div>
 
         <!-- Buscador -->
@@ -18,13 +18,13 @@
             <div class="at-card__body">
                 <form method="POST" novalidate>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <label class="at-label" for="id_reparacion"><i class="bi bi-hash"></i> Número de reparación</label>
+                    <label class="at-label" for="codigo"><i class="bi bi-qr-code"></i> Código de seguimiento</label>
                     <div class="at-u114">
-                        <input class="at-input at-u115" type="number" id="id_reparacion" name="id_reparacion" required min="1"
-                               placeholder="Ej: 123" value="{{ id_prefill if id_prefill else '' }}">
+                        <input class="at-input at-u115" type="text" id="codigo" name="codigo" required
+                               autocomplete="off" placeholder="Ej: aK9p-2Lq..." value="{{ codigo_prefill if codigo_prefill else '' }}">
                         <button type="submit" class="at-btn at-btn--primary"><i class="bi bi-search"></i> Consultar</button>
                     </div>
-                    <p class="at-dim at-u116">El número aparece en tu resguardo o recibo de entrega.</p>
+                    <p class="at-dim at-u116">El código aparece en tu resguardo y en el QR de tu recibo de entrega.</p>
                 </form>
                 {% if error %}
                 <div class="at-alert at-alert--danger at-u117" role="alert">

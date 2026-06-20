@@ -264,15 +264,15 @@ def _build_terms(styles, tipo="presupuesto"):
     return elements
 
 
-def _build_qr(styles, reparacion_id, base_url=None, taller_slug=None):
+def _build_qr(styles, reparacion_id, base_url=None, taller_slug=None, codigo=None):
     """
     Construir QR de consulta directa.
 
-    Multi-tenant (Fase 2.2): el QR codifica la URL canónica con slug de taller
-    `/t/{slug}/consulta?id=X`. Si no hay slug (contexto sin taller), cae a la
-    legacy `/consulta?id=X`, que sigue resolviendo el taller desde el id.
-    base_url se recibe desde la vista Flask (request.host_url) para que
-    funcione tanto en local como en Railway (https).
+    H3: el QR codifica el CÓDIGO PÚBLICO no adivinable (`?codigo=`), NO el id
+    secuencial. Con slug de taller usa la URL canónica `/t/{slug}/consulta?codigo=X`;
+    sin slug, `/consulta?codigo=X` (el código resuelve el taller). Si no hubiera
+    código (no debería tras el backfill), el QR apunta al formulario `/consulta`.
+    base_url se recibe desde la vista Flask (request.host_url).
     """
     elements = []
     try:
@@ -282,10 +282,11 @@ def _build_qr(styles, reparacion_id, base_url=None, taller_slug=None):
                 'APP_BASE_URL', 'https://androtech-production.up.railway.app'
             )
         base = base_url.rstrip('/')
-        if taller_slug:
-            url = f"{base}/t/{taller_slug}/consulta?id={reparacion_id}"
+        prefijo = f"/t/{taller_slug}" if taller_slug else ""
+        if codigo:
+            url = f"{base}{prefijo}/consulta?codigo={codigo}"
         else:
-            url = f"{base}/consulta?id={reparacion_id}"
+            url = f"{base}{prefijo}/consulta"
 
         qr = QrCodeWidget(url)
         qr.barWidth = 80
@@ -391,8 +392,9 @@ def generar_presupuesto_pdf(reparacion_data, tipo_documento="presupuesto", base_
     # Terminos
     elements.extend(_build_terms(styles, tipo_documento))
 
-    # QR
-    elements.extend(_build_qr(styles, rep_id, base_url=base_url, taller_slug=taller_slug))
+    # QR (H3: con el código público, no el id)
+    elements.extend(_build_qr(styles, rep_id, base_url=base_url, taller_slug=taller_slug,
+                              codigo=reparacion_data.get('codigo_publico')))
 
     # Footer
     elements.extend(_build_footer(styles))

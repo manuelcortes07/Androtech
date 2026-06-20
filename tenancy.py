@@ -88,7 +88,12 @@ def _slug_por_taller_id(taller_id: int) -> str | None:
 
 
 def _taller_de_reparacion(reparacion_id: str):
-    """Devuelve el taller_id de una reparación por su id (PK global). SQL crudo."""
+    """Devuelve el taller_id de una reparación por su id (PK global). SQL crudo.
+
+    Se usa SOLO en el flujo de pago (`publico_pagar`), al que se llega tras ver
+    la reparación por su código y que además valida el email del cliente. NO se
+    usa para resolver el portal público de consulta (eso va por código, H3).
+    """
     try:
         rid = int(reparacion_id)
     except (TypeError, ValueError):
@@ -97,6 +102,18 @@ def _taller_de_reparacion(reparacion_id: str):
         row = conn.execute(
             text("SELECT taller_id FROM reparaciones WHERE id = :id"),
             {"id": rid},
+        ).first()
+    return row[0] if row else None
+
+
+def _taller_de_reparacion_por_codigo(codigo: str):
+    """taller_id de una reparación por su CÓDIGO PÚBLICO no adivinable (H3)."""
+    if not codigo:
+        return None
+    with get_engine().connect() as conn:
+        row = conn.execute(
+            text("SELECT taller_id FROM reparaciones WHERE codigo_publico = :c"),
+            {"c": codigo},
         ).first()
     return row[0] if row else None
 
@@ -127,13 +144,17 @@ def resolver_taller() -> None:
         g.taller_slug = session.get("taller_slug")
         return
 
-    # 4. Legacy /consulta?id=X (QR impresos): resolver taller desde el id.
-    if path == "/consulta" and request.args.get("id"):
-        tid = _taller_de_reparacion(request.args.get("id"))
-        if tid:
-            g.taller_id = tid
-            g.taller_slug = _slug_por_taller_id(tid)
-            return
+    # 4. /consulta con CÓDIGO público no adivinable (H3): por el enlace/QR
+    #    (GET ?codigo=) o el formulario manual (POST form `codigo`). El id
+    #    secuencial YA NO resuelve nada. Resuelve el taller desde el código.
+    if path == "/consulta":
+        codigo = request.args.get("codigo") or request.form.get("codigo")
+        if codigo:
+            tid = _taller_de_reparacion_por_codigo(codigo)
+            if tid:
+                g.taller_id = tid
+                g.taller_slug = _slug_por_taller_id(tid)
+                return
 
     # 5. Resto de legacy público sin slug: taller 1 ("androtech").
     g.taller_id = DEFAULT_TALLER_ID

@@ -446,16 +446,21 @@ class TestPortalPublico:
         r = client.get("/consulta")
         assert r.status_code == 200
 
-    def test_consulta_by_id_finds_reparacion(self, client, seed_reparacion):
-        # La consulta soporta ?id=X via GET (usado por el QR)
-        r = client.get(f"/consulta?id={seed_reparacion}")
+    def test_consulta_por_codigo_encuentra_reparacion(self, client, seed_reparacion):
+        # H3: la consulta localiza por CÓDIGO público (GET ?codigo=, usado por el QR).
+        r = client.get("/consulta?codigo=SEEDCODE12345")
         assert r.status_code == 200
         assert b"iPhone 12" in r.data
 
-    def test_consulta_unknown_id_shows_not_found(self, client):
-        r = client.get("/consulta?id=99999")
+    def test_consulta_por_id_ya_no_expone_nada(self, client, seed_reparacion):
+        # H3 (regresión): el id secuencial YA NO devuelve datos.
+        r = client.get(f"/consulta?id={seed_reparacion}")
         assert r.status_code == 200
-        # Debe mostrar un mensaje de no encontrada
+        assert b"iPhone 12" not in r.data
+
+    def test_consulta_codigo_desconocido_no_encontrada(self, client):
+        r = client.get("/consulta?codigo=NOEXISTEXX")
+        assert r.status_code == 200
         assert (b"no se encontr" in r.data.lower()
                 or b"No se encontr" in r.data)
 
@@ -586,21 +591,20 @@ class TestTenancyResolucion:
         assert row["slug"] == "androtech"
 
     def test_consulta_canonica_con_slug(self, client, seed_reparacion):
-        """La ruta canónica /t/{slug}/consulta?id=X resuelve el taller y muestra
-        la reparación (es la que imprimen los nuevos QR)."""
-        r = client.get(f"/t/androtech/consulta?id={seed_reparacion}")
+        """La ruta canónica /t/{slug}/consulta?codigo=X resuelve el taller y
+        muestra la reparación (es la que imprimen los nuevos QR)."""
+        r = client.get("/t/androtech/consulta?codigo=SEEDCODE12345")
         assert r.status_code == 200
         assert b"iPhone 12" in r.data
 
     def test_slug_desconocido_da_404(self, client):
         """Un slug de taller inexistente → 404 (no se filtra a ciegas)."""
-        r = client.get("/t/noexiste/consulta?id=1")
+        r = client.get("/t/noexiste/consulta?codigo=x")
         assert r.status_code == 404
 
-    def test_consulta_legacy_sin_slug_sigue_viva(self, client, seed_reparacion):
-        """La legacy /consulta?id=X (QR ya impresos) sigue funcionando:
-        resuelve el taller desde el id de la reparación."""
-        r = client.get(f"/consulta?id={seed_reparacion}")
+    def test_consulta_sin_slug_por_codigo(self, client, seed_reparacion):
+        """La /consulta?codigo=X (sin slug) resuelve el taller desde el código."""
+        r = client.get("/consulta?codigo=SEEDCODE12345")
         assert r.status_code == 200
         assert b"iPhone 12" in r.data
 

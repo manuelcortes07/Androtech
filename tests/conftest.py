@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS reparaciones (
     fecha_pago TEXT,
     metodo_pago TEXT,
     firma TEXT,
+    codigo_publico TEXT,
     FOREIGN KEY (cliente_id) REFERENCES clientes(id)
 );
 
@@ -291,10 +292,10 @@ def seed_reparacion(db_conn, seed_cliente):
     cur = db_conn.execute(
         """INSERT INTO reparaciones
            (cliente_id, dispositivo, descripcion, estado, fecha_entrada,
-            precio, estado_pago)
-           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            precio, estado_pago, codigo_publico)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
         (seed_cliente, "iPhone 12", "Pantalla rota", "Pendiente",
-         "2026-01-15", 120.0, "Pendiente"),
+         "2026-01-15", 120.0, "Pendiente", "SEEDCODE12345"),
     )
     db_conn.commit()
     return cur.lastrowid

@@ -270,6 +270,7 @@ import models as _models  # noqa: F401  (registra todos los modelos en Base.meta
 from database import Base as _Base
 from migrations import (
     aplicar_migracion_multitenant,
+    asegurar_codigo_publico,
     asegurar_taller_1,
     crear_esquema_sqlite_defensivo,
 )
@@ -288,6 +289,9 @@ else:
     crear_esquema_sqlite_defensivo()
     init_permisos_db()
     aplicar_migracion_multitenant()
+
+# H3: código público no adivinable para el portal /consulta (ambos motores).
+asegurar_codigo_publico()
 
 # Configuración de subida de fotos/firmas.
 # La ruta base sale de UPLOADS_DIR. En Railway se monta ahí un VOLUMEN
@@ -3154,11 +3158,12 @@ def ticket_recogida(id):
     # QR code: URL directa a la consulta de esta reparacion
     # request.host_url ya incluye esquema y host correctos (https en Railway via ProxyFix)
     base_url = request.host_url.rstrip('/')
-    # Fase 2.2: QR canónico con slug de taller (la legacy /consulta?id sigue viva).
+    # H3: el QR lleva el CÓDIGO PÚBLICO no adivinable (no el id secuencial).
+    _codigo = reparacion['codigo_publico']
     if getattr(g, 'taller_slug', None):
-        qr_data = f"{base_url}/t/{g.taller_slug}/consulta?id={id}"
+        qr_data = f"{base_url}/t/{g.taller_slug}/consulta?codigo={_codigo}"
     else:
-        qr_data = f"{base_url}/consulta?id={id}"
+        qr_data = f"{base_url}/consulta?codigo={_codigo}"
     qr = QrCodeWidget(qr_data)
     qr.barWidth = 100
     qr.barHeight = 100
@@ -3321,6 +3326,7 @@ def generar_pdf_presupuesto(id):
         'cliente_telefono': reparacion['cliente_telefono'],
         'cliente_email': reparacion['cliente_email'],
         'cliente_direccion': reparacion['cliente_direccion'],
+        'codigo_publico': reparacion['codigo_publico'],  # H3: QR por código
         'piezas': [{'nombre': p['nombre'], 'cantidad': p['cantidad'],
                     'precio_venta': p['precio_venta']} for p in piezas],
     }
@@ -3805,49 +3811,42 @@ def servicios():
 
 @app.route("/consulta", methods=["GET", "POST"])
 @app.route("/t/<slug>/consulta", methods=["GET", "POST"])
+@limiter.limit("30 per minute", methods=["POST"])  # H3: defensa en profundidad
 @csrf_protect
 def consulta(slug=None):
-    # El taller lo resuelve el before_request (g.taller_id): desde el slug si
-    # la URL es /t/{slug}/..., o desde el id de la reparación si es la legacy
-    # /consulta?id=X (QR impresos). El param `slug` aquí solo existe para casar
-    # la regla; no se usa en el cuerpo.
+    # H3: el portal localiza la reparación por su CÓDIGO PÚBLICO no adivinable
+    # (enlace/QR del cliente o formulario), NUNCA por el id secuencial. El taller
+    # lo resuelve el before_request: del slug /t/{slug}/... o del propio código.
     reparacion = None
     error = None
 
-    # Soporte para enlace directo desde QR: GET /consulta?id=5
-    # El CSRF decorator solo valida en POST, así que GET es seguro aquí.
-    id_get = request.args.get('id', '').strip()
+    # Enlace directo del cliente (QR): GET /consulta?codigo=XXXX
+    codigo_get = request.args.get('codigo', '').strip()
 
-    if request.method == "POST" or id_get:
-        id_raw = request.form.get("id_reparacion") or id_get
-
-        if not id_raw:
-            error = "Por favor, introduce un número de reparación."
+    if request.method == "POST" or codigo_get:
+        codigo = (request.form.get("codigo") or codigo_get).strip()
+        if not codigo:
+            error = "Por favor, introduce tu código de seguimiento."
         else:
-            try:
-                id_reparacion = int(id_raw)
-                with get_session() as s:
-                    reparacion = s.execute(
-                        select(
-                            Reparacion.id, Reparacion.dispositivo,
-                            Reparacion.estado, Reparacion.fecha_entrada,
-                            Reparacion.precio, Reparacion.descripcion,
-                            Cliente.nombre.label('cliente'), Cliente.telefono,
-                            Cliente.email.label('cliente_email'),
-                            Reparacion.estado_pago, Reparacion.fecha_pago,
-                            Reparacion.metodo_pago,
-                        ).join(Cliente, Cliente.id == Reparacion.cliente_id)
-                        .where(Reparacion.id == id_reparacion)
-                    ).mappings().first()
+            with get_session() as s:
+                reparacion = s.execute(
+                    select(
+                        Reparacion.id, Reparacion.dispositivo,
+                        Reparacion.estado, Reparacion.fecha_entrada,
+                        Reparacion.precio, Reparacion.descripcion,
+                        Cliente.nombre.label('cliente'), Cliente.telefono,
+                        Cliente.email.label('cliente_email'),
+                        Reparacion.estado_pago, Reparacion.fecha_pago,
+                        Reparacion.metodo_pago,
+                    ).join(Cliente, Cliente.id == Reparacion.cliente_id)
+                    .where(Reparacion.codigo_publico == codigo)
+                ).mappings().first()
 
-                if not reparacion:
-                    error = f"No se encontró ninguna reparación con el número {id_reparacion}."
-
-            except ValueError:
-                error = "Por favor, introduce un número válido."
+            if not reparacion:
+                error = "No se encontró ninguna reparación con ese código."
 
     return render_template("consulta.html", reparacion=reparacion, error=error,
-                           id_prefill=id_get)
+                           codigo_prefill=codigo_get)
 
 
 @app.route("/mis-reparaciones", methods=["GET", "POST"])
@@ -4128,12 +4127,14 @@ def admin_seed_demo():
         rid = dconn.execute(
             text("""INSERT INTO reparaciones
                (cliente_id, dispositivo, descripcion, estado, fecha_entrada, fecha_salida,
-                precio, tipo_documento, estado_pago, fecha_pago, metodo_pago, taller_id)
+                precio, tipo_documento, estado_pago, fecha_pago, metodo_pago, taller_id,
+                codigo_publico)
                VALUES (:cid, :disp, :desc, :estado, :fe, :fs, :precio, :tipo,
-                       :ep, :fp, :metodo, :tid) RETURNING id"""),
+                       :ep, :fp, :metodo, :tid, :codigo) RETURNING id"""),
             {"cid": cid, "disp": disp, "desc": desc, "estado": estado, "fe": fecha_entrada,
              "fs": fecha_salida, "precio": precio, "tipo": "presupuesto", "ep": estado_pago,
-             "fp": fecha_pago, "metodo": metodo, "tid": tid},
+             "fp": fecha_pago, "metodo": metodo, "tid": tid,
+             "codigo": _models.generar_codigo_publico()},
         ).scalar()
         inserted["reparaciones"] += 1
 
@@ -4897,6 +4898,7 @@ def stripe_webhook():
                             'descripcion': reparacion_data['descripcion'],
                             'cliente_nombre': reparacion_data['nombre'],
                             'cliente_telefono': reparacion_data['telefono'],
+                            'codigo_publico': reparacion_data['codigo_publico'],  # H3
                         }
                         pdf_buffer = generar_presupuesto_pdf(
                             pdf_reparacion, tipo_documento="factura",

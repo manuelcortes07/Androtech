@@ -125,20 +125,33 @@ class TestH2CsrfAusenteMarcarPagado:
 
 
 # ════════════════════════════════════════════════════════════════════════
-# HALLAZGO H3 (🟠) — Enumeración pública cross-taller por id global:
-# la ruta legacy /consulta?id=X resuelve el taller DESDE el id (PK global) y
-# muestra la reparación. Un usuario NO autenticado puede ver reparaciones de
-# CUALQUIER taller (incluido B) iterando ids: dispositivo, cliente, precio…
-# Sin rate-limit. (El JUEZ sólo cubre la variante con slug /t/androtech/.)
+# HALLAZGO H3 (🔴) — ARREGLADO. El portal /consulta localiza por CÓDIGO público
+# no adivinable, no por el id secuencial. Estos tests son ahora de REGRESIÓN:
+# (1) iterar ?id= ya NO expone datos de otro taller, (2) un código inexistente
+# no muestra nada, (3) el código correcto SÍ muestra su reparación (flujo legítimo).
 # ════════════════════════════════════════════════════════════════════════
 class TestH3ConsultaPublicaCrossTaller:
-    def test_consulta_legacy_expone_reparacion_de_otro_taller(self, client, dos_talleres):
+    def test_consulta_por_id_ya_no_expone_otro_taller(self, client, dos_talleres):
         repB = dos_talleres["repB"]  # reparación del taller B (2)
-        # Cliente SIN sesión (público), ruta legacy sin slug.
-        r = client.get(f"/consulta?id={repB}")
+        r = client.get(f"/consulta?id={repB}")  # público, sin sesión
         assert r.status_code == 200
-        # PRUEBA DEL FALLO: aparece el dispositivo marcado del taller B.
-        assert RIVAL_DISPOSITIVO.encode() in r.data, (
-            "REPRO H3: si esto falla, /consulta?id= ya no resuelve taller por id "
-            "global (el fallo estaría arreglado)."
+        # REGRESIÓN H3: el id secuencial ya NO resuelve ni muestra nada.
+        assert RIVAL_DISPOSITIVO.encode() not in r.data
+
+    def test_codigo_inexistente_no_muestra_nada(self, client, dos_talleres):
+        r = client.get("/consulta?codigo=NoExisteJamas123")
+        assert r.status_code == 200
+        assert RIVAL_DISPOSITIVO.encode() not in r.data
+
+    def test_codigo_correcto_muestra_su_reparacion(self, client, dos_talleres, db_conn):
+        repB = dos_talleres["repB"]
+        # El cliente del taller B recibe su código en el enlace/QR.
+        db_conn.execute(
+            "UPDATE reparaciones SET codigo_publico = ? WHERE id = ?",
+            ("CODB-XYZ-1", repB),
         )
+        db_conn.commit()
+        r = client.get("/consulta?codigo=CODB-XYZ-1")
+        assert r.status_code == 200
+        # Quien tiene el código SÍ ve SU reparación (flujo legítimo, no enumerable).
+        assert RIVAL_DISPOSITIVO.encode() in r.data
