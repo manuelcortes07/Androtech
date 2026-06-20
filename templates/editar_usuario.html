@@ -117,7 +117,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce }}">
 document.getElementById('nueva_contraseña').addEventListener('input', function() {
     const pwd = this.value;
     const bar = document.getElementById('pwd-bar');

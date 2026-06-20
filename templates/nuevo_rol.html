@@ -117,7 +117,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce }}">
 (function(){
     function marcarTodos(estado){ document.querySelectorAll('.permiso-check').forEach(function(cb){ cb.checked = estado; }); }
     function toggleCategoria(cat){

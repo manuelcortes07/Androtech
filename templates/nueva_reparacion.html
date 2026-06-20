@@ -96,7 +96,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce }}">
 (function() {
     const input = document.getElementById('fotosInput');
     const dropzone = document.getElementById('photoDropzone');

@@ -130,10 +130,18 @@ limiter = Limiter(get_remote_address, app=app, storage_uri="memory://")
 # Configure session expiration
 app.permanent_session_lifetime = timedelta(hours=6)  # ajustable según política
 
-# Ensure sessions are permanent by default
+# Ensure sessions are permanent by default + nonce CSP por petición
 @app.before_request
 def make_session_permanent():
     session.permanent = True
+    # Nonce único por request para la CSP (scripts/estilos inline con nonce).
+    g.csp_nonce = secrets.token_urlsafe(16)
+
+
+@app.context_processor
+def inject_csp_nonce():
+    # Disponible en todas las plantillas como {{ csp_nonce }}.
+    return {"csp_nonce": getattr(g, "csp_nonce", "")}
 
 @app.errorhandler(429)
 def ratelimit_handler(e):

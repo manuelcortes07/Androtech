@@ -6,7 +6,7 @@
     <title>AndroTech · Suscripción inactiva</title>
     <link rel="icon" type="image/x-icon" href="/static/favicons/favicon.ico">
     <meta name="theme-color" content="#0A0E17">
-    <script>
+    <script nonce="{{ csp_nonce }}">
     (function(){
         try{ var t=localStorage.getItem('at-theme'); document.documentElement.setAttribute('data-theme', t==='light'?'light':'dark'); }
         catch(e){ document.documentElement.setAttribute('data-theme','dark'); }
@@ -50,7 +50,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 (function(){ var el=document.querySelector('.at-reveal--load'); if(el) el.classList.add('is-in'); })();
 </script>
 </body>

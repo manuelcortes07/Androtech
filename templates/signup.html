@@ -6,7 +6,7 @@
     <title>AndroTech · Crear cuenta</title>
     <link rel="icon" type="image/x-icon" href="/static/favicons/favicon.ico">
     <meta name="theme-color" content="#0A0E17">
-    <script>
+    <script nonce="{{ csp_nonce }}">
     (function(){
         try{ var t=localStorage.getItem('at-theme'); document.documentElement.setAttribute('data-theme', t==='light'?'light':'dark'); }
         catch(e){ document.documentElement.setAttribute('data-theme','dark'); }
@@ -74,7 +74,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 (function(){
     var html=document.documentElement, tgl=document.getElementById('atThemeToggle');
     function sync(){ if(tgl) tgl.textContent = html.getAttribute('data-theme')==='dark'?'☀':'☾'; } sync();

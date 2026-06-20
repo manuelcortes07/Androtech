@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#0A0E17">
 
     <!-- Tema antes del primer pintado (anti-parpadeo) -->
-    <script>
+    <script nonce="{{ csp_nonce }}">
     (function(){
         try{
             var t = localStorage.getItem('at-theme');
@@ -89,7 +89,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 (function(){
     var html = document.documentElement;
     var tgl = document.getElementById('atThemeToggle');

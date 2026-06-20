@@ -15,7 +15,7 @@
     <meta name="theme-color" content="#0A0E17">
 
     <!-- Aplicar tema ANTES del primer pintado (anti-parpadeo) -->
-    <script>
+    <script nonce="{{ csp_nonce }}">
     (function(){
         try{
             var t = localStorage.getItem('at-theme');
@@ -87,7 +87,7 @@
 </footer>
 
 <!-- JS base del sistema de diseño (tema, reveals, partículas, contadores) -->
-<script>
+<script nonce="{{ csp_nonce }}">
 (function(){
     var html = document.documentElement;
     var reduce = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
@@ -155,7 +155,7 @@
 {% block scripts %}{% endblock %}
 
 <!-- Service Worker -->
-<script>
+<script nonce="{{ csp_nonce }}">
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/static/sw.js', { scope: '/' }).catch(function(){});
 }

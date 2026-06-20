@@ -149,7 +149,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce }}">
 (function(){
     var track = document.getElementById('atTrack');
     var fill = document.getElementById('atFill');

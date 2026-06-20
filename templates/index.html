@@ -86,7 +86,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce }}">
 (function(){
     // Anima la barra y las etapas del tracker de ejemplo del hero.
     if(window.AT && window.AT.reduce){
