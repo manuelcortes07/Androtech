@@ -40,12 +40,12 @@ def main() -> None:
             {"v": valor, "t": int(taller_id), "u": usuario},
         )
         if res.rowcount == 0:
-            print(f"❌ No existe el usuario '{usuario}' en el taller {taller_id}.")
+            print(f"[ERROR] No existe el usuario '{usuario}' en el taller {taller_id}.")
             sys.exit(2)
 
     accion = "Revocado" if off else "Concedido"
-    print(f"✅ {accion} superadmin de plataforma a '{usuario}' (taller {taller_id}).")
-    print("   (debe volver a iniciar sesión para que surta efecto en su sesión)")
+    print(f"[OK] {accion} superadmin de plataforma a '{usuario}' (taller {taller_id}).")
+    print("     (debe volver a iniciar sesion para que surta efecto en su sesion)")
 
 
 if __name__ == "__main__":
