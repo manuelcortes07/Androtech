@@ -4768,19 +4768,17 @@ def stripe_webhook():
         logger.error('[WEBHOOK] ❌ Error: Stripe-Signature header no encontrado')
         return jsonify({'error': 'Missing Stripe-Signature header'}), 400
 
-    # 2. Construir y validar evento
+    # 2. Verificar la FIRMA del evento. FALLA CERRADO (H4): sin la librería
+    # `stripe` no se puede verificar la firma → se RECHAZA (igual que el webhook
+    # del SaaS). Nunca se procesa un payload sin verificar.
+    if not (stripe and hasattr(stripe, 'Webhook')):
+        logger.error('[WEBHOOK] ❌ stripe no disponible: no se puede verificar la firma')
+        return jsonify({'error': 'Stripe library unavailable; cannot verify signature'}), 503
     try:
-        # Si la librería stripe está disponible, usar la verificación de firma
-        if stripe and hasattr(stripe, 'Webhook'):
-            event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
-            logger.info(f'[WEBHOOK] ✅ Evento válido: {event.get("type")}')
-        else:
-            # En entornos de test/local sin stripe instalado, permitir payload JSON directamente
-            event = json.loads(payload.decode('utf-8') if isinstance(payload, (bytes, bytearray)) else payload)
-            logger.info(f'[WEBHOOK] ⚠️ stripe no disponible, usando payload directo para evento: {event.get("type")}')
+        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
+        logger.info(f'[WEBHOOK] ✅ Evento válido: {event.get("type")}')
     except Exception as e:
-        # Manejar tanto SignatureVerificationError (si stripe está presente) como errores de parsing
-        logger.error(f'[WEBHOOK] ❌ Error al procesar evento: {str(e)}')
+        logger.error(f'[WEBHOOK] ❌ Firma o payload inválido: {str(e)}')
         return jsonify({'error': str(e)}), 400
 
     # 3. Procesar evento checkout.session.completed
@@ -4810,6 +4808,22 @@ def stripe_webhook():
         s = None
         try:
             s = get_session()
+
+            # Idempotencia (H6): registra el event_id en el ledger compartido.
+            # Si Stripe reenvía el mismo evento, el UNIQUE choca → no se repiten
+            # efectos (ni marcar pagado, ni email, ni auditoría duplicada).
+            ev_id = event.get('id')
+            ins = s.execute(
+                insert_or_ignore(StripeEvento)
+                .values(event_id=ev_id, tipo=event.get('type'),
+                        recibido_en=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                .on_conflict_do_nothing()
+            )
+            if ev_id and ins.rowcount == 0:
+                s.rollback()
+                logger.info(json.dumps({"event": "webhook_duplicate",
+                                        "stripe_event": ev_id}, ensure_ascii=False))
+                return jsonify({'status': 'duplicate'}), 200
 
             # Verificar que reparación existe
             rep = s.get(Reparacion, reparacion_id)
@@ -4851,12 +4865,12 @@ def stripe_webhook():
                 }, ensure_ascii=False))
                 return jsonify({'status': 'already_paid'}), 200
 
-            # Si Stripe reporta importe, compararlo con precio de la reparación
+            # Si Stripe reporta importe y NO coincide con el esperado, NO marcar
+            # como pagada (H6): rechaza y deja constancia en audit_log. Un importe
+            # distinto del precio del servidor es una anomalía a revisar a mano.
             if amount_total is not None and rep.precio is not None:
-                # convertir a unidades (centavos -> moneda)
                 reported = float(amount_total) / 100.0
                 expected = float(rep.precio)
-                # tolerancia pequeña para decimales
                 if abs(reported - expected) > 0.01:
                     logger.warning(json.dumps({
                         "event": "webhook_amount_mismatch",
@@ -4865,7 +4879,13 @@ def stripe_webhook():
                         "reported_amount": reported,
                         "expected_amount": expected
                     }, ensure_ascii=False))
-                    # Registrar auditoría del desacuerdo pero proceder a marcar como pagada
+                    _tid = rep.taller_id
+                    s.rollback()
+                    registrar_auditoria('pago_importe_no_coincide', None, {
+                        'reparacion_id': reparacion_id, 'session_id': session_id,
+                        'reported_amount': reported, 'expected_amount': expected,
+                    }, ip_address=request.remote_addr, taller_id=_tid)
+                    return jsonify({'error': 'Amount mismatch'}), 400
 
             # Comprobar estado de pago (si está presente)
             if payment_status and str(payment_status).lower() not in ['paid', 'succeeded', 'complete']:

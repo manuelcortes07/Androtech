@@ -7,6 +7,8 @@ Cuando se arregle el fallo, el reproductor correspondiente debería FALLAR
 Reutiliza las fixtures del JUEZ (`dos_talleres`, `admin_A`) importándolas.
 """
 
+import json
+
 import pytest
 
 # Reutilizamos las fixtures y marcadores del juez de aislamiento.
@@ -15,6 +17,74 @@ from tests.test_aislamiento import (  # noqa: F401
     admin_A,
     dos_talleres,
 )
+from tests.test_smoke import stripe_webhook_event
+
+
+def _mock_construct(monkeypatch, event):
+    import app as app_module
+    if app_module.stripe and hasattr(app_module.stripe, "Webhook"):
+        monkeypatch.setattr(app_module.stripe.Webhook, "construct_event",
+                            lambda payload, sig, secret: event)
+
+
+# ════════════════════════════════════════════════════════════════════════
+# HALLAZGO H4/H6 (🟠) — ARREGLADO. Webhook de reparaciones: firma obligatoria
+# (falla cerrado), idempotente y rechaza importes que no cuadran.
+# ════════════════════════════════════════════════════════════════════════
+class TestH4H6WebhookReparaciones:
+    def test_h4_sin_libreria_stripe_falla_cerrado(self, client, seed_reparacion, db_conn, monkeypatch):
+        import app as app_module
+        monkeypatch.setattr(app_module, "stripe", None)  # no se puede verificar firma
+        ev = stripe_webhook_event(reparacion_id=str(seed_reparacion))
+        r = client.post("/stripe/webhook", data=json.dumps(ev),
+                        headers={"Stripe-Signature": "t=0,v1=x"},
+                        content_type="application/json")
+        # REGRESIÓN H4: antes parseaba sin verificar y marcaba pagado; ahora 503.
+        assert r.status_code == 503
+        estado = db_conn.execute(
+            "SELECT estado_pago FROM reparaciones WHERE id=?", (seed_reparacion,)
+        ).fetchone()["estado_pago"]
+        assert estado != "Pagado"
+
+    def test_h6_importe_no_coincide_no_paga(self, client, seed_reparacion, db_conn, monkeypatch):
+        ev = stripe_webhook_event(reparacion_id=str(seed_reparacion))
+        ev["data"]["object"]["amount_total"] = 999  # 9,99 € != 120,00 €
+        _mock_construct(monkeypatch, ev)
+        r = client.post("/stripe/webhook", data=json.dumps(ev),
+                        headers={"Stripe-Signature": "x"},
+                        content_type="application/json")
+        # REGRESIÓN H6: importe discrepante → rechazado, NO pagado.
+        assert r.status_code == 400
+        estado = db_conn.execute(
+            "SELECT estado_pago FROM reparaciones WHERE id=?", (seed_reparacion,)
+        ).fetchone()["estado_pago"]
+        assert estado != "Pagado"
+        # y queda constancia en audit_log
+        n = db_conn.execute(
+            "SELECT COUNT(*) FROM audit_log WHERE event_type='pago_importe_no_coincide'"
+        ).fetchone()[0]
+        assert n >= 1
+
+    def test_h6_evento_repetido_es_idempotente(self, client, seed_reparacion, db_conn, monkeypatch):
+        ev = stripe_webhook_event(reparacion_id=str(seed_reparacion))  # id evt_test_dummy
+        _mock_construct(monkeypatch, ev)
+
+        def _post():
+            return client.post("/stripe/webhook", data=json.dumps(ev),
+                               headers={"Stripe-Signature": "x"},
+                               content_type="application/json")
+
+        r1 = _post()
+        r2 = _post()
+        assert r1.status_code == 200
+        assert r2.status_code == 200
+        # REGRESIÓN H6: la 2ª entrega es idempotente (no reprocesa).
+        assert json.loads(r2.data).get("status") == "duplicate"
+        # la auditoría de pago se registró UNA sola vez.
+        n = db_conn.execute(
+            "SELECT COUNT(*) FROM audit_log WHERE event_type='pago_registrado'"
+        ).fetchone()[0]
+        assert n == 1
 
 
 # ════════════════════════════════════════════════════════════════════════

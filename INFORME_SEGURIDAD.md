@@ -15,19 +15,27 @@ Fecha: 2026-06-20 · Alcance: `app.py`, `tenancy.py`, `auth.py`, `utils/security
 | Gravedad | Nº | Hallazgos |
 |---|---|---|
 | 🔴 Crítica | **1** | ~~H3~~ ✅ **ARREGLADO** |
-| 🟠 Media | **3** | ~~H1~~ ✅ **ARREGLADO** · H2, H4 (pendientes) |
-| 🟡 Baja | **7** | H5, H6, H7, H8, H9, H10, H11 |
+| 🟠 Media | **3** | ~~H1~~ ~~H2~~ ~~H4~~ ✅ **ARREGLADOS** |
+| 🟡 Baja | **7** | ~~H6~~ ✅ · ~~H11~~ ✅ · H5, H7, H8, H9, H10 (pendientes) |
 
-> **Remediación aplicada (2ª tanda):**
-> - **H3** ✅ El portal `/consulta` localiza por **código público no adivinable**
+> **Remediación aplicada (todas las tandas):**
+> - **H3** ✅ Portal `/consulta` por **código público no adivinable**
 >   (`reparaciones.codigo_publico`, `secrets.token_urlsafe`, único+indexado,
->   backfill idempotente en ambos motores). Se **retiró el acceso por `?id=`**
->   secuencial; QR/PDF/ticket llevan `?codigo=`; rate-limit en el portal.
-> - **H1** ✅ Introducido el **superadmin de plataforma** (`usuarios.es_superadmin`,
->   designable SOLO por `scripts/set_superadmin.py`, nunca desde la app). Las
->   rutas de roles globales (`admin_roles`, `nuevo_rol`, `editar_rol`, `borrar_rol`)
->   requieren superadmin (403 para admins de taller). Roles siguen globales.
-> - Reproductores H3/H1 convertidos de *exploit* a *regresión*. Suite **152/152**.
+>   backfill idempotente). **`?id=` retirado**; QR/PDF/ticket por `?codigo=`; rate-limit.
+> - **H1** ✅ **Superadmin de plataforma** (`usuarios.es_superadmin`, sólo por
+>   `scripts/set_superadmin.py`). Rutas de roles globales → 403 para admins de taller.
+> - **H2 + H11** ✅ **CSRF por defecto** en todo POST (hook `enforce_csrf`, salvo
+>   webhooks) + `@csrf_protect` explícito en las 5 rutas + `hmac.compare_digest`
+>   y soporte de cabecera `X-CSRFToken`.
+> - **H4** ✅ Webhook de reparaciones **falla cerrado**: sin librería `stripe` no
+>   verifica firma → 503. Se eliminó el fallback que parseaba sin verificar.
+> - **H6** ✅ Mismo webhook: **idempotencia** por ledger `stripe_eventos`
+>   (evento repetido → `duplicate`, sin doble efecto) y **importe discrepante →
+>   400 + audit_log** (ya no marca pagado).
+> - Reproductores convertidos de *exploit* a *regresión*. Suite **156/156** + JUEZ.
+> - **Pendientes** (🟡, bajo impacto): H5 (rate-limit en `mis_reparaciones`),
+>   H7 (regenerar sesión / refrescar permisos), H8 (no filtrar `str(e)`),
+>   H9 (limiter Redis en prod), H10 (límite por-archivo + magic bytes).
 
 **Lo bien hecho (no son hallazgos, confirmado):** filtro ORM automático por
 `taller_id` + JUEZ; `s.get()`/SELECT ORM con scope (IDOR **interno** cubierto);
