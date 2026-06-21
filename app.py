@@ -127,8 +127,22 @@ app.config.update(
     SESSION_COOKIE_SECURE=IS_PRODUCTION,
 )
 
-# Rate limiter (protección contra fuerza bruta)
-limiter = Limiter(get_remote_address, app=app, storage_uri="memory://")
+# Rate limiter (protección contra fuerza bruta).
+# H9: backend configurable por entorno. En producción con varios workers, el
+# `memory://` por defecto NO se comparte entre procesos; define
+# RATELIMIT_STORAGE_URI (o REDIS_URL) apuntando a Redis para un conteo global.
+# COSTURA de infra: no se añade Redis como dependencia ni se arranca aquí; si la
+# var no está, cae a `memory://` (suficiente para desarrollo/tests).
+def _resolve_ratelimit_storage():
+    return (
+        os.environ.get("RATELIMIT_STORAGE_URI")
+        or os.environ.get("REDIS_URL")
+        or "memory://"
+    )
+
+
+_RATELIMIT_STORAGE = _resolve_ratelimit_storage()
+limiter = Limiter(get_remote_address, app=app, storage_uri=_RATELIMIT_STORAGE)
 # Configure session expiration
 app.permanent_session_lifetime = timedelta(hours=6)  # ajustable según política
 
@@ -319,6 +333,35 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB total por request
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+# H10: validación de CONTENIDO real por magic bytes (no sólo la extensión) +
+# límite POR ARCHIVO. Sin dependencias externas.
+def _sniff_image_type(head: bytes):
+    """Devuelve 'jpeg'|'png'|'gif'|'webp' según la cabecera, o None."""
+    if head.startswith(b"\xff\xd8\xff"):
+        return "jpeg"
+    if head.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "png"
+    if head[:6] in (b"GIF87a", b"GIF89a"):
+        return "gif"
+    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return "webp"
+    return None
+
+
+def es_imagen_valida(storage) -> bool:
+    """True si el FileStorage es una imagen REAL (magic bytes) y ≤ 5 MB."""
+    try:
+        stream = storage.stream
+        pos = stream.tell()
+        head = stream.read(12)
+        stream.seek(0, os.SEEK_END)
+        size = stream.tell()
+        stream.seek(pos)
+    except Exception:
+        return False
+    return _sniff_image_type(head) is not None and 0 < size <= MAX_CONTENT_LENGTH
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Flask-Mail configuration
@@ -676,6 +719,10 @@ def login(slug=None):
             ).first()
 
         if user and check_password_hash(user.password, contraseña):
+            # H7: regenera la sesión tras autenticar (anti session-fixation).
+            # Descarta cualquier dato de una sesión previa; se repuebla de cero
+            # y los permisos se cargan FRESCOS desde el rol.
+            session.clear()
             session["usuario"] = user.usuario
             session["rol"] = user.rol
             session["permisos"] = obtener_permisos_usuario(user.rol)
@@ -2448,7 +2495,7 @@ def nueva_reparacion():
             # Guardar fotos subidas
             fotos = request.files.getlist('fotos')
             for foto in fotos:
-                if foto and foto.filename and allowed_file(foto.filename):
+                if foto and foto.filename and allowed_file(foto.filename) and es_imagen_valida(foto):
                     ext = foto.filename.rsplit('.', 1)[1].lower()
                     unique_name = f"{new_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{secrets.token_hex(4)}.{ext}"
                     foto.save(os.path.join(UPLOAD_FOLDER, unique_name))
@@ -2737,7 +2784,7 @@ def subir_fotos_reparacion(id):
         fotos = request.files.getlist('fotos')
         count = 0
         for foto in fotos:
-            if foto and foto.filename and allowed_file(foto.filename):
+            if foto and foto.filename and allowed_file(foto.filename) and es_imagen_valida(foto):
                 ext = foto.filename.rsplit('.', 1)[1].lower()
                 unique_name = f"{id}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{secrets.token_hex(4)}.{ext}"
                 foto.save(os.path.join(UPLOAD_FOLDER, unique_name))
@@ -2824,6 +2871,12 @@ def guardar_firma_reparacion(id):
             img_bytes = base64.b64decode(firma_data)
         except Exception:
             return jsonify({"error": "Datos de firma inválidos"}), 400
+
+        # H10: validar que es un PNG REAL (magic bytes) y ≤ 5 MB.
+        if not img_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+            return jsonify({"error": "La firma debe ser una imagen PNG válida"}), 400
+        if len(img_bytes) > MAX_CONTENT_LENGTH:
+            return jsonify({"error": "La firma es demasiado grande"}), 400
 
         # Eliminar firma anterior si existe
         if rep.firma:
@@ -3462,8 +3515,10 @@ def nuevo_usuario():
 
             except Exception as e:
                 s.rollback()
-                error_msg = "El usuario ya existe" if "UNIQUE" in str(e) else str(e)
-                flash(f"❌ Error: {error_msg}", "danger")
+                logger.exception(json.dumps({"event": "usuario_create_error"}, ensure_ascii=False))
+                msg = ("Ese usuario ya existe." if "UNIQUE" in str(e)
+                       else "No se pudo crear el usuario. Inténtalo de nuevo.")
+                flash(f"❌ {msg}", "danger")
                 roles_db = s.scalars(select(Rol).order_by(Rol.nombre)).all()
                 return render_template("nuevo_usuario.html", roles=roles_db)
 
@@ -3530,9 +3585,10 @@ def editar_usuario(id):
                 flash(f"✅ Usuario '{usuario.usuario}' actualizado correctamente.", "success")
                 return redirect(url_for("admin_usuarios"))
 
-            except Exception as e:
+            except Exception:
                 s.rollback()
-                flash(f"❌ Error al actualizar: {str(e)}", "danger")
+                logger.exception(json.dumps({"event": "usuario_update_error"}, ensure_ascii=False))
+                flash("❌ No se pudo actualizar el usuario. Inténtalo de nuevo.", "danger")
                 roles_db = s.scalars(select(Rol).order_by(Rol.nombre)).all()
                 return render_template("editar_usuario.html", usuario=usuario, roles=roles_db)
 
@@ -3578,9 +3634,10 @@ def borrar_usuario(id):
 
                 flash(f"✅ Usuario '{usuario_nombre}' eliminado correctamente.", "success")
 
-            except Exception as e:
+            except Exception:
                 s.rollback()
-                flash(f"❌ Error al eliminar: {str(e)}", "danger")
+                logger.exception(json.dumps({"event": "usuario_delete_error"}, ensure_ascii=False))
+                flash("❌ No se pudo eliminar el usuario. Inténtalo de nuevo.", "danger")
 
     return redirect(url_for("admin_usuarios"))
 
@@ -3672,8 +3729,10 @@ def nuevo_rol():
                 return redirect(url_for('admin_roles'))
             except Exception as e:
                 s.rollback()
-                error_msg = "El rol ya existe" if "UNIQUE" in str(e) else str(e)
-                flash(f"Error: {error_msg}", "danger")
+                logger.exception(json.dumps({"event": "rol_create_error"}, ensure_ascii=False))
+                msg = ("Ese rol ya existe." if "UNIQUE" in str(e)
+                       else "No se pudo crear el rol. Inténtalo de nuevo.")
+                flash(msg, "danger")
                 return redirect(url_for('nuevo_rol'))
 
     categorias = {}
@@ -3722,9 +3781,10 @@ def editar_rol(id):
 
                 flash(f"Rol '{rol.nombre}' actualizado correctamente.", "success")
                 return redirect(url_for('admin_roles'))
-            except Exception as e:
+            except Exception:
                 s.rollback()
-                flash(f"Error al actualizar: {str(e)}", "danger")
+                logger.exception(json.dumps({"event": "rol_update_error"}, ensure_ascii=False))
+                flash("No se pudo actualizar el rol. Inténtalo de nuevo.", "danger")
                 return redirect(url_for('editar_rol', id=id))
 
         # GET — cargar permisos actuales
@@ -3875,9 +3935,14 @@ def consulta(slug=None):
 
 @app.route("/mis-reparaciones", methods=["GET", "POST"])
 @app.route("/t/<slug>/mis-reparaciones", methods=["GET", "POST"])
+@limiter.limit("30 per minute", methods=["POST"])  # H5: anti-abuso/enumeración
 @csrf_protect
 def mis_reparaciones(slug=None):
     """Panel publico: el cliente introduce su email y ve todas sus reparaciones."""
+    # H5: mensaje genérico ÚNICO para "no hay resultados" — no revela si un email
+    # es o no cliente (anti-enumeración). Sólo se muestran datos a quien acierta
+    # un email con reparaciones (su propio dueño).
+    _MSG_SIN_RESULTADOS = "No encontramos reparaciones asociadas a ese email."
     reparaciones_list = None
     cliente_nombre = None
     email_buscado = None
@@ -3895,7 +3960,7 @@ def mis_reparaciones(slug=None):
                 ).first()
 
                 if not cliente:
-                    error = "No se encontro ningun cliente con ese email."
+                    error = _MSG_SIN_RESULTADOS
                 else:
                     cliente_nombre = cliente.nombre
                     reparaciones_list = s.execute(
@@ -3910,7 +3975,8 @@ def mis_reparaciones(slug=None):
                     ).mappings().all()
 
                     if not reparaciones_list:
-                        error = "No se encontraron reparaciones asociadas a este email."
+                        error = _MSG_SIN_RESULTADOS
+                        cliente_nombre = None  # no revelar que el email es cliente
                         reparaciones_list = None
 
     return render_template("mis_reparaciones.html",
@@ -4633,8 +4699,9 @@ def publico_pagar(id, slug=None):
                 ).join(Cliente, Cliente.id == Reparacion.cliente_id)
                 .where(Reparacion.id == id)
             ).mappings().first()
-    except Exception as e:
-        flash(f'❌ Error al buscar la reparación: {str(e)}', 'danger')
+    except Exception:
+        logger.exception(json.dumps({"event": "publico_pagar_lookup_error"}, ensure_ascii=False))
+        flash('❌ No se pudo completar la operación. Inténtalo de nuevo.', 'danger')
         return redirect(url_for('consulta'))
 
     # 2. Validar que reparación existe
@@ -4737,7 +4804,7 @@ def publico_pagar(id, slug=None):
         flash('❌ Error de conexión con Stripe. Intenta de nuevo más tarde.', 'danger')
         return redirect(url_for('consulta'))
     except Exception as e:
-        flash(f'❌ Error inesperado al crear la sesión de pago: {str(e)}', 'danger')
+        flash('❌ No se pudo iniciar el pago. Inténtalo de nuevo.', 'danger')
         logger.exception(json.dumps({
             "event": "publico_pagar_error",
             "error": str(e)

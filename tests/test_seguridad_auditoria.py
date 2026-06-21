@@ -272,3 +272,134 @@ class TestH3ConsultaPublicaCrossTaller:
         assert r.status_code == 200
         # Quien tiene el código SÍ ve SU reparación (flujo legítimo, no enumerable).
         assert RIVAL_DISPOSITIVO.encode() in r.data
+
+
+# ════════════════════════════════════════════════════════════════════════
+# HALLAZGO H5 (🟡) — ARREGLADO. mis_reparaciones: rate-limit + anti-enumeración.
+# ════════════════════════════════════════════════════════════════════════
+class TestH5MisReparaciones:
+    def test_anti_enumeracion_mismo_mensaje(self, client, seed_cliente):
+        # Email de un cliente REAL sin reparaciones vs email inexistente:
+        # misma salida genérica (no revela si el email es cliente).
+        r1 = client.post("/mis-reparaciones",
+                         data={"email": "test@cliente.com", "csrf_token": "x"})
+        r2 = client.post("/mis-reparaciones",
+                         data={"email": "nadie@ninguno.com", "csrf_token": "x"})
+        assert b"No encontramos reparaciones" in r1.data
+        assert b"No encontramos reparaciones" in r2.data
+        # el nombre del cliente real NO aparece (no se filtra su existencia)
+        assert b"Cliente Test" not in r1.data
+
+    def test_rate_limit_dispara(self, client, monkeypatch):
+        import app as app_module
+        monkeypatch.setattr(app_module.limiter, "enabled", True)
+        try:
+            app_module.limiter.reset()
+        except Exception:
+            pass
+        last = None
+        for i in range(32):  # límite 30/min
+            last = client.post("/mis-reparaciones",
+                               data={"email": f"x{i}@y.com", "csrf_token": "x"},
+                               follow_redirects=False)
+        # Superado el límite: el handler 429 redirige (302) — o 429 directo.
+        assert last.status_code in (302, 429)
+
+
+# ════════════════════════════════════════════════════════════════════════
+# HALLAZGO H7 (🟡) — ARREGLADO. Login regenera la sesión (anti-fixation).
+# ════════════════════════════════════════════════════════════════════════
+class TestH7SesionRegenerada:
+    def test_login_descarta_sesion_previa(self, client, seed_admin):
+        with client.session_transaction() as s:
+            s["fijado_por_atacante"] = "valor-malicioso"
+        client.post("/login", data={"usuario": "admin", "contraseña": "admin123",
+                                    "csrf_token": "x"}, follow_redirects=False)
+        with client.session_transaction() as s:
+            assert "fijado_por_atacante" not in s   # sesión regenerada
+            assert s.get("usuario") == "admin"      # login OK
+            assert s.get("permisos")                # permisos frescos cargados
+
+
+# ════════════════════════════════════════════════════════════════════════
+# HALLAZGO H8 (🟡) — ARREGLADO. Los errores no vuelcan str(excepción) a la UI.
+# ════════════════════════════════════════════════════════════════════════
+class TestH8NoFiltraExcepciones:
+    def test_excepcion_no_aparece_en_respuesta(self, client, seed_reparacion, monkeypatch):
+        import app as app_module
+        SECRET = "TRAZA_INTERNA_SECRETA_9988"
+
+        def _boom(*a, **k):
+            raise RuntimeError(SECRET)
+
+        monkeypatch.setattr(app_module, "get_session", _boom)
+        r = client.post(f"/publico/pagar/{seed_reparacion}",
+                        data={"cliente_email": "a@b.com", "csrf_token": "x"},
+                        follow_redirects=True)
+        assert SECRET.encode() not in r.data           # no se filtra la traza
+        assert b"No se pudo completar" in r.data        # mensaje genérico
+
+
+# ════════════════════════════════════════════════════════════════════════
+# HALLAZGO H9 (🟡) — ARREGLADO. Backend del limiter configurable (Redis en prod).
+# ════════════════════════════════════════════════════════════════════════
+class TestH9LimiterStorage:
+    def test_default_memory(self):
+        import app as app_module
+        assert app_module._RATELIMIT_STORAGE == "memory://"
+
+    def test_env_configura_backend(self, monkeypatch):
+        import app as app_module
+        monkeypatch.setenv("RATELIMIT_STORAGE_URI", "redis://cache:6379/0")
+        assert app_module._resolve_ratelimit_storage() == "redis://cache:6379/0"
+        monkeypatch.delenv("RATELIMIT_STORAGE_URI")
+        monkeypatch.setenv("REDIS_URL", "redis://otro:6379")
+        assert app_module._resolve_ratelimit_storage() == "redis://otro:6379"
+
+
+# ════════════════════════════════════════════════════════════════════════
+# HALLAZGO H10 (🟡) — ARREGLADO. Subidas: magic bytes + límite por archivo.
+# ════════════════════════════════════════════════════════════════════════
+class TestH10Uploads:
+    def _png(self, n=64):
+        return b"\x89PNG\r\n\x1a\n" + b"\x00" * n
+
+    def test_archivo_trucado_rechazado(self, logged_admin, db_conn):
+        import io
+
+        from tests.test_quality import _seed_reparacion
+        rid = _seed_reparacion(db_conn, 1)
+        data = {"fotos": (io.BytesIO(b"esto no es una imagen"), "evil.png")}
+        logged_admin.post(f"/reparaciones/{rid}/fotos", data=data,
+                          content_type="multipart/form-data")
+        n = db_conn.execute(
+            "SELECT COUNT(*) FROM fotos_reparacion WHERE reparacion_id=?", (rid,)
+        ).fetchone()[0]
+        assert n == 0  # extensión .png pero contenido NO imagen → rechazado
+
+    def test_imagen_valida_aceptada(self, logged_admin, db_conn):
+        import io
+
+        from tests.test_quality import _seed_reparacion
+        rid = _seed_reparacion(db_conn, 1)
+        data = {"fotos": (io.BytesIO(self._png()), "ok.png")}
+        logged_admin.post(f"/reparaciones/{rid}/fotos", data=data,
+                          content_type="multipart/form-data")
+        n = db_conn.execute(
+            "SELECT COUNT(*) FROM fotos_reparacion WHERE reparacion_id=?", (rid,)
+        ).fetchone()[0]
+        assert n == 1  # PNG real → aceptado
+
+    def test_supera_5mb_rechazado(self, logged_admin, db_conn):
+        import io
+
+        from tests.test_quality import _seed_reparacion
+        rid = _seed_reparacion(db_conn, 1)
+        big = self._png(5 * 1024 * 1024 + 1)  # PNG válido pero > 5 MB
+        data = {"fotos": (io.BytesIO(big), "big.png")}
+        logged_admin.post(f"/reparaciones/{rid}/fotos", data=data,
+                          content_type="multipart/form-data")
+        n = db_conn.execute(
+            "SELECT COUNT(*) FROM fotos_reparacion WHERE reparacion_id=?", (rid,)
+        ).fetchone()[0]
+        assert n == 0  # supera el límite por archivo → rechazado

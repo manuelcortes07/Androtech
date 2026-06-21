@@ -119,7 +119,8 @@ class TestFirmaBase64:
     def test_guardar_firma(self, logged_admin, db_conn):
         import base64
         rid = _seed_reparacion(db_conn, 1)
-        png = base64.b64encode(b'\x89PNG fake signature').decode()
+        # H10: PNG con cabecera mágica REAL (8 bytes) + datos.
+        png = base64.b64encode(b'\x89PNG\r\n\x1a\n' + b'firma-real').decode()
         r = logged_admin.post(
             f"/reparaciones/{rid}/firma",
             json={"firma": f"data:image/png;base64,{png}"},

@@ -16,7 +16,25 @@ Fecha: 2026-06-20 · Alcance: `app.py`, `tenancy.py`, `auth.py`, `utils/security
 |---|---|---|
 | 🔴 Crítica | **1** | ~~H3~~ ✅ **ARREGLADO** |
 | 🟠 Media | **3** | ~~H1~~ ~~H2~~ ~~H4~~ ✅ **ARREGLADOS** |
-| 🟡 Baja | **7** | ~~H6~~ ✅ · ~~H11~~ ✅ · H5, H7, H8, H9, H10 (pendientes) |
+| 🟡 Baja | **7** | ~~H5~~ ~~H6~~ ~~H7~~ ~~H8~~ ~~H9~~ ~~H10~~ ~~H11~~ ✅ **TODOS ARREGLADOS** |
+
+> ## 🟢 AUDITORÍA 100% CERRADA — 11/11 hallazgos resueltos.
+>
+> **Última tanda (🟡):**
+> - **H5** ✅ `mis_reparaciones`: rate-limit `30/min` + **anti-enumeración**
+>   (mensaje genérico único; no revela si un email es cliente, ni su nombre).
+> - **H7** ✅ Login **regenera la sesión** (`session.clear()` + repoblar) →
+>   anti session-fixation; permisos cargados frescos del rol.
+> - **H8** ✅ Ningún `flash(str(e))`: mensaje genérico al usuario, traza al log
+>   (`logger.exception`). 7 caminos corregidos.
+> - **H9** ✅ Backend del limiter **configurable** (`RATELIMIT_STORAGE_URI` /
+>   `REDIS_URL` → Redis en prod; default `memory://` en dev). Costura de infra,
+>   sin dependencia obligatoria.
+> - **H10** ✅ Subidas validadas por **magic bytes** (JPEG/PNG/GIF/WebP, sin
+>   dependencias) + **límite por archivo** (5 MB) además del 16 MB/request. La
+>   firma exige PNG real. Se mantiene allowlist de extensiones, nombres
+>   aleatorios y `nosniff`.
+> - **H11** ✅ (ya en la tanda H2) `hmac.compare_digest` en la validación CSRF.
 
 > **Remediación aplicada (todas las tandas):**
 > - **H3** ✅ Portal `/consulta` por **código público no adivinable**
