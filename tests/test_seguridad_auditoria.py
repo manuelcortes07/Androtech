@@ -102,32 +102,63 @@ class TestH1RolesGlobalesCrossTenant:
 
 
 # ════════════════════════════════════════════════════════════════════════
-# HALLAZGO H2 (🟠) — CSRF ausente en POST que mutan estado:
-# /reparaciones/<id>/marcar-pagado NO lleva @csrf_protect ni validación
-# manual de token → un sitio malicioso puede forzar a un usuario logueado a
-# marcar una reparación como pagada (CSRF).
+# HALLAZGO H2 (🟠) — ARREGLADO. CSRF POR DEFECTO en todo POST (salvo webhooks).
+# Tests de REGRESIÓN. La autouse `_disable_csrf_validation` desactiva el CSRF en
+# los tests; aquí lo REACTIVAMOS (validación real) para demostrar el bloqueo.
 # ════════════════════════════════════════════════════════════════════════
-class TestH2CsrfAusenteMarcarPagado:
-    def test_marcar_pagado_sin_csrf_token_funciona(self, admin_A, db_conn, dos_talleres):
+def _reactivar_csrf_real(monkeypatch):
+    """Restaura una validación CSRF REAL (la autouse la deja en True)."""
+    import hmac
+
+    from flask import request, session
+
+    import app as app_mod
+    import utils.security as security_mod
+
+    def _real():
+        sent = (request.form.get("csrf_token", "")
+                or request.headers.get("X-CSRFToken", ""))
+        expected = session.get("csrf_token", "")
+        return bool(sent) and bool(expected) and hmac.compare_digest(str(sent), str(expected))
+
+    monkeypatch.setattr(security_mod, "validate_csrf", _real)
+    monkeypatch.setattr(app_mod, "validate_csrf", _real)
+
+
+class TestH2CsrfPorDefecto:
+    def test_marcar_pagado_sin_csrf_es_rechazado(self, admin_A, db_conn, dos_talleres, monkeypatch):
+        _reactivar_csrf_real(monkeypatch)
         repA = dos_talleres["repA"]
-        # POST SIN campo csrf_token. Una ruta protegida lo rechazaría; ésta no.
         r = admin_A.post(
             f"/reparaciones/{repA}/marcar-pagado",
-            data={"metodo_pago": "Efectivo"},  # ← sin csrf_token a propósito
+            data={"metodo_pago": "Efectivo"},  # ← sin csrf_token
+            follow_redirects=False,
+        )
+        # REGRESIÓN H2: rechazado (redirect sin aplicar), NO marcado como pagado.
+        estado = db_conn.execute(
+            "SELECT estado_pago FROM reparaciones WHERE id = ?", (repA,)
+        ).fetchone()["estado_pago"]
+        assert estado != "Pagado"
+
+    def test_marcar_pagado_con_csrf_funciona(self, admin_A, db_conn, dos_talleres, monkeypatch):
+        _reactivar_csrf_real(monkeypatch)
+        repA = dos_talleres["repA"]
+        # admin_A tiene session['csrf_token'] = 'tk'; enviamos el token correcto.
+        r = admin_A.post(
+            f"/reparaciones/{repA}/marcar-pagado",
+            data={"metodo_pago": "Efectivo", "csrf_token": "tk"},
             follow_redirects=False,
         )
         assert r.status_code in (302, 303)
         estado = db_conn.execute(
             "SELECT estado_pago FROM reparaciones WHERE id = ?", (repA,)
         ).fetchone()["estado_pago"]
-        # PRUEBA DEL FALLO: se marcó como pagada SIN token CSRF.
-        assert estado == "Pagado", (
-            "REPRO H2: si esto falla, marcar-pagado ya exige CSRF (arreglado)."
-        )
+        assert estado == "Pagado"
 
-    def test_contraste_ruta_protegida_rechaza_sin_csrf(self, admin_A, db_conn, dos_talleres):
-        # Contraste: una ruta CON @csrf_protect NO aplica el cambio sin token.
-        # Demuestra que H2 (marcar-pagado) es una omisión real, no el patrón general.
+    def test_post_sin_token_en_ruta_cualquiera_rechazado(self, admin_A, db_conn, dos_talleres, monkeypatch):
+        # CSRF por defecto: incluso una ruta que antes dependía sólo del decorador
+        # queda protegida. Subir/editar sin token → rechazado.
+        _reactivar_csrf_real(monkeypatch)
         cliA = dos_talleres["cliA"]
         admin_A.post(
             f"/clientes/editar/{cliA}",
@@ -137,8 +168,6 @@ class TestH2CsrfAusenteMarcarPagado:
         nombre = db_conn.execute(
             "SELECT nombre FROM clientes WHERE id = ?", (cliA,)
         ).fetchone()["nombre"]
-        # La ruta protegida BLOQUEÓ el cambio (sigue 'Cliente Comun'), al contrario
-        # que marcar-pagado, que SÍ se aplicó sin token.
         assert nombre == "Cliente Comun"
 
 

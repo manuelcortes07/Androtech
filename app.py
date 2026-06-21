@@ -94,6 +94,7 @@ from utils.security import (
     inject_csrf_token,
     validar_contraseña,
     validar_precio,
+    validate_csrf,
 )
 
 app = Flask(__name__)
@@ -617,16 +618,28 @@ def inject_permisos():
     return dict(tiene_permiso=tiene_permiso)
 
 
-def validate_csrf():
-    token = request.form.get('csrf_token', '')
-    if not token or token != session.get('csrf_token'):
-        flash('Formulario inválido o expirado. Intenta de nuevo.', 'danger')
-        return False
-    return True
+# `validate_csrf` se importa de utils.security (con cabecera X-CSRFToken +
+# comparación constante). La definición local duplicada se eliminó (H2/H11).
+
+# CSRF POR DEFECTO (H2): todo POST se valida automáticamente, salvo exenciones
+# explícitas. Así ninguna ruta puede "olvidarse" del token. Los webhooks van
+# por firma de Stripe (no por CSRF) y quedan exentos. El @csrf_protect de cada
+# ruta sigue presente como defensa local explícita (redundante pero deliberado).
+_CSRF_EXENTAS = frozenset({"stripe_webhook", "saas_webhook"})
 
 
-# ``csrf_protect`` now imported from utils/security; definition
-# removed from this module.
+@app.before_request
+def enforce_csrf():
+    if request.method != "POST":
+        return
+    if request.endpoint in _CSRF_EXENTAS:
+        return
+    if validate_csrf():
+        return
+    # Rechazo: JSON/cabecera → 403; formulario → vuelve atrás sin aplicar nada.
+    if request.is_json or request.headers.get("X-CSRFToken"):
+        return jsonify({"error": "Token CSRF inválido"}), 403
+    return redirect(request.referrer or request.url)
 
 
 # Authentication decorators (`login_required`, `role_required`) are
@@ -2713,6 +2726,7 @@ def borrar_reparacion(id):
 # SUBIR FOTOS A REPARACIÓN
 @app.route("/reparaciones/<int:id>/fotos", methods=["POST"])
 @login_required
+@csrf_protect
 def subir_fotos_reparacion(id):
     with get_session() as s:
         rep = s.get(Reparacion, id)
@@ -2745,6 +2759,7 @@ def subir_fotos_reparacion(id):
 # ELIMINAR FOTO DE REPARACIÓN
 @app.route("/reparaciones/fotos/<int:foto_id>/eliminar", methods=["POST"])
 @login_required
+@csrf_protect
 def eliminar_foto_reparacion(foto_id):
     with get_session() as s:
         foto = s.get(FotoReparacion, foto_id)
@@ -3231,6 +3246,7 @@ def ticket_recogida(id):
 
 @app.route("/reparaciones/<int:id>/marcar-pagado", methods=["POST"])
 @login_required
+@csrf_protect
 def marcar_reparacion_pagada(id):
     """
     Marca una reparación como pagada.
@@ -3619,6 +3635,7 @@ def admin_roles():
 @app.route("/admin/roles/nuevo", methods=["GET", "POST"])
 @login_required
 @superadmin_requerido
+@csrf_protect
 def nuevo_rol():
     if request.method == "POST":
         nombre = request.form.get("nombre", "").strip().lower()
@@ -3672,6 +3689,7 @@ def nuevo_rol():
 @app.route("/admin/roles/editar/<int:id>", methods=["GET", "POST"])
 @login_required
 @superadmin_requerido
+@csrf_protect
 def editar_rol(id):
     from sqlalchemy import delete as _delete
     with get_session() as s:

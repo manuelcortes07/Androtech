@@ -5,6 +5,7 @@ basic input validators used in various routes.  Moving them here helps
 keep the application file focused on routing and orchestration.
 """
 
+import hmac
 import secrets
 from functools import wraps
 
@@ -21,8 +22,15 @@ def inject_csrf_token():
 
 
 def validate_csrf():
-    token = request.form.get('csrf_token', '')
-    if not token or token != session.get('csrf_token'):
+    """Valida el token CSRF de la petición POST.
+
+    Acepta el token por el campo de formulario `csrf_token` o por la cabecera
+    `X-CSRFToken` (peticiones JSON, p. ej. la firma). Comparación en tiempo
+    constante con hmac.compare_digest (hallazgo H11).
+    """
+    sent = request.form.get('csrf_token', '') or request.headers.get('X-CSRFToken', '')
+    expected = session.get('csrf_token', '')
+    if not sent or not expected or not hmac.compare_digest(str(sent), str(expected)):
         flash('Formulario inválido o expirado. Intenta de nuevo.', 'danger')
         return False
     return True
