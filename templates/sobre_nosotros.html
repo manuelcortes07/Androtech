@@ -7,9 +7,9 @@
 <!-- HERO -->
 <section class="at-hero at-u286">
     <div class="container text-center">
-        <span class="at-pill">Sobre AndroTech</span>
+        <span class="at-pill">Sobre {{ marca.nombre or 'Nuestro taller' }}</span>
         <h1 class="at-hero-title">Tecnologia, confianza y compromiso</h1>
-        <p class="at-hero-sub at-u287">Conoce la historia, los valores y el equipo que hacen posible un servicio tecnico profesional en Huelva.</p>
+        <p class="at-hero-sub at-u287">Conoce la historia, los valores y el equipo que hacen posible un servicio tecnico profesional en tu ciudad.</p>
     </div>
 </section>
 
@@ -17,15 +17,15 @@
 <section class="container at-section">
     <div class="text-center mb-5">
         <h2 class="at-section-title">Nuestra Historia</h2>
-        <p class="at-section-sub">De un pequeno taller a un referente en Huelva</p>
+        <p class="at-section-sub">De un pequeno taller a un referente en tu ciudad</p>
     </div>
     <div class="at-about-grid">
         <!-- Izquierda: texto -->
         <div class="at-about-text">
             <p class="at-about-desc">
-                AndroTech nacio en 2018 con una vision clara: transformar la gestion de talleres tecnicos
+                {{ marca.nombre or 'Nuestro taller' }} nacio en 2018 con una vision clara: transformar la gestion de talleres tecnicos
                 a traves de la tecnologia. Lo que comenzo como un pequeno taller de reparaciones en el centro
-                de Huelva se ha convertido en un referente de profesionalismo y eficiencia.
+                de tu ciudad se ha convertido en un referente de profesionalismo y eficiencia.
             </p>
             <p class="at-about-desc">
                 Durante estos anos, hemos atendido a miles de clientes satisfechos, desde usuarios particulares
@@ -33,7 +33,7 @@
                 continuamente nuestro servicio y crear herramientas que faciliten el trabajo diario.
             </p>
             <p class="at-about-desc">
-                Hoy, AndroTech es mas que un taller: es una plataforma integral que combina experiencia tecnica
+                Hoy, {{ marca.nombre or 'Nuestro taller' }} es mas que un taller: es una plataforma integral que combina experiencia tecnica
                 real con soluciones digitales innovadoras. Nuestro compromiso sigue siendo el mismo desde el inicio:
                 proporcionar un servicio de calidad, transparente y accesible para todos.
             </p>
@@ -46,7 +46,7 @@
                 </div>
                 <div>
                     <h6 class="at-feature-title">Fundado en 2018</h6>
-                    <p class="at-feature-desc">Mas de 5 anos ofreciendo servicio tecnico profesional en Huelva.</p>
+                    <p class="at-feature-desc">Mas de 5 anos ofreciendo servicio tecnico profesional en tu ciudad.</p>
                 </div>
             </div>
             <div class="at-feature">
@@ -170,7 +170,7 @@
     <div class="container">
         <div class="text-center mb-5">
             <h2 class="at-section-title">Por que elegirnos</h2>
-            <p class="at-section-sub">Razones para confiar en AndroTech</p>
+            <p class="at-section-sub">Razones para confiar en {{ marca.nombre or 'Nuestro taller' }}</p>
         </div>
         <div class="at-about-grid">
             <!-- Izquierda -->

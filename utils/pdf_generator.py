@@ -1,7 +1,8 @@
 """
-PDF Generator - AndroTech
-Generador profesional de presupuestos y facturas PDF con diseno corporativo.
-Adaptado para taller de reparacion de dispositivos moviles en Huelva, España.
+PDF Generator (Kintsu)
+Generador de presupuestos y facturas PDF. El EMISOR del documento es el TALLER
+activo (nombre, dirección, contacto, NIF, IVA, logo), nunca una constante: ver
+`_emisor()` y el parámetro `taller=` de `generar_presupuesto_pdf`.
 """
 
 import logging
@@ -28,16 +29,36 @@ AT_SUCCESS = colors.HexColor('#198754')
 AT_GRAY = colors.HexColor('#6c757d')
 AT_BORDER = colors.HexColor('#dee2e6')
 
-# Datos de la empresa
-COMPANY = {
-    'name': 'AndroTech',
-    'tagline': 'Taller de Reparacion de Dispositivos Moviles',
-    'address': 'Huelva, España',
-    'phone': '+34 633 234 395',
-    'email': 'manuelcortescontreras11@gmail.com',
-    'web': 'AndroTech',
+# Valores por defecto SEGUROS del emisor. NO son marca de ningún taller: si un
+# taller no ha rellenado sus datos, el documento degrada con estos genéricos
+# (nunca "AndroTech" ni "Kintsu"). El nombre real sale del Taller activo.
+EMISOR_DEFAULT = {
+    'name': 'Taller',
+    'tagline': 'Taller de Reparación de Dispositivos',
+    'address': '',
+    'phone': '',
+    'email': '',
+    'nif': '',
+    'web': '',
+    'logo_path': '',
     'iva_rate': 0.21,
 }
+
+
+def _emisor(taller):
+    """Funde los datos del `taller` (dict) sobre los defaults seguros."""
+    t = taller or {}
+    return {
+        'name': (t.get('nombre') or '').strip() or EMISOR_DEFAULT['name'],
+        'tagline': EMISOR_DEFAULT['tagline'],
+        'address': (t.get('direccion') or '').strip(),
+        'phone': (t.get('telefono') or '').strip(),
+        'email': (t.get('email') or '').strip(),
+        'nif': (t.get('nif') or '').strip(),
+        'web': (t.get('web') or '').strip(),
+        'logo_path': (t.get('logo_path') or '').strip(),
+        'iva_rate': float(t.get('iva_rate', EMISOR_DEFAULT['iva_rate'])),
+    }
 
 
 def _get_styles():
@@ -67,13 +88,25 @@ def _get_styles():
     return styles
 
 
-def _build_header(styles, doc_type="PRESUPUESTO", doc_number=""):
-    """Construir cabecera del documento."""
+def _build_header(styles, doc_type="PRESUPUESTO", doc_number="", emisor=None):
+    """Construir cabecera del documento (con los datos del taller emisor)."""
+    emisor = emisor or EMISOR_DEFAULT
     elements = []
 
-    # Titulo
-    elements.append(Paragraph("AndroTech", styles['ATTitle']))
-    elements.append(Paragraph(COMPANY['tagline'], styles['ATSub']))
+    # Logo del taller si lo tiene configurado y el fichero existe (degrada sin él).
+    logo_path = emisor.get('logo_path')
+    if logo_path and os.path.isfile(logo_path):
+        try:
+            from reportlab.platypus import Image
+            elements.append(Image(logo_path, width=3.5 * cm, height=3.5 * cm,
+                                  kind='proportional'))
+            elements.append(Spacer(1, 4))
+        except Exception as e:  # pragma: no cover - logo opcional
+            logger.warning(f"No se pudo cargar el logo del taller: {e}")
+
+    # Nombre del taller emisor (NUNCA la marca de la plataforma)
+    elements.append(Paragraph(emisor.get('name') or 'Taller', styles['ATTitle']))
+    elements.append(Paragraph(emisor.get('tagline') or '', styles['ATSub']))
 
     # Tipo de documento y numero
     header_data = [
@@ -203,16 +236,16 @@ def _build_services_table(styles, servicios, piezas=None):
     return elements
 
 
-def _build_totals(styles, subtotal):
-    """Construir seccion de totales con IVA."""
+def _build_totals(styles, subtotal, iva_rate=0.21):
+    """Construir seccion de totales con IVA (tasa del taller emisor)."""
     elements = []
 
-    iva = subtotal * COMPANY['iva_rate']
+    iva = subtotal * iva_rate
     total = subtotal + iva
 
     totals_data = [
         ['Base Imponible:', f'{subtotal:.2f} EUR'],
-        [f'IVA ({int(COMPANY["iva_rate"] * 100)}%):', f'{iva:.2f} EUR'],
+        [f'IVA ({int(iva_rate * 100)}%):', f'{iva:.2f} EUR'],
         ['TOTAL:', f'{total:.2f} EUR'],
     ]
 
@@ -234,25 +267,26 @@ def _build_totals(styles, subtotal):
     return elements
 
 
-def _build_terms(styles, tipo="presupuesto"):
-    """Construir terminos y condiciones."""
+def _build_terms(styles, tipo="presupuesto", emisor_name="El taller"):
+    """Construir terminos y condiciones (el emisor es el taller, no la plataforma)."""
     elements = []
     elements.append(Paragraph("Terminos y Condiciones", styles['ATSection']))
 
+    nombre = emisor_name or "El taller"
     if tipo == "presupuesto":
         terms_text = (
             '<b>1.</b> Este presupuesto tiene una validez de 30 dias naturales.<br/>'
             '<b>2.</b> Los precios pueden variar si se detectan averias adicionales durante la reparacion.<br/>'
             '<b>3.</b> Garantia de 3 meses en piezas y mano de obra.<br/>'
             '<b>4.</b> El dispositivo debe recogerse en un plazo maximo de 30 dias tras la notificacion de finalizacion.<br/>'
-            '<b>5.</b> AndroTech no se hace responsable de datos almacenados en el dispositivo.'
+            f'<b>5.</b> {nombre} no se hace responsable de datos almacenados en el dispositivo.'
         )
     else:
         terms_text = (
             '<b>1.</b> Garantia de 3 meses en piezas y mano de obra desde la fecha de entrega.<br/>'
             '<b>2.</b> La garantia no cubre danos por agua, golpes o manipulacion por terceros.<br/>'
             '<b>3.</b> Conserve esta factura como comprobante de garantia.<br/>'
-            '<b>4.</b> AndroTech no se hace responsable de datos almacenados en el dispositivo.'
+            f'<b>4.</b> {nombre} no se hace responsable de datos almacenados en el dispositivo.'
         )
 
     terms = Paragraph(terms_text, ParagraphStyle(
@@ -314,20 +348,26 @@ def _build_qr(styles, reparacion_id, base_url=None, taller_slug=None, codigo=Non
     return elements
 
 
-def _build_footer(styles):
-    """Construir pie de pagina."""
-    elements = []
-    footer_text = (
-        f'<b>{COMPANY["name"]}</b> — {COMPANY["tagline"]}<br/>'
-        f'{COMPANY["address"]} | Tel: {COMPANY["phone"]} | {COMPANY["email"]}<br/>'
-        f'Documento generado el {datetime.now().strftime("%d/%m/%Y a las %H:%M")}'
-    )
-    elements.append(Paragraph(footer_text, styles['ATFooter']))
+def _build_footer(styles, emisor=None):
+    """Construir pie de pagina con los datos del taller emisor."""
+    emisor = emisor or EMISOR_DEFAULT
+    # Línea de contacto: sólo los campos que el taller tenga rellenos.
+    contacto = ' | '.join(filter(None, [
+        emisor.get('address'),
+        f"Tel: {emisor['phone']}" if emisor.get('phone') else '',
+        emisor.get('email'),
+        f"NIF: {emisor['nif']}" if emisor.get('nif') else '',
+    ]))
+    lineas = [f'<b>{emisor.get("name") or "Taller"}</b> — {emisor.get("tagline") or ""}']
+    if contacto:
+        lineas.append(contacto)
+    lineas.append(f'Documento generado el {datetime.now().strftime("%d/%m/%Y a las %H:%M")} · Hecho con Kintsu')
+    elements = [Paragraph('<br/>'.join(lineas), styles['ATFooter'])]
     return elements
 
 
 def generar_presupuesto_pdf(reparacion_data, tipo_documento="presupuesto", base_url=None,
-                            taller_slug=None):
+                            taller_slug=None, taller=None):
     """
     Generar un PDF de presupuesto o factura para una reparacion.
 
@@ -336,10 +376,14 @@ def generar_presupuesto_pdf(reparacion_data, tipo_documento="presupuesto", base_
                          precio, fecha_entrada, cliente_nombre, cliente_telefono,
                          cliente_email, cliente_direccion, piezas (opcional)
         tipo_documento: 'presupuesto' o 'factura'
+        taller: dict con los datos del TALLER emisor (nombre, direccion, telefono,
+                email, nif, iva_rate, logo_path). Si es None o faltan campos, el
+                documento degrada a genéricos (nunca "AndroTech"/"Kintsu").
 
     Returns:
         BytesIO buffer con el PDF generado
     """
+    emisor = _emisor(taller)
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=2 * cm, leftMargin=2 * cm,
                             topMargin=2 * cm, bottomMargin=2 * cm)
@@ -358,7 +402,7 @@ def generar_presupuesto_pdf(reparacion_data, tipo_documento="presupuesto", base_
     doc_title = 'FACTURA' if tipo_documento == 'factura' else 'PRESUPUESTO'
 
     # Header
-    elements.extend(_build_header(styles, doc_title, doc_number))
+    elements.extend(_build_header(styles, doc_title, doc_number, emisor=emisor))
 
     # Datos del cliente
     cliente = {
@@ -387,17 +431,17 @@ def generar_presupuesto_pdf(reparacion_data, tipo_documento="presupuesto", base_
     # Totales
     subtotal_piezas = sum((p.get('cantidad', 1) * p.get('precio_venta', 0)) for p in piezas)
     subtotal = precio + subtotal_piezas
-    elements.extend(_build_totals(styles, subtotal))
+    elements.extend(_build_totals(styles, subtotal, iva_rate=emisor['iva_rate']))
 
     # Terminos
-    elements.extend(_build_terms(styles, tipo_documento))
+    elements.extend(_build_terms(styles, tipo_documento, emisor_name=emisor['name']))
 
     # QR (H3: con el código público, no el id)
     elements.extend(_build_qr(styles, rep_id, base_url=base_url, taller_slug=taller_slug,
                               codigo=reparacion_data.get('codigo_publico')))
 
     # Footer
-    elements.extend(_build_footer(styles))
+    elements.extend(_build_footer(styles, emisor=emisor))
 
     doc.build(elements)
     buffer.seek(0)

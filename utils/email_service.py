@@ -32,6 +32,17 @@ class EmailService:
         # directamente de current_app.config en cada envio.
         self._unused = _legacy_mail_instance
 
+    def _emisor(self) -> dict:
+        """Datos del TALLER activo para los emails AL CLIENTE (no la plataforma).
+
+        Degrada a un dict con nombre genérico si no hay taller en contexto.
+        """
+        try:
+            from branding import taller_branding
+            return taller_branding()
+        except Exception:
+            return {"nombre": "Tu taller"}
+
     # ──────────────────────────────────────────────────────────────────────
     # Core: envio de bajo nivel con SMTP nativo y encoding correcto
     # ──────────────────────────────────────────────────────────────────────
@@ -106,6 +117,7 @@ class EmailService:
                                   precio, descripcion, pdf_data=None):
         """Confirmacion de pago, opcionalmente con factura PDF adjunta."""
         try:
+            emisor = self._emisor()
             html = render_template(
                 'emails/payment_confirmation.html',
                 cliente_nombre=cliente_nombre,
@@ -114,6 +126,7 @@ class EmailService:
                 descripcion=descripcion,
                 fecha_pago=datetime.now().strftime('%d/%m/%Y %H:%M'),
                 year=datetime.now().year,
+                emisor=emisor,
             )
             attachments = None
             if pdf_data is not None:
@@ -123,7 +136,7 @@ class EmailService:
                 logger.debug(f'PDF adjuntado al email de reparacion {reparacion_id}')
 
             self._send(
-                subject=f'Confirmacion de Pago - Reparacion #{reparacion_id} - AndroTech',
+                subject=f'Confirmacion de Pago - Reparacion #{reparacion_id} - {emisor.get("nombre") or "Tu taller"}',
                 to_email=to_email, html_body=html, attachments=attachments,
             )
             logger.info(f'Email de confirmacion de pago enviado a {to_email} para reparacion {reparacion_id}')
@@ -135,6 +148,7 @@ class EmailService:
                                   estado_anterior, estado_nuevo, dispositivo, descripcion):
         """Actualizacion de estado de una reparacion."""
         try:
+            emisor = self._emisor()
             html = render_template(
                 'emails/repair_status_update.html',
                 cliente_nombre=cliente_nombre,
@@ -145,9 +159,10 @@ class EmailService:
                 descripcion=descripcion,
                 fecha_actualizacion=datetime.now().strftime('%d/%m/%Y %H:%M'),
                 year=datetime.now().year,
+                emisor=emisor,
             )
             self._send(
-                subject=f'Actualizacion de Estado - Reparacion #{reparacion_id} - AndroTech',
+                subject=f'Actualizacion de Estado - Reparacion #{reparacion_id} - {emisor.get("nombre") or "Tu taller"}',
                 to_email=to_email, html_body=html,
             )
             logger.info(f'Email de actualizacion de estado enviado a {to_email} para reparacion {reparacion_id}: {estado_anterior} -> {estado_nuevo}')
@@ -159,6 +174,7 @@ class EmailService:
                      descripcion, fecha_factura=None):
         """Factura (usa la misma plantilla que confirmacion de pago)."""
         try:
+            emisor = self._emisor()
             html = render_template(
                 'emails/payment_confirmation.html',
                 cliente_nombre=cliente_nombre,
@@ -167,9 +183,10 @@ class EmailService:
                 descripcion=descripcion,
                 fecha_pago=fecha_factura or datetime.now().strftime('%d/%m/%Y'),
                 year=datetime.now().year,
+                emisor=emisor,
             )
             self._send(
-                subject=f'Factura - Reparacion #{reparacion_id} - AndroTech',
+                subject=f'Factura - Reparacion #{reparacion_id} - {emisor.get("nombre") or "Tu taller"}',
                 to_email=to_email, html_body=html,
             )
             logger.info(f'Email de factura enviado a {to_email} para reparacion {reparacion_id}')
@@ -181,6 +198,7 @@ class EmailService:
                               dispositivo, descripcion, fecha_entrada):
         """Notificacion de nueva reparacion registrada."""
         try:
+            emisor = self._emisor()
             html = render_template(
                 'emails/nueva_reparacion.html',
                 cliente_nombre=cliente_nombre,
@@ -189,9 +207,10 @@ class EmailService:
                 descripcion=descripcion,
                 fecha_entrada=fecha_entrada,
                 year=datetime.now().year,
+                emisor=emisor,
             )
             self._send(
-                subject=f'Nueva Reparacion Registrada #{reparacion_id} - AndroTech',
+                subject=f'Nueva Reparacion Registrada #{reparacion_id} - {emisor.get("nombre") or "Tu taller"}',
                 to_email=to_email, html_body=html,
             )
             logger.info(f'Email de nueva reparacion enviado a {to_email} para reparacion {reparacion_id}')
@@ -202,13 +221,15 @@ class EmailService:
     def send_bienvenida_cliente(self, to_email, cliente_nombre):
         """Email de bienvenida a un nuevo cliente."""
         try:
+            emisor = self._emisor()
             html = render_template(
                 'emails/bienvenida_cliente.html',
                 cliente_nombre=cliente_nombre,
                 year=datetime.now().year,
+                emisor=emisor,
             )
             self._send(
-                subject='Bienvenido a AndroTech - Servicio Tecnico Especializado',
+                subject=f'Bienvenido a {emisor.get("nombre") or "tu taller"} - Servicio Tecnico',
                 to_email=to_email, html_body=html,
             )
             logger.info(f'Email de bienvenida enviado a {to_email} para cliente {cliente_nombre}')

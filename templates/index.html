@@ -1,5 +1,5 @@
 {% extends "base_public.html" %}
-{% block title %}Reparación de dispositivos en Huelva{% endblock %}
+{% block title %}Reparación de dispositivos{% endblock %}
 
 {% block content %}
 
@@ -10,13 +10,13 @@
     <div class="at-particles"></div>
     <div class="at-wrap at-herogrid">
         <div>
-            <span class="at-live at-reveal at-reveal--load"><span class="at-pdot"></span>Servicio técnico · Huelva</span>
+            <span class="at-live at-reveal at-reveal--load"><span class="at-pdot"></span>Servicio técnico{% if marca.direccion %} · {{ marca.direccion }}{% endif %}</span>
             <h1 class="at-reveal at-reveal--load">Reparamos tus <span class="at-hl">dispositivos</span> con garantía</h1>
             <p class="at-lead at-reveal at-reveal--load">Móviles, tablets y ordenadores. Diagnóstico gratuito, piezas de calidad y seguimiento en tiempo real de tu reparación.</p>
             <div class="at-cta-row at-reveal at-reveal--load">
                 <a class="at-btn at-btn--primary at-btn--lg" href="/solicitar-reparacion">Solicitar reparación <span class="at-ar">→</span></a>
                 <a class="at-btn at-btn--ghost at-btn--lg" href="/consulta">Consultar estado</a>
-                <a class="at-btn at-btn--wa at-btn--lg" href="https://wa.me/34633234395?text=Hola%2C%20necesito%20informacion%20sobre%20una%20reparacion" target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i> WhatsApp</a>
+                {% if marca.telefono_wa %}<a class="at-btn at-btn--wa at-btn--lg" href="https://wa.me/{{ marca.telefono_wa }}?text=Hola%2C%20necesito%20informacion%20sobre%20una%20reparacion" target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i> WhatsApp</a>{% endif %}
             </div>
             <div class="at-mini at-reveal at-reveal--load">
                 <div class="at-m"><span class="at-mn a" data-count="{{ total_clientes }}">0</span><span class="at-ml">Clientes</span></div>
@@ -77,7 +77,7 @@
             <p class="at-sub">Diagnóstico gratuito y sin compromiso. Tráelo o solicítalo online y síguelo en tiempo real.</p>
             <div class="at-cta-row at-u242">
                 <a class="at-btn at-btn--primary at-btn--lg" href="/solicitar-reparacion">Solicitar reparación <span class="at-ar">→</span></a>
-                <a class="at-btn at-btn--wa at-btn--lg" href="https://wa.me/34633234395?text=Hola%2C%20necesito%20informacion%20sobre%20una%20reparacion" target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i> Escríbenos por WhatsApp</a>
+                {% if marca.telefono_wa %}<a class="at-btn at-btn--wa at-btn--lg" href="https://wa.me/{{ marca.telefono_wa }}?text=Hola%2C%20necesito%20informacion%20sobre%20una%20reparacion" target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i> Escríbenos por WhatsApp</a>{% endif %}
             </div>
         </div>
     </div>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bienvenido a AndroTech</title>
+    <title>Bienvenido a {{ emisor.nombre or 'Tu taller' }}</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -73,13 +73,13 @@
     <div class="container">
         <div class="header">
             <div class="status-icon">👋</div>
-            <div class="logo">AndroTech</div>
-            <h1>¡Bienvenido a AndroTech!</h1>
+            <div class="logo">{{ emisor.nombre or 'Tu taller' }}</div>
+            <h1>¡Bienvenido a {{ emisor.nombre or 'Tu taller' }}!</h1>
             <p>Tu servicio técnico de confianza</p>
         </div>
 
         <p>Hola <strong>{{ cliente_nombre }}</strong>,</p>
-        <p>Te damos la bienvenida a AndroTech. Estamos encantados de tenerte como cliente. A partir de ahora podrás disfrutar de todos nuestros servicios de reparación y soporte técnico.</p>
+        <p>Te damos la bienvenida a {{ emisor.nombre or 'Tu taller' }}. Estamos encantados de tenerte como cliente. A partir de ahora podrás disfrutar de todos nuestros servicios de reparación y soporte técnico.</p>
 
         <div class="features">
             <h3>¿Qué puedes esperar?</h3>
@@ -95,18 +95,18 @@
             <p>
                 📞 <strong>Teléfono:</strong> +34 633 234 395<br>
                 📧 <strong>Email:</strong> manuelcortescontreras11@gmail.com<br>
-                🏪 <strong>Dirección:</strong> Huelva, España
+                🏪 <strong>Dirección:</strong> {{ emisor.direccion or 'Consulta con tu taller' }}
             </p>
         </div>
 
         <div class="footer">
             <p>
-                Este es un email automático generado por el sistema AndroTech.<br>
+                Este es un email automático generado por el sistema {{ emisor.nombre or 'Tu taller' }}.<br>
                 Por favor, no respondas directamente a este mensaje.
             </p>
             <p>
-                <strong>AndroTech</strong> - Servicio técnico especializado<br>
-                © {{ year|default('2026') }} AndroTech. Todos los derechos reservados.
+                <strong>{{ emisor.nombre or 'Tu taller' }}</strong> - Servicio técnico especializado<br>
+                © {{ year|default('2026') }} {{ emisor.nombre or 'Tu taller' }}. Todos los derechos reservados.
             </p>
         </div>
     </div>

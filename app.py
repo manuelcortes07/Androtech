@@ -87,6 +87,7 @@ from pagination import paginar
 from utils.email_service import EmailService
 
 # local modules (split responsibilities)
+from branding import taller_branding
 from utils.pdf_generator import generar_presupuesto_pdf
 from utils.security import (
     csrf_protect,
@@ -289,6 +290,7 @@ from migrations import (
     asegurar_codigo_publico,
     asegurar_es_superadmin,
     asegurar_taller_1,
+    asegurar_taller_nif,
     crear_esquema_sqlite_defensivo,
 )
 
@@ -311,6 +313,8 @@ else:
 asegurar_codigo_publico()
 # H1: flag de superadmin de plataforma (sólo él edita roles globales).
 asegurar_es_superadmin()
+# Rebranding: NIF/CIF fiscal del taller (emisor de los documentos).
+asegurar_taller_nif()
 
 # Configuración de subida de fotos/firmas.
 # La ruta base sale de UPLOADS_DIR. En Railway se monta ahí un VOLUMEN
@@ -639,14 +643,14 @@ def export_reparaciones():
     # ── Pie ───────────────────────────────────────────────────────────────────
     w.writerow([])
     w.writerow([_SEP_CSV])
-    w.writerow([f'Fin del informe  |  AndroTech  |  {datetime.now().strftime("%d/%m/%Y %H:%M")}'])
+    _csv_pie(w)
     w.writerow([_SEP_CSV])
 
     output = BytesIO()
     output.write(si.getvalue().encode('utf-8-sig'))
     output.seek(0)
     return send_file(output, mimetype='text/csv', as_attachment=True,
-                     download_name=f'AndroTech_Reparaciones_Filtro_{datetime.now().strftime("%Y%m%d_%H%M")}.csv')
+                     download_name=f'{_csv_filename_prefix()}_Reparaciones_Filtro_{datetime.now().strftime("%Y%m%d_%H%M")}.csv')
 
 
 
@@ -1031,6 +1035,57 @@ def cambiar_email():
     registrar_auditoria("email_cambiado", session["usuario"],
                         {"taller_id": tid, "nuevo_email": nuevo})
     flash("Email actualizado. Te hemos enviado un enlace para verificarlo.",
+          "success")
+    return redirect(url_for("perfil"))
+
+
+@app.route("/perfil/taller", methods=["POST"])
+@login_required
+@csrf_protect
+def cambiar_datos_taller():
+    """Datos de facturación del taller (emisor de los documentos).
+
+    Actualiza columnas propias (nombre, direccion, telefono, nif) + claves de
+    branding en `config` (iva_rate, moneda, web). Auto-scoped al taller logueado
+    (UPDATE ... WHERE id = session taller_id).
+    """
+    tid = session.get("taller_id")
+    nombre = (request.form.get("nombre") or "").strip()
+    if not nombre:
+        flash("El nombre del taller no puede estar vacío.", "danger")
+        return redirect(url_for("perfil"))
+    direccion = (request.form.get("direccion") or "").strip()
+    telefono = (request.form.get("telefono") or "").strip()
+    nif = (request.form.get("nif") or "").strip()
+    web = (request.form.get("web") or "").strip()
+    moneda = (request.form.get("moneda") or "EUR").strip() or "EUR"
+    # IVA llega en % (0–100) → se guarda como fracción (0.21).
+    try:
+        iva_pct = float(request.form.get("iva", "21") or 21)
+    except ValueError:
+        iva_pct = 21.0
+    iva_pct = min(max(iva_pct, 0.0), 100.0)
+
+    with get_session() as s:
+        row = s.execute(text("SELECT config FROM talleres WHERE id = :t"),
+                        {"t": tid}).mappings().first()
+        try:
+            cfg = json.loads(row["config"]) if row and row["config"] else {}
+        except (ValueError, TypeError):
+            cfg = {}
+        cfg["iva_rate"] = round(iva_pct / 100.0, 4)
+        cfg["moneda"] = moneda
+        cfg["web"] = web
+        s.execute(
+            text("UPDATE talleres SET nombre = :n, direccion = :d, telefono = :tel, "
+                 "nif = :nif, config = :cfg WHERE id = :t"),
+            {"n": nombre, "d": direccion, "tel": telefono, "nif": nif,
+             "cfg": json.dumps(cfg, ensure_ascii=False), "t": tid},
+        )
+        s.commit()
+    registrar_auditoria("datos_taller_actualizados", session["usuario"],
+                        {"taller_id": tid})
+    flash("Datos del taller actualizados. Ya aparecen en tus documentos.",
           "success")
     return redirect(url_for("perfil"))
 
@@ -1957,8 +2012,9 @@ def exportar_historial_cliente_pdf(id):
 
     elements = []
 
-    # Header
-    elements.append(Paragraph("AndroTech", styles['ATTitle']))
+    # Header — emisor = taller activo (no la marca de la plataforma)
+    _marca = taller_branding()
+    elements.append(Paragraph(_marca['nombre'] or 'Taller', styles['ATTitle']))
     elements.append(Paragraph("Historial de Reparaciones del Cliente", styles['ATSub']))
 
     # Client info
@@ -2035,9 +2091,11 @@ def exportar_historial_cliente_pdf(id):
         elements.append(rep_table)
 
     elements.append(Spacer(1, 25))
+    _pie = ' · '.join(filter(None, [_marca['nombre'] or 'Taller',
+                                    _marca['direccion'], _marca['telefono']]))
     elements.append(Paragraph(
         f'<para alignment="center"><font size="8" color="#9ba5b0">'
-        f'Generado el {datetime.now().strftime("%d/%m/%Y %H:%M")} — AndroTech, Huelva | +34 633 234 395'
+        f'Generado el {datetime.now().strftime("%d/%m/%Y %H:%M")} — {_pie}'
         f'</font></para>', styles['Normal']
     ))
 
@@ -2139,11 +2197,32 @@ def _fmt_precio_csv(valor):
         return '0,00 €'
     return f'{float(valor):.2f}'.replace('.', ',') + ' €'
 
+def _csv_filename_prefix():
+    """Prefijo de nombre de fichero seguro derivado del nombre del TALLER."""
+    base = (taller_branding()['nombre'] or 'Taller')
+    base = ''.join(c if c.isalnum() else '_' for c in base).strip('_')
+    return base or 'Taller'
+
+
+def _csv_pie(writer):
+    """Pie del CSV con el nombre del TALLER emisor."""
+    writer.writerow([f'Fin del informe  |  {taller_branding()["nombre"] or "Taller"}  |  '
+                     f'{datetime.now().strftime("%d/%m/%Y %H:%M")}'])
+
+
 def _csv_empresa_header(writer, titulo):
-    """Escribe el bloque de cabecera corporativa en el CSV."""
+    """Escribe el bloque de cabecera del CSV con los datos del TALLER emisor."""
+    m = taller_branding()
+    contacto = '  |  '.join(filter(None, [
+        m['direccion'],
+        f"Tel: {m['telefono']}" if m['telefono'] else '',
+        m['email'],
+        f"NIF: {m['nif']}" if m['nif'] else '',
+    ]))
     writer.writerow([_SEP_CSV])
-    writer.writerow(['ANDROTECH — Taller de Reparacion de Dispositivos'])
-    writer.writerow(['Huelva, España  |  Tel: +34 633 234 395  |  manuelcortescontreras11@gmail.com'])
+    writer.writerow([f'{m["nombre"] or "Taller"} — Taller de Reparación de Dispositivos'])
+    if contacto:
+        writer.writerow([contacto])
     writer.writerow([_SEP_CSV])
     writer.writerow([])
     writer.writerow([titulo])
@@ -2237,14 +2316,14 @@ def exportar_reparaciones_csv():
     # ── Pie ───────────────────────────────────────────────────────────────────
     w.writerow([])
     w.writerow([_SEP_CSV])
-    w.writerow([f'Fin del informe  |  AndroTech  |  {datetime.now().strftime("%d/%m/%Y %H:%M")}'])
+    _csv_pie(w)
     w.writerow([_SEP_CSV])
 
     output = BytesIO()
     output.write(si.getvalue().encode('utf-8-sig'))
     output.seek(0)
     return send_file(output, mimetype='text/csv', as_attachment=True,
-                     download_name=f'AndroTech_Reparaciones_{datetime.now().strftime("%Y%m%d_%H%M")}.csv')
+                     download_name=f'{_csv_filename_prefix()}_Reparaciones_{datetime.now().strftime("%Y%m%d_%H%M")}.csv')
 
 
 @app.route("/exportar/clientes.csv")
@@ -2320,14 +2399,14 @@ def exportar_clientes_csv():
     # ── Pie ───────────────────────────────────────────────────────────────────
     w.writerow([])
     w.writerow([_SEP_CSV])
-    w.writerow([f'Fin del informe  |  AndroTech  |  {datetime.now().strftime("%d/%m/%Y %H:%M")}'])
+    _csv_pie(w)
     w.writerow([_SEP_CSV])
 
     output = BytesIO()
     output.write(si.getvalue().encode('utf-8-sig'))
     output.seek(0)
     return send_file(output, mimetype='text/csv', as_attachment=True,
-                     download_name=f'AndroTech_Clientes_{datetime.now().strftime("%Y%m%d_%H%M")}.csv')
+                     download_name=f'{_csv_filename_prefix()}_Clientes_{datetime.now().strftime("%Y%m%d_%H%M")}.csv')
 
 
 # =========================================
@@ -3229,8 +3308,9 @@ def ticket_recogida(id):
 
     elements = []
 
-    # Header
-    elements.append(Paragraph("AndroTech", styles['TKTitle']))
+    # Header — emisor = taller activo
+    _marca = taller_branding()
+    elements.append(Paragraph(_marca['nombre'] or 'Taller', styles['TKTitle']))
     elements.append(Paragraph("TICKET DE RECOGIDA", styles['TKSub']))
 
     # QR code: URL directa a la consulta de esta reparacion
@@ -3290,7 +3370,8 @@ def ticket_recogida(id):
         '<font size="8" color="#6c757d">'
         'Presente este ticket al recoger su dispositivo. '
         'Escanee el código QR para consultar el estado de su reparación en línea.<br/>'
-        f'Generado: {datetime.now().strftime("%d/%m/%Y %H:%M")} — AndroTech, Huelva — +34 633 234 395'
+        f'Generado: {datetime.now().strftime("%d/%m/%Y %H:%M")} — '
+        f'{" · ".join(filter(None, [_marca["nombre"] or "Taller", _marca["direccion"], _marca["telefono"]]))}'
         '</font>', styles['TKCenter']
     ))
 
@@ -3415,7 +3496,8 @@ def generar_pdf_presupuesto(id):
     base_url = request.host_url.rstrip('/')
     pdf_buffer = generar_presupuesto_pdf(reparacion_data, tipo_documento=tipo_documento,
                                          base_url=base_url,
-                                         taller_slug=getattr(g, 'taller_slug', None))
+                                         taller_slug=getattr(g, 'taller_slug', None),
+                                         taller=taller_branding())
 
     # Retornar como descarga
     nombre_archivo = f"{tipo_documento}_reparacion_{id}.pdf"
@@ -5018,9 +5100,11 @@ def stripe_webhook():
                         pdf_buffer = generar_presupuesto_pdf(
                             pdf_reparacion, tipo_documento="factura",
                             base_url=request.host_url.rstrip('/'),
-                            # El webhook es ruta de plataforma; el slug del taller
-                            # se resuelve desde la metadata de Stripe en Fase 2.4.
+                            # El webhook es ruta de plataforma; el slug y los datos
+                            # del taller se resuelven desde la metadata de Stripe
+                            # (g.taller_id ya es el de la reparación aquí).
                             taller_slug=getattr(g, 'taller_slug', None),
+                            taller=taller_branding(),
                         )
                     except Exception:
                         logger.exception(f'[WEBHOOK] Error generando PDF para reparacion {reparacion_id}, se enviara email sin adjunto')

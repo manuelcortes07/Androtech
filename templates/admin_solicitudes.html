@@ -120,7 +120,7 @@
                         <button class="btn btn-outline-danger btn-sm px-3" data-bs-toggle="modal" data-bs-target="#rechazarModal{{ s.id }}">
                             <i class="bi bi-x-circle me-1"></i>Rechazar
                         </button>
-                        <a href="https://wa.me/{{ s.telefono|replace(' ','')|replace('+','') }}?text=Hola%20{{ s.nombre|urlencode }}%2C%20hemos%20recibido%20tu%20solicitud%20de%20reparacion%20en%20AndroTech."
+                        <a href="https://wa.me/{{ s.telefono|replace(' ','')|replace('+','') }}?text=Hola%20{{ s.nombre|urlencode }}%2C%20hemos%20recibido%20tu%20solicitud%20de%20reparacion%20en%20{{ (marca.nombre or 'nuestro taller')|urlencode }}."
                            target="_blank" rel="noopener" class="btn btn-sm px-3 at-u52"
                           >
                             <i class="bi bi-whatsapp me-1"></i>Contactar

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confirmación de Pago - AndroTech</title>
+    <title>Confirmación de Pago - {{ emisor.nombre or 'Tu taller' }}</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -89,7 +89,7 @@
     <div class="container">
         <div class="header">
             <div class="status-icon">💳</div>
-            <div class="logo">AndroTech</div>
+            <div class="logo">{{ emisor.nombre or 'Tu taller' }}</div>
             <h1>Confirmación de Pago</h1>
             <p>Tu pago ha sido registrado correctamente</p>
         </div>
@@ -127,19 +127,19 @@
             <p>
                 📞 <strong>Teléfono:</strong> +34 633 234 395<br>
                 📧 <strong>Email:</strong> manuelcortescontreras11@gmail.com<br>
-                🏪 <strong>Dirección:</strong> Huelva, España
+                🏪 <strong>Dirección:</strong> {{ emisor.direccion or 'Consulta con tu taller' }}
             </p>
             <p><strong>Referencia de reparación:</strong> #{{ reparacion_id }}</p>
         </div>
 
         <div class="footer">
             <p>
-                Este es un email automático generado por el sistema AndroTech.<br>
+                Este es un email automático generado por el sistema {{ emisor.nombre or 'Tu taller' }}.<br>
                 Por favor, no respondas directamente a este mensaje.
             </p>
             <p>
-                <strong>AndroTech</strong> - Servicio técnico especializado<br>
-                © {{ year|default('2026') }} AndroTech. Todos los derechos reservados.
+                <strong>{{ emisor.nombre or 'Tu taller' }}</strong> - Servicio técnico especializado<br>
+                © {{ year|default('2026') }} {{ emisor.nombre or 'Tu taller' }}. Todos los derechos reservados.
             </p>
         </div>
     </div>

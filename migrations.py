@@ -136,6 +136,27 @@ def asegurar_es_superadmin() -> None:
                 )
 
 
+def asegurar_taller_nif() -> None:
+    """Rebranding: garantiza `talleres.nif` (NIF/CIF fiscal del emisor).
+
+    Idempotente y agnóstica de motor. Sin default: un taller sin NIF deja la
+    columna NULL y los documentos degradan (no muestran línea de NIF).
+    """
+    from database import is_postgres
+
+    engine = get_engine()
+    with engine.begin() as conn:
+        if is_postgres():
+            conn.exec_driver_sql(
+                "ALTER TABLE talleres ADD COLUMN IF NOT EXISTS nif TEXT"
+            )
+        else:
+            if not _table_exists(conn, "talleres"):
+                return
+            if not _has_column(conn, "talleres", "nif"):
+                conn.exec_driver_sql("ALTER TABLE talleres ADD COLUMN nif TEXT")
+
+
 def _has_column(conn, table: str, col: str) -> bool:
     rows = conn.exec_driver_sql(f"PRAGMA table_info({table})").fetchall()
     return any(r[1] == col for r in rows)
@@ -163,6 +184,7 @@ def _crear_tabla_talleres(conn) -> None:
             email_contacto TEXT,
             telefono TEXT,
             direccion TEXT,
+            nif TEXT,
             fecha_alta TEXT NOT NULL,
             estado TEXT NOT NULL DEFAULT 'activo',
             plan TEXT NOT NULL DEFAULT 'basico',

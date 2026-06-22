@@ -60,6 +60,7 @@ class Taller(Base):
     email_contacto = Column(Text)
     telefono = Column(Text)
     direccion = Column(Text)
+    nif = Column(Text)  # NIF/CIF fiscal del taller (emisor de los documentos)
     fecha_alta = Column(Text, nullable=False)
     estado = Column(Text, nullable=False, default="activo",
                     server_default=text("'activo'"))   # trial|activo|suspendido|cancelado
