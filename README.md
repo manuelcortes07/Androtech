@@ -17,6 +17,14 @@
 
 ---
 
+> ℹ️ **Nota de marca.** "AndroTech" es el nombre del **TFG** (proyecto académico,
+> rama `main`). Su evolución a producto SaaS multi-taller —rama `saas-migration`—
+> se comercializa como **Kintsu**. Este README documenta el TFG; el branding de
+> producto (panel, cuenta, PWA) ya dice "Kintsu", y cada taller emite sus
+> documentos con **sus propios datos**, no con los de la plataforma.
+
+---
+
 ## Índice
 
 1. [Sobre el proyecto](#sobre-el-proyecto)

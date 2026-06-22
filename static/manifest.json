@@ -1,7 +1,7 @@
 {
-  "name": "AndroTech - Gestión de Reparaciones",
-  "short_name": "AndroTech",
-  "description": "Sistema de gestión de reparaciones de dispositivos móviles",
+  "name": "Kintsu - Gestión de Reparaciones",
+  "short_name": "Kintsu",
+  "description": "Kintsu — plataforma de gestión para talleres de reparación",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

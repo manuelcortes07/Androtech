@@ -467,8 +467,12 @@ app.before_request(puerta_suscripcion)
 # Exponer el taller activo a las plantillas (para construir URLs /t/{slug}/...).
 @app.context_processor
 def inject_taller():
+    # `marca` = datos del taller activo para el escaparate público y los pies
+    # (plano (b) del rebranding). Degrada a defaults si no hay taller resuelto.
+    from branding import taller_branding
     return dict(taller_slug=getattr(g, 'taller_slug', None),
-                taller_id=getattr(g, 'taller_id', None))
+                taller_id=getattr(g, 'taller_id', None),
+                marca=taller_branding())
 
 # REGISTRAR FILTRO PERSONALIZADO PARA JINJA2
 @app.template_filter('strftime')
@@ -1196,7 +1200,7 @@ def signup():
     if checkout_url:
         # A Stripe Checkout a por la tarjeta (requerida durante el trial).
         return redirect(checkout_url)
-    flash("¡Bienvenido a AndroTech! Tu prueba de 14 días está activa.", "success")
+    flash("¡Bienvenido a Kintsu! Tu prueba de 14 días está activa.", "success")
     return redirect(url_for("dashboard"))
 
 
@@ -4309,7 +4313,7 @@ def admin_seed_demo():
     <html lang="es">
     <head>
       <meta charset="utf-8">
-      <title>Seed demo - AndroTech</title>
+      <title>Seed demo - Kintsu</title>
       <style>
         body {{ font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 720px; margin: 60px auto; padding: 20px; color: #1a202c; }}
         h1 {{ color: #2B8AC4; }}

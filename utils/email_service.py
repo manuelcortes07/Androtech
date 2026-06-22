@@ -224,7 +224,7 @@ class EmailService:
             year=datetime.now().year,
         )
         self._send(
-            subject='AndroTech - Restablece tu contraseña',
+            subject='Kintsu - Restablece tu contraseña',
             to_email=to_email, html_body=html,
         )
         logger.info(f'Email de reset de contraseña enviado a {to_email}')
@@ -237,7 +237,7 @@ class EmailService:
             year=datetime.now().year,
         )
         self._send(
-            subject='AndroTech - Verifica tu email',
+            subject='Kintsu - Verifica tu email',
             to_email=to_email, html_body=html,
         )
         logger.info(f'Email de verificación enviado a {to_email}')
@@ -250,6 +250,6 @@ class EmailService:
             year=datetime.now().year,
         )
         self._send(
-            subject='AndroTech - Prueba de envio de email',
+            subject='Kintsu - Prueba de envio de email',
             to_email=to_email, html_body=html,
         )

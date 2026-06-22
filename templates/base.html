@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AndroTech · {% block title %}{% endblock %}</title>
+    <title>{% block title %}Kintsu{% endblock %}</title>
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/static/favicons/favicon.ico">
@@ -47,7 +47,7 @@
 
     <!-- Sidebar -->
     <aside class="at-sidebar" id="atSidebar">
-        <a class="at-side-brand" href="/dashboard"><span class="at-logo">⬡</span>AndroTech</a>
+        <a class="at-side-brand" href="/dashboard"><span class="at-logo">⬡</span>Kintsu</a>
         <nav class="at-side-nav">
             <a class="at-nav-link {% if request.endpoint == 'dashboard' %}is-active{% endif %}" href="/dashboard"><i class="bi bi-speedometer2"></i>Dashboard</a>
             <a class="at-nav-link {% if request.endpoint == 'clientes' %}is-active{% endif %}" href="/clientes"><i class="bi bi-people"></i>Clientes</a>
@@ -114,7 +114,7 @@
 {# ════════════════════════ PÚBLICO (sin login) ════════════════════════ #}
 <header class="at-header">
     <div class="at-wrap at-nav">
-        <a class="at-brand" href="/"><span class="at-logo">⬡</span>AndroTech</a>
+        <a class="at-brand" href="/"><span class="at-logo">⬡</span>{{ marca.nombre or 'Taller' }}</a>
         <nav class="at-navlinks">
             <a href="/" class="{{ 'is-active' if request.endpoint == 'index' }}">Inicio</a>
             <a href="/servicios" class="{{ 'is-active' if request.endpoint == 'servicios' }}">Servicios</a>
@@ -165,9 +165,9 @@
 </div>{# /at-public-main #}
 <footer class="at-footer">
     <div class="at-wrap at-foot">
-        <a class="at-brand at-u72" href="/"><span class="at-logo at-u73">⬡</span>AndroTech</a>
-        <div class="at-mono at-u74">Huelva · Lun–Vie 9:30–20:00 · <a href="tel:+34633234395">+34 633 234 395</a></div>
-        <div>© <span id="atYear"></span> AndroTech</div>
+        <a class="at-brand at-u72" href="/"><span class="at-logo at-u73">⬡</span>{{ marca.nombre or 'Taller' }}</a>
+        <div class="at-mono at-u74">{{ marca.direccion }}{% if marca.telefono %} · <a href="tel:{{ marca.telefono }}">{{ marca.telefono }}</a>{% endif %}</div>
+        <div>© <span id="atYear"></span> {{ marca.nombre or 'Taller' }} · <span class="at-dim">Hecho con Kintsu</span></div>
     </div>
 </footer>
 {% endif %}

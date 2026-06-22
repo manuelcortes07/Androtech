@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AndroTech · {% block title %}{% endblock %}</title>
+    <title>{{ marca.nombre or 'Taller' }} · {% block title %}{% endblock %}</title>
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/static/favicons/favicon.ico">
@@ -44,7 +44,7 @@
 <header class="at-header">
     <div class="at-wrap at-nav">
         <a class="at-brand" href="/">
-            <span class="at-logo">⬡</span>AndroTech
+            <span class="at-logo">⬡</span>{{ marca.nombre or 'Taller' }}
         </a>
         <nav class="at-navlinks">
             <a href="/" class="{{ 'is-active' if request.endpoint == 'index' }}">Inicio</a>
@@ -79,10 +79,10 @@
 <footer class="at-footer">
     <div class="at-wrap at-foot">
         <a class="at-brand at-u72" href="/">
-            <span class="at-logo at-u73">⬡</span>AndroTech
+            <span class="at-logo at-u73">⬡</span>{{ marca.nombre or 'Taller' }}
         </a>
-        <div class="at-mono at-u74">Huelva · Lun–Vie 9:30–20:00 · <a href="tel:+34633234395">+34 633 234 395</a></div>
-        <div>© <span id="atYear"></span> AndroTech</div>
+        <div class="at-mono at-u74">{{ marca.direccion }}{% if marca.telefono %} · <a href="tel:{{ marca.telefono }}">{{ marca.telefono }}</a>{% endif %}</div>
+        <div>© <span id="atYear"></span> {{ marca.nombre or 'Taller' }} · <span class="at-dim">Hecho con Kintsu</span></div>
     </div>
 </footer>
 
