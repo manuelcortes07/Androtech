@@ -1,1 +1,1 @@
-# Utils module para AndroTech
+# Utils module para Kintsu

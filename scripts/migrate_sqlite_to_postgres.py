@@ -1,6 +1,6 @@
 """Migración de datos SQLite → PostgreSQL (Fase 3a.4).
 
-Copia TODAS las filas de la BD SQLite de AndroTech a un PostgreSQL,
+Copia TODAS las filas de la BD SQLite de Kintsu a un PostgreSQL,
 preservando exactamente los `id`, hashes de contraseña, timestamps y
 `taller_id` — y reseteando las secuencias de Postgres al final para que el
 próximo INSERT no choque con un id ya existente (pincho C).

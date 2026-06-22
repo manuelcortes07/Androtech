@@ -1,4 +1,4 @@
-"""SQLAlchemy engine and session — capa de acceso a datos de AndroTech.
+"""SQLAlchemy engine and session — capa de acceso a datos de Kintsu.
 
 Desde la Fase 1.9 es la ÚNICA capa de acceso: `db.py` (sqlite3 crudo)
 fue eliminado y todo el proyecto usa `get_session()` + modelos de
@@ -119,7 +119,7 @@ def get_session() -> Session:
 # Base declarativa
 # ───────────────────────────────────────────────────────────────────
 class Base(DeclarativeBase):
-    """Base común para todos los modelos ORM de AndroTech."""
+    """Base común para todos los modelos ORM de Kintsu."""
 
     pass
 

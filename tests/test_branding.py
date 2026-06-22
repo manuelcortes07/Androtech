@@ -92,3 +92,23 @@ def test_perfil_taller_nombre_vacio_se_rechaza(logged_admin, db_conn):
         "nombre": "  ", "csrf_token": "test-csrf-token"})
     despues = db_conn.execute("SELECT nombre FROM talleres WHERE id = 1").fetchone()[0]
     assert despues == antes  # no se machacó con vacío
+
+
+# ───────────────────────── chrome renderizado (los dos planos) ──────────────
+class TestChromeRenderizado:
+    def test_login_es_plataforma_kintsu(self, client):
+        body = client.get("/login").get_data(as_text=True)
+        assert "Kintsu" in body
+        assert "AndroTech" not in body
+
+    def test_escaparate_lleva_el_nombre_del_taller(self, client, db_conn):
+        # Renombra el taller 1 y comprueba que el escaparate lo muestra (no la marca).
+        db_conn.execute("UPDATE talleres SET nombre = 'Reparaciones Pérez' WHERE id = 1")
+        db_conn.commit()
+        body = client.get("/").get_data(as_text=True)
+        assert "Reparaciones Pérez" in body
+        assert "AndroTech" not in body
+        # La plataforma sólo aparece como crédito discreto "Hecho con Kintsu",
+        # nunca como marca principal del escaparate.
+        assert body.count("Kintsu") <= 2  # comentario CSS + "Hecho con Kintsu"
+        assert "Hecho con Kintsu" in body

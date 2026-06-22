@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "AndroTech Flask",
+      "name": "Kintsu Flask",
       "runtimeExecutable": "python",
       "runtimeArgs": ["app.py"],
       "port": 5000

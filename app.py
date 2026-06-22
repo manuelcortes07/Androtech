@@ -4193,11 +4193,11 @@ def admin_seed_demo():
                 "<code>/admin/seed-demo?key=...</code></p>"), 403
 
     CLIENTES = [
-        ("Juan Pérez",     "634 112 233", "juan.perez@gmail.com",      "Calle Real 12, Huelva"),
-        ("María García",   "612 445 667", "maria.garcia@hotmail.com",  "Av. Andalucía 45, Huelva"),
-        ("Carlos López",   "698 334 112", "carlos.lopez@gmail.com",    "C/ Tartessos 8, Huelva"),
-        ("Ana Martínez",   "677 223 445", "ana.martinez@gmail.com",    "Plaza del Punto 3, Huelva"),
-        ("Pedro Sánchez",  "655 778 990", "pedro.sanchez@outlook.com", "C/ Cristóbal Colón 22, Huelva"),
+        ("Juan Pérez",     "634 112 233", "juan.perez@gmail.com",      "Calle Real 12, Ciudad Demo"),
+        ("María García",   "612 445 667", "maria.garcia@hotmail.com",  "Av. Andalucía 45, Ciudad Demo"),
+        ("Carlos López",   "698 334 112", "carlos.lopez@gmail.com",    "C/ Tartessos 8, Ciudad Demo"),
+        ("Ana Martínez",   "677 223 445", "ana.martinez@gmail.com",    "Plaza del Punto 3, Ciudad Demo"),
+        ("Pedro Sánchez",  "655 778 990", "pedro.sanchez@outlook.com", "C/ Cristóbal Colón 22, Ciudad Demo"),
     ]
 
     REPARACIONES = [

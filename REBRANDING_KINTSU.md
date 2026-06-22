@@ -122,12 +122,95 @@ comentarios · **[interno]** identificador técnico no visible como marca
 
 ## Bloque 2 — Cambios de plataforma → Kintsu
 
-_(se rellena al ejecutar)_
+Todo lo que ve el **dueño/técnico** del taller (el SaaS en sí) dice ahora **Kintsu**:
 
-## Bloque 3 — Branding por taller
+- **Panel** (`base.html`): `<title>`, marca del sidebar y del topbar → "Kintsu".
+- **Cuenta/auth**: `login`, `signup`, `reset_solicitar/confirmar`, `suscripcion`,
+  `suscripcion_bloqueado` → "Kintsu" (wordmark, títulos, "Plan Kintsu").
+- **~22 plantillas del panel**: `{% block title %}… - AndroTech{% endblock %}` →
+  `… · Kintsu`.
+- **PWA** (`manifest.json`): name/short_name/description → "Kintsu".
+- **Emails de cuenta** (`reset_password`, `verificar_email` + asuntos en
+  `email_service`) → "Kintsu".
+- **Varios** `app.py`: flash de bienvenida del signup, título de la página
+  seed-demo, `clientes.html` "Panel administrativo — Kintsu".
+- **README**: nota que distingue el TFG (AndroTech) del producto SaaS (Kintsu).
 
-_(se rellena al ejecutar)_
+**Puente nuevo** (`branding.py` + context processor `marca`): el escaparate
+público y los pies dejan de hardcodear "AndroTech/Huelva/teléfono" y leen el
+**taller activo** (o degradan a genéricos). Lo usan tanto el plano (a) como (b).
+
+## Bloque 3 — Branding por taller (arreglo del hallazgo nº1)
+
+El **emisor** de todo documento/comunicación al cliente es ahora el **taller**,
+leído de BD, nunca una constante:
+
+| Superficie | Antes | Ahora |
+|---|---|---|
+| PDF presupuesto/factura (`pdf_generator`) | `COMPANY` = "AndroTech/Huelva" | `taller=` → `_emisor()` (nombre, dir, tel, email, NIF, IVA, logo); default genérico "Taller" |
+| PDF historial cliente (`app.py`) | título/pie "AndroTech, Huelva" | `taller_branding()` |
+| Ticket de recogida (`app.py`) | título/pie "AndroTech, Huelva" | `taller_branding()` |
+| CSV (cabecera/pie/nombre fichero) | "ANDROTECH / Huelva / email" | datos del taller + prefijo de fichero por nombre |
+| Emails al cliente (pago/estado/nueva/bienvenida) | logo/footer "AndroTech / Huelva" | `emisor` del taller |
+| Escaparate (landing/consulta/mis-reparaciones/sobre) | "AndroTech / Huelva / WhatsApp fijo" | `marca.*`; WhatsApp usa el tel. del taller o se oculta |
+
+**Campo nuevo en `Taller`**: `nif` (TEXT, nullable). Migración idempotente y de
+dos motores: columna en el DDL de `talleres` (SQLite) + `asegurar_taller_nif()`
+(`ALTER TABLE … ADD COLUMN IF NOT EXISTS`, corre al arrancar). El resto de datos
+(nombre, dirección, teléfono, email) ya existían; el IVA, moneda, web y logo
+viven en `Taller.config` (JSON). **Logo**: el PDF lo embebe si `config.logo_path`
+apunta a un fichero existente; si no, degrada sin logo (aún **no** hay UI de
+subida — pendiente menor, documentado).
+
+**UI de ajustes**: `/perfil` gana una tarjeta "Datos de facturación del taller"
+(nombre, NIF, dirección, teléfono, IVA %, moneda, web) que postea a la nueva
+ruta `POST /perfil/taller` (auto-scoped al taller logueado).
+
+**Degradación**: si un taller no rellenó un dato, el documento simplemente omite
+esa línea; el **nombre** sale siempre el del taller (o "Taller"), nunca
+"Kintsu"/"AndroTech". El pie lleva un discreto *"Hecho con Kintsu"*.
 
 ## Bloque 4 — Seed/demo, tests y verificación
 
-_(se rellena al ejecutar)_
+- **Seed/demo**: el taller 1 pasa de "AndroTech / Huelva / contacto real" a
+  **"Taller Demo" / "Tu ciudad" / demo@kintsu.app**. Los 5 clientes demo de
+  `admin_seed_demo` pierden "Huelva" → "Ciudad Demo". El **slug `androtech`** se
+  conserva (clave de tenant en URLs/QR/tests; no es marca visible).
+- **Comentarios/docstrings triviales** a Kintsu: `models.py`, `database.py`,
+  `email_service.py`, `pdf_generator.py`, `utils/__init__.py`, comentarios de
+  diseño en `base*.html`, `check_dependencies.py`, `migrate_sqlite_to_postgres`,
+  `admin_test_email` (nombre App Password), `.claude/launch.json`.
+- **Tests**: nuevo `tests/test_branding.py` (8): `_emisor`/degradación, **JUEZ de
+  aislamiento de marca** (taller A nunca ve los datos de B), `telefono_wa`,
+  persistencia de `/perfil/taller`, y **chrome renderizado** (login=Kintsu;
+  escaparate=nombre del taller, sin "AndroTech"). Comentario de `test_pagination`
+  actualizado.
+
+### Verificación
+
+- **Suite**: **173/173 verde** incl. **EL JUEZ** de aislamiento multi-taller —
+  sin cambios en la lógica de negocio ni en el aislamiento.
+- **PDF por-taller**: probado que `generar_presupuesto_pdf(..., taller={...})`
+  produce un `%PDF` válido con el emisor del taller; con `taller=None` degrada a
+  genéricos; `_emisor` nunca devuelve "AndroTech"/"Kintsu". `/perfil/taller`
+  persiste los datos y `taller_branding()` los refleja (test + JUEZ).
+- **Chrome**: `GET /login` contiene "Kintsu" y **no** "AndroTech"; el escaparate
+  (`GET /`) muestra el **nombre del taller** y **no** "AndroTech" (sólo el
+  crédito "Hecho con Kintsu").
+- **grep final**: 0 apariciones de la marca vieja como identidad de producto u
+  operador fuera de: el **TFG** (`docs/**`, informes `.md`), **datos de test**
+  neutros, e **identificadores internos justificados** (logger `androtech`, salts
+  de tokens, slug `androtech`, nombres de servicio/infra en `render.yaml`/CI/
+  `.env.example`, fichero `androtech.css`/`sw.js` cache key). Ver la tabla
+  "Identificadores internos" del Bloque 1.
+
+### STOP / pendientes (no incluidos a propósito)
+
+- **Facturación legal (hallazgo nº2)** — serie fiscal continua, NIF obligatorio,
+  numeración correlativa por taller — **queda fuera**: es su propio bloque. Hoy
+  el "número" sigue siendo `F-{id:05d}` (no una serie fiscal). El campo `nif` ya
+  existe pero **no** se valida ni se exige.
+- **Subida de logo** (UI): el PDF ya consume `config.logo_path`; falta el
+  uploader. Pendiente menor.
+- **Infra** (`render.yaml`, CI db, `.env.example`, slug): se migrarán cuando se
+  cree el servicio Kintsu real (despliegue PAUSADO).

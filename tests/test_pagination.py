@@ -108,7 +108,7 @@ class TestReparacionesPaginacion:
         r = logged_admin.get("/exportar/reparaciones.csv")
         assert r.status_code == 200
         # Filas de datos: empiezan por el id (dígito) y llevan el dispositivo
-        # (excluye banner "ANDROTECH…Dispositivos" y la cabecera "…Dispositivo…").
+        # (excluye el banner del taller emisor y la cabecera "…Dispositivo…").
         filas = [ln for ln in r.get_data(as_text=True).splitlines()
                  if ln[:1].isdigit() and ";Disp" in ln]
         assert len(filas) == n  # TODAS, no sólo una página

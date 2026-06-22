@@ -46,13 +46,15 @@ _SCOPED_NOT_NULL = (
     "solicitudes_reparacion",
 )
 
-# Datos del taller real (taller 1). Coinciden con COMPANY de pdf_generator.py.
+# Taller 1 = taller DEMO de la plataforma. Datos genéricos (cada taller real
+# pone los suyos en /perfil). El slug "androtech" se conserva como CLAVE de
+# tenant (sale en URLs/QR ya impresos y lo fijan los tests); no es marca visible.
 _TALLER_1 = {
-    "nombre": "AndroTech",
+    "nombre": "Taller Demo",
     "slug": "androtech",
-    "email_contacto": "manuelcortescontreras11@gmail.com",
-    "telefono": "+34 633 234 395",
-    "direccion": "Huelva, España",
+    "email_contacto": "demo@kintsu.app",
+    "telefono": "+34 600 000 000",
+    "direccion": "Tu ciudad",
 }
 
 

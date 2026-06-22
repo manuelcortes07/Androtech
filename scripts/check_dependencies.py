@@ -20,7 +20,7 @@ def check_dependency(name, import_name=None):
         return False
 
 def main():
-    print("🔍 Verificando dependencias de AndroTech...")
+    print("🔍 Verificando dependencias de Kintsu...")
     print("=" * 50)
 
     # Verificar entorno virtual

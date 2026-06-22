@@ -1,5 +1,5 @@
 """
-Sistema de Email Automatico para AndroTech.
+Sistema de Email Automatico (Kintsu).
 
 Enviamos los emails usando `email.message.EmailMessage` + `smtplib`
 directamente, en lugar de Flask-Mail, porque Flask-Mail 0.10 presenta un bug

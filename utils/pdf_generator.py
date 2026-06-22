@@ -21,7 +21,7 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 
 logger = logging.getLogger(__name__)
 
-# Colores corporativos AndroTech
+# Colores corporativos
 AT_PRIMARY = colors.HexColor('#2B8AC4')
 AT_DARK = colors.HexColor('#0F1923')
 AT_LIGHT = colors.HexColor('#EBF5FB')

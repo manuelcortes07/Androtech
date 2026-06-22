@@ -1,4 +1,4 @@
-"""Modelos ORM de AndroTech.
+"""Modelos ORM de Kintsu.
 
 Multi-tenant (Fase 2): las 9 tablas de scope llevan `taller_id NOT NULL`
 con `server_default="1"` (los datos existentes son el taller 1; los inserts
