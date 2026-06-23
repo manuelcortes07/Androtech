@@ -38,9 +38,6 @@ try:
     import stripe
 except ImportError:
     stripe = None
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-from flask_mail import Mail
 
 # Esenciales de cuenta (B3): tokens firmados de reset/verificación.
 from itsdangerous import BadSignature, SignatureExpired
@@ -65,6 +62,9 @@ from auth import (
     superadmin_requerido,
     tiene_permiso,
 )
+
+# local modules (split responsibilities)
+from branding import taller_branding
 from database import get_engine, get_session, insert_or_ignore, is_postgres
 from historial import registrar_cambio_estado, validar_transicion
 from models import (
@@ -84,10 +84,6 @@ from models import (
 
 # Paginación clásica numerada (B5).
 from pagination import paginar
-from utils.email_service import EmailService
-
-# local modules (split responsibilities)
-from branding import taller_branding
 from utils.pdf_generator import generar_presupuesto_pdf
 from utils.security import (
     csrf_protect,
@@ -101,6 +97,19 @@ from utils.security import (
 app = Flask(__name__)
 # Trust Railway / Nginx reverse-proxy headers so request.host_url returns https://
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
+
+def create_app():
+    """Punto de entrada de fábrica (refactor B1, en curso).
+
+    Hoy devuelve la app-singleton ya configurada a nivel de módulo (toda la
+    configuración, extensiones, hooks y rutas se montan al importar este módulo).
+    A medida que las rutas migran a blueprints en `blueprints/`, la configuración
+    se irá moviendo aquí dentro. `gunicorn app:app` y `app:create_app()` son
+    ambos válidos. Permite además crear instancias limpias en tests si hiciera
+    falta sin reimportar el módulo.
+    """
+    return app
 
 # Entorno de ejecución: 'production' en Railway, 'development' en local.
 APP_ENV = os.environ.get('APP_ENV', 'development').strip().lower()
@@ -128,22 +137,17 @@ app.config.update(
     SESSION_COOKIE_SECURE=IS_PRODUCTION,
 )
 
-# Rate limiter (protección contra fuerza bruta).
-# H9: backend configurable por entorno. En producción con varios workers, el
-# `memory://` por defecto NO se comparte entre procesos; define
-# RATELIMIT_STORAGE_URI (o REDIS_URL) apuntando a Redis para un conteo global.
-# COSTURA de infra: no se añade Redis como dependencia ni se arranca aquí; si la
-# var no está, cae a `memory://` (suficiente para desarrollo/tests).
-def _resolve_ratelimit_storage():
-    return (
-        os.environ.get("RATELIMIT_STORAGE_URI")
-        or os.environ.get("REDIS_URL")
-        or "memory://"
-    )
+# Rate limiter (protección contra fuerza bruta). Definido en extensions.py (sin
+# app) y enlazado aquí. Re-exportamos los helpers para compatibilidad con los
+# tests, que referencian app._resolve_ratelimit_storage / app._RATELIMIT_STORAGE.
+# _RATELIMIT_STORAGE/_resolve_ratelimit_storage se re-exportan para los tests.
+from extensions import (  # noqa: E402, F401
+    _RATELIMIT_STORAGE,
+    _resolve_ratelimit_storage,
+    limiter,
+)
 
-
-_RATELIMIT_STORAGE = _resolve_ratelimit_storage()
-limiter = Limiter(get_remote_address, app=app, storage_uri=_RATELIMIT_STORAGE)
+limiter.init_app(app)
 # Configure session expiration
 app.permanent_session_lifetime = timedelta(hours=6)  # ajustable según política
 
@@ -408,13 +412,12 @@ MAIL_CONFIGURED = bool(
     and len(app.config['MAIL_PASSWORD']) >= 12  # App Passwords = 16 chars
 )
 
-mail = Mail(app)
-email_service = EmailService(mail)
-# Capa de notificaciones (B6): costura única de envío. Hoy 'email'; preparada
-# para registrar canales futuros (SMS/WhatsApp) sin tocar los puntos de llamada.
-from notifications import Notificador
-
-notificador = Notificador(email_service)
+# Servicios compartidos (refactor B1): instancias únicas en services.py.
+# `email_service` lee la config SMTP de current_app en cada envío, así que no
+# necesita la app para construirse. `notificador` (B6) es la costura única de
+# envío (email hoy; SMS/WhatsApp futuro) sobre ese email_service.
+# email_service se re-exporta para los tests (parchean app.email_service).
+from services import email_service, notificador  # noqa: E402, F401
 
 # register CSRF helpers from utils/security
 app.before_request(ensure_csrf_token)
