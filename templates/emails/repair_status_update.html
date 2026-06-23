@@ -128,7 +128,7 @@
             <div class="status-icon">
                 {% if estado_nuevo == 'Terminado' %}✅{% elif estado_nuevo == 'Entregado' %}📦{% elif estado_nuevo == 'En Progreso' %}🔧{% elif estado_nuevo == 'Pendiente' %}⏳{% else %}📋{% endif %}
             </div>
-            <div class="logo">{{ emisor.nombre or 'Tu taller' }}</div>
+            {% if emisor.logo_url %}<img class="logo" src="{{ emisor.logo_url }}" alt="{{ emisor.nombre or 'Tu taller' }}" style="max-height:54px;width:auto;display:inline-block;">{% else %}<div class="logo">{{ emisor.nombre or 'Tu taller' }}</div>{% endif %}
             <h1>Actualización de Reparación</h1>
             <p>El estado de tu reparación ha cambiado</p>
         </div>

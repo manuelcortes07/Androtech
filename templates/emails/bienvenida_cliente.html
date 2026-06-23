@@ -73,7 +73,7 @@
     <div class="container">
         <div class="header">
             <div class="status-icon">👋</div>
-            <div class="logo">{{ emisor.nombre or 'Tu taller' }}</div>
+            {% if emisor.logo_url %}<img class="logo" src="{{ emisor.logo_url }}" alt="{{ emisor.nombre or 'Tu taller' }}" style="max-height:54px;width:auto;display:inline-block;">{% else %}<div class="logo">{{ emisor.nombre or 'Tu taller' }}</div>{% endif %}
             <h1>¡Bienvenido a {{ emisor.nombre or 'Tu taller' }}!</h1>
             <p>Tu servicio técnico de confianza</p>
         </div>

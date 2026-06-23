@@ -182,6 +182,32 @@ class TestUploaderLogo:
         assert _logo_file_de(db_conn, 1) is not None
         assert _logo_file_de(db_conn, 2) is None  # taller 2 intacto
 
+    def test_email_al_cliente_incluye_logo_absoluto(self, app, db_conn, monkeypatch):
+        import app as A
+        db_conn.execute("UPDATE talleres SET config = ? WHERE id = 1",
+                        (json.dumps({"logo_file": "logo_e.png"}),))
+        db_conn.commit()
+        capt = {}
+        monkeypatch.setattr(A.email_service, "_send", lambda **k: capt.update(k))
+        with app.test_request_context("http://taller.example/x"):
+            g.taller_id = 1
+            A.email_service.send_repair_status_update(
+                "c@x.com", "Cli", 1, "Pendiente", "Terminado", "iPhone", "desc")
+        assert "http://taller.example/static/uploads/logos/logo_e.png" in capt["html_body"]
+
+    def test_email_sin_logo_degrada_a_nombre(self, app, db_conn, monkeypatch):
+        import app as A
+        db_conn.execute("UPDATE talleres SET nombre = 'Taller Zeta', config = NULL WHERE id = 1")
+        db_conn.commit()
+        capt = {}
+        monkeypatch.setattr(A.email_service, "_send", lambda **k: capt.update(k))
+        with app.test_request_context("http://taller.example/x"):
+            g.taller_id = 1
+            A.email_service.send_repair_status_update(
+                "c@x.com", "Cli", 1, "Pendiente", "Terminado", "iPhone", "desc")
+        assert "Taller Zeta" in capt["html_body"]
+        assert "uploads/logos" not in capt["html_body"]
+
     def test_branding_resuelve_rutas_del_logo(self, logged_admin, app, db_conn):
         logged_admin.post("/perfil/logo",
                           data={"logo": (io.BytesIO(_PNG), "l.png"),

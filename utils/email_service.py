@@ -35,13 +35,26 @@ class EmailService:
     def _emisor(self) -> dict:
         """Datos del TALLER activo para los emails AL CLIENTE (no la plataforma).
 
+        Añade `logo_url` ABSOLUTA (los clientes de correo no resuelven rutas
+        relativas). Se construye con el host de la petición si la hay, o con
+        APP_BASE_URL si el email sale en segundo plano (webhook). Si no se puede
+        construir una URL absoluta, queda "" y la plantilla degrada al nombre.
         Degrada a un dict con nombre genérico si no hay taller en contexto.
         """
         try:
-            from branding import taller_branding
-            return taller_branding()
+            from branding import taller_branding, logo_url_absoluto
+            m = dict(taller_branding())
+            base = None
+            try:
+                from flask import has_request_context, request
+                if has_request_context():
+                    base = request.host_url
+            except Exception:
+                base = None
+            m["logo_url"] = logo_url_absoluto(m, base_url=base)
+            return m
         except Exception:
-            return {"nombre": "Tu taller"}
+            return {"nombre": "Tu taller", "logo_url": ""}
 
     # ──────────────────────────────────────────────────────────────────────
     # Core: envio de bajo nivel con SMTP nativo y encoding correcto
