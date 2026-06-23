@@ -152,6 +152,21 @@ class TestChromeRenderizado:
         body = logged_admin.get("/dashboard").get_data(as_text=True)
         assert "--accent:#ff0000" not in body
 
+    def test_mis_reparaciones_muestra_repas_de_email_valido(self, client, db_conn):
+        # Reproducción del reporte: con un email que SÍ tiene reparaciones en el
+        # taller, /mis-reparaciones debe listarlas (no es regresión del refactor).
+        db_conn.execute(
+            "INSERT INTO clientes (id, nombre, email, taller_id) "
+            "VALUES (70, 'Cli Portal', 'dueno@x.com', 1)")
+        db_conn.execute(
+            "INSERT INTO reparaciones (cliente_id, dispositivo, estado, taller_id, "
+            "codigo_publico) VALUES (70, 'iPhone 77', 'Terminado', 1, 'CODE77')")
+        db_conn.commit()
+        r = client.post("/mis-reparaciones",
+                        data={"email": "dueno@x.com", "csrf_token": "tk"})
+        assert r.status_code == 200
+        assert "iPhone 77" in r.get_data(as_text=True)  # la reparación aparece
+
     def test_normaliza_demo_existente_sin_tocar_otros(self, db_conn):
         from migrations import normalizar_taller_demo
         # BD existente: el demo (id 1) sigue con la marca vieja.
