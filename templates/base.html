@@ -59,7 +59,7 @@
             {% endif %}
             <a class="at-nav-link {% if request.endpoint == 'reparaciones' %}is-active{% endif %}" href="/reparaciones"><i class="bi bi-tools"></i>Reparaciones</a>
             <a class="at-nav-link {% if request.endpoint == 'calendario' %}is-active{% endif %}" href="/calendario"><i class="bi bi-calendar3"></i>Calendario</a>
-            <a class="at-nav-link {% if request.endpoint == 'servicios' %}is-active{% endif %}" href="/servicios"><i class="bi bi-wrench"></i>Servicios</a>
+            <a class="at-nav-link {% if request.endpoint == 'publico.servicios' %}is-active{% endif %}" href="/servicios"><i class="bi bi-wrench"></i>Servicios</a>
 
             {% if tiene_permiso('usuarios_ver') or tiene_permiso('roles_gestionar') or tiene_permiso('inventario_ver') or session.rol == 'admin' %}
             <div class="at-side-sect">Administración</div>
@@ -119,11 +119,11 @@
     <div class="at-wrap at-nav">
         <a class="at-brand" href="/">{% if marca.logo_static %}<img class="at-brand-logo" src="{{ url_for('static', filename=marca.logo_static) }}" alt="{{ marca.nombre or 'Taller' }}">{% else %}<span class="at-logo">⬡</span>{% endif %}{{ marca.nombre or 'Taller' }}</a>
         <nav class="at-navlinks">
-            <a href="/" class="{{ 'is-active' if request.endpoint == 'index' }}">Inicio</a>
-            <a href="/servicios" class="{{ 'is-active' if request.endpoint == 'servicios' }}">Servicios</a>
-            <a href="/sobre" class="{{ 'is-active' if request.endpoint == 'sobre' }}">Sobre nosotros</a>
-            <a href="/consulta" class="{{ 'is-active' if request.endpoint == 'consulta' }}">Seguimiento</a>
-            <a href="/mis-reparaciones" class="{{ 'is-active' if request.endpoint == 'mis_reparaciones' }}">Mis reparaciones</a>
+            <a href="/" class="{{ 'is-active' if request.endpoint == 'publico.index' }}">Inicio</a>
+            <a href="/servicios" class="{{ 'is-active' if request.endpoint == 'publico.servicios' }}">Servicios</a>
+            <a href="/sobre" class="{{ 'is-active' if request.endpoint == 'publico.sobre' }}">Sobre nosotros</a>
+            <a href="/consulta" class="{{ 'is-active' if request.endpoint == 'publico.consulta' }}">Seguimiento</a>
+            <a href="/mis-reparaciones" class="{{ 'is-active' if request.endpoint == 'publico.mis_reparaciones' }}">Mis reparaciones</a>
         </nav>
         <div class="at-nav-r">
             <button class="at-tgl" id="atThemeToggle" type="button" aria-label="Cambiar tema">☀</button>
