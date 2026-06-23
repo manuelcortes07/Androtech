@@ -114,7 +114,7 @@
 {# ════════════════════════ PÚBLICO (sin login) ════════════════════════ #}
 <header class="at-header">
     <div class="at-wrap at-nav">
-        <a class="at-brand" href="/"><span class="at-logo">⬡</span>{{ marca.nombre or 'Taller' }}</a>
+        <a class="at-brand" href="/">{% if marca.logo_static %}<img class="at-brand-logo" src="{{ url_for('static', filename=marca.logo_static) }}" alt="{{ marca.nombre or 'Taller' }}">{% else %}<span class="at-logo">⬡</span>{% endif %}{{ marca.nombre or 'Taller' }}</a>
         <nav class="at-navlinks">
             <a href="/" class="{{ 'is-active' if request.endpoint == 'index' }}">Inicio</a>
             <a href="/servicios" class="{{ 'is-active' if request.endpoint == 'servicios' }}">Servicios</a>
@@ -165,7 +165,7 @@
 </div>{# /at-public-main #}
 <footer class="at-footer">
     <div class="at-wrap at-foot">
-        <a class="at-brand at-u72" href="/"><span class="at-logo at-u73">⬡</span>{{ marca.nombre or 'Taller' }}</a>
+        <a class="at-brand at-u72" href="/">{% if marca.logo_static %}<img class="at-foot-logo" src="{{ url_for('static', filename=marca.logo_static) }}" alt="{{ marca.nombre or 'Taller' }}">{% else %}<span class="at-logo at-u73">⬡</span>{% endif %}{{ marca.nombre or 'Taller' }}</a>
         <div class="at-mono at-u74">{{ marca.direccion }}{% if marca.telefono %} · <a href="tel:{{ marca.telefono }}">{{ marca.telefono }}</a>{% endif %}</div>
         <div>© <span id="atYear"></span> {{ marca.nombre or 'Taller' }} · <span class="at-dim">Hecho con Kintsu</span></div>
     </div>

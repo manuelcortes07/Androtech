@@ -112,6 +112,23 @@ class TestChromeRenderizado:
         assert "Kintsu" in body
         assert "AndroTech" not in body
 
+    def test_portal_muestra_logo_del_taller_dueno_juez(self, client, db_conn):
+        # Taller 1 con su logo; taller 2 con OTRO logo + una reparación.
+        db_conn.execute("UPDATE talleres SET config = ? WHERE id = 1",
+                        (json.dumps({"logo_file": "logo_t1.png"}),))
+        db_conn.execute(
+            "INSERT INTO talleres (id, nombre, slug, fecha_alta, estado, plan, config) "
+            "VALUES (2, 'Taller Beta', 'beta', '2026-01-01', 'activo', 'basico', ?)",
+            (json.dumps({"logo_file": "logo_t2.png"}),))
+        db_conn.execute("INSERT INTO clientes (id, nombre, taller_id) VALUES (50, 'C', 2)")
+        db_conn.execute(
+            "INSERT INTO reparaciones (cliente_id, dispositivo, estado, taller_id, "
+            "codigo_publico) VALUES (50, 'X', 'Pendiente', 2, 'BETACODE99')")
+        db_conn.commit()
+        body = client.get("/consulta?codigo=BETACODE99").get_data(as_text=True)
+        assert "logo_t2.png" in body       # el logo del taller DUEÑO (2)
+        assert "logo_t1.png" not in body   # JUEZ: nunca el de otro taller
+
     def test_escaparate_lleva_el_nombre_del_taller(self, client, db_conn):
         # Renombra el taller 1 y comprueba que el escaparate lo muestra (no la marca).
         db_conn.execute("UPDATE talleres SET nombre = 'Reparaciones Pérez' WHERE id = 1")
