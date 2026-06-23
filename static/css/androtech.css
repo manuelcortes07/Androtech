@@ -898,3 +898,11 @@
 .at-bl4-blue{border-left:4px solid #2B8AC4!important}
 .at-bl4-green{border-left:4px solid #198754!important}
 .at-bl4-amber2{border-left:4px solid #e6a800!important}
+
+/* White-label: preview del logo del taller en /perfil */
+.at-logo-preview{width:120px;height:120px;object-fit:contain}
+.at-logo-preview--empty{font-size:.8rem;text-align:center}
+.at-u272b{max-width:260px}
+/* Logo del taller en el portal/escaparate (cabecera y footer) */
+.at-brand-logo{height:34px;width:auto;max-width:160px;object-fit:contain;vertical-align:middle}
+.at-foot-logo{height:28px;width:auto;max-width:140px;object-fit:contain}

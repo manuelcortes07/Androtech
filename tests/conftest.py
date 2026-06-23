@@ -165,8 +165,13 @@ def _raw_conn():
 _TEST_UPLOAD_ROOT = tempfile.mkdtemp(prefix="androtech_test_uploads_")
 app_module.UPLOAD_FOLDER = os.path.join(_TEST_UPLOAD_ROOT, "reparaciones")
 app_module.SIGNATURES_FOLDER = os.path.join(_TEST_UPLOAD_ROOT, "firmas")
+app_module.LOGO_FOLDER = os.path.join(_TEST_UPLOAD_ROOT, "logos")
 os.makedirs(app_module.UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(app_module.SIGNATURES_FOLDER, exist_ok=True)
+os.makedirs(app_module.LOGO_FOLDER, exist_ok=True)
+# branding.py resuelve la ruta del logo por env UPLOADS_DIR; apuntarlo al tmpdir
+# mantiene coherente dónde se guarda (app) y dónde se lee (branding) en tests.
+os.environ["UPLOADS_DIR"] = _TEST_UPLOAD_ROOT
 
 # El rate limiting es infraestructura: NO debe interferir con los tests
 # funcionales (que repiten POSTs a /login, /signup, etc.). Se desactiva aquí.
@@ -242,6 +247,13 @@ def _reset_data():
     # (p. ej. el taller 2 'rival' de seed_taller_2) para no colisionar.
     try:
         conn.execute("DELETE FROM talleres WHERE id != 1")
+        conn.commit()
+    except Exception:
+        conn.rollback()
+    # Resetear las columnas mutables del taller 1 (config/nif) para que el
+    # branding/logo de un test no se filtre al siguiente (white-label).
+    try:
+        conn.execute("UPDATE talleres SET config = NULL, nif = NULL WHERE id = 1")
         conn.commit()
     except Exception:
         conn.rollback()

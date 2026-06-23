@@ -19,6 +19,7 @@ que toca). Se usa `SELECT *` para ser forward-compatible con columnas nuevas
 from __future__ import annotations
 
 import json
+import os
 import re
 
 from flask import g
@@ -30,14 +31,31 @@ from database import get_session
 IVA_DEFAULT = 0.21
 MONEDA_DEFAULT = "EUR"
 PLATAFORMA = "Kintsu"  # sólo para el discreto "Hecho con Kintsu"
+ACCENT_DEFAULT = "#2B8AC4"  # azul por defecto (debe coincidir con --at-acc del CSS)
+
+# Subcarpeta de los logos dentro de UPLOADS_DIR. El logo se sirve como estático
+# (/static/uploads/logos/<file>), igual que las fotos de reparación.
+_LOGO_SUBDIR = "logos"
+
+
+def _uploads_dir() -> str:
+    """Misma resolución que app.py (env UPLOADS_DIR → static/uploads del repo)."""
+    base = os.environ.get("UPLOADS_DIR")
+    if base:
+        return base
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "uploads")
 
 
 def _vacio() -> dict:
     return {
         "nombre": "", "direccion": "", "telefono": "", "telefono_wa": "",
-        "email": "", "nif": "", "web": "", "logo_path": "",
+        "email": "", "nif": "", "web": "",
+        # logo_file: nombre de fichero guardado (o "").
+        # logo_path: ruta de FICHERO absoluta (para embeber en el PDF).
+        # logo_static: ruta relativa a /static (para url_for en plantillas web).
+        "logo_file": "", "logo_path": "", "logo_static": "",
         "iva_rate": IVA_DEFAULT, "moneda": MONEDA_DEFAULT,
-        "plataforma": PLATAFORMA,
+        "accent_color": "", "plataforma": PLATAFORMA,
     }
 
 
@@ -73,10 +91,38 @@ def taller_branding(taller_id: int | None = None) -> dict:
         except Exception:
             cfg = {}
     datos["web"] = (cfg.get("web") or "").strip()
-    datos["logo_path"] = (cfg.get("logo_path") or "").strip()
+
+    # Logo: en config guardamos sólo el NOMBRE de fichero (logo_file). De ahí
+    # derivamos la ruta de fichero (PDF) y la ruta estática (web/email).
+    logo_file = (cfg.get("logo_file") or "").strip()
+    if logo_file:
+        datos["logo_file"] = logo_file
+        datos["logo_path"] = os.path.join(_uploads_dir(), _LOGO_SUBDIR, logo_file)
+        datos["logo_static"] = f"uploads/{_LOGO_SUBDIR}/{logo_file}"
+
     try:
         datos["iva_rate"] = float(cfg.get("iva_rate", IVA_DEFAULT))
     except (TypeError, ValueError):
         pass
     datos["moneda"] = (cfg.get("moneda") or MONEDA_DEFAULT).strip() or MONEDA_DEFAULT
+    # Color de acento por taller (Bloque 4): sólo si es un hex válido.
+    accent = (cfg.get("accent_color") or "").strip()
+    datos["accent_color"] = accent if _es_hex_color(accent) else ""
     return datos
+
+
+def _es_hex_color(v: str) -> bool:
+    return bool(re.fullmatch(r"#[0-9a-fA-F]{6}", v or ""))
+
+
+def logo_url_absoluto(marca: dict, base_url: str | None = None) -> str:
+    """URL ABSOLUTA del logo para los emails (clientes de correo no resuelven
+    rutas relativas). Usa `base_url` (request.host_url), si no APP_BASE_URL.
+    Devuelve "" si el taller no tiene logo (degradar al nombre textual)."""
+    static_rel = (marca or {}).get("logo_static")
+    if not static_rel:
+        return ""
+    base = (base_url or os.environ.get("APP_BASE_URL") or "").rstrip("/")
+    if not base:
+        return ""  # sin host conocido no se puede construir absoluta → degrada
+    return f"{base}/static/{static_rel}"

@@ -330,6 +330,10 @@ UPLOAD_FOLDER = os.path.join(UPLOADS_DIR, 'reparaciones')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 SIGNATURES_FOLDER = os.path.join(UPLOADS_DIR, 'firmas')
 os.makedirs(SIGNATURES_FOLDER, exist_ok=True)
+# Logos de los talleres (white-label). Mismo almacenamiento/validación que el
+# resto de subidas. Se sirve como estático: /static/uploads/logos/<file>.
+LOGO_FOLDER = os.path.join(UPLOADS_DIR, 'logos')
+os.makedirs(LOGO_FOLDER, exist_ok=True)
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
 MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5 MB por archivo
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB total por request
@@ -1087,6 +1091,73 @@ def cambiar_datos_taller():
                         {"taller_id": tid})
     flash("Datos del taller actualizados. Ya aparecen en tus documentos.",
           "success")
+    return redirect(url_for("perfil"))
+
+
+def _set_logo_file(tid, nuevo_nombre):
+    """Escribe (o limpia con None) config.logo_file del taller y devuelve el
+    nombre del logo ANTERIOR (para borrar su fichero). Auto-scoped por id."""
+    with get_session() as s:
+        row = s.execute(text("SELECT config FROM talleres WHERE id = :t"),
+                        {"t": tid}).mappings().first()
+        try:
+            cfg = json.loads(row["config"]) if row and row["config"] else {}
+        except (ValueError, TypeError):
+            cfg = {}
+        anterior = cfg.get("logo_file")
+        if nuevo_nombre:
+            cfg["logo_file"] = nuevo_nombre
+        else:
+            cfg.pop("logo_file", None)
+        s.execute(text("UPDATE talleres SET config = :c WHERE id = :t"),
+                  {"c": json.dumps(cfg, ensure_ascii=False), "t": tid})
+        s.commit()
+    return anterior
+
+
+@app.route("/perfil/logo", methods=["POST"])
+@login_required
+@csrf_protect
+def subir_logo_taller():
+    """Sube/reemplaza el logo del taller (white-label). Reutiliza la validación
+    segura de subidas (magic bytes + allowlist sin SVG + límite 5 MB)."""
+    tid = session.get("taller_id")
+    logo = request.files.get("logo")
+    if not (logo and logo.filename and allowed_file(logo.filename)
+            and es_imagen_valida(logo)):
+        flash("Logo no válido. Usa PNG, JPG, WebP o GIF (máx. 5 MB).", "danger")
+        return redirect(url_for("perfil"))
+    ext = logo.filename.rsplit(".", 1)[1].lower()
+    unique_name = f"logo_{tid}_{secrets.token_hex(8)}.{ext}"
+    logo.save(os.path.join(LOGO_FOLDER, unique_name))
+    anterior = _set_logo_file(tid, unique_name)
+    # Borrar el logo anterior (si lo había) para no acumular ficheros huérfanos.
+    if anterior and anterior != unique_name:
+        try:
+            os.remove(os.path.join(LOGO_FOLDER, anterior))
+        except OSError:
+            pass
+    registrar_auditoria("logo_taller_actualizado", session["usuario"],
+                        {"taller_id": tid})
+    flash("Logo actualizado. Ya aparece en tu portal y documentos.", "success")
+    return redirect(url_for("perfil"))
+
+
+@app.route("/perfil/logo/eliminar", methods=["POST"])
+@login_required
+@csrf_protect
+def eliminar_logo_taller():
+    """Quita el logo del taller (vuelve al nombre textual como fallback)."""
+    tid = session.get("taller_id")
+    anterior = _set_logo_file(tid, None)
+    if anterior:
+        try:
+            os.remove(os.path.join(LOGO_FOLDER, anterior))
+        except OSError:
+            pass
+    registrar_auditoria("logo_taller_eliminado", session["usuario"],
+                        {"taller_id": tid})
+    flash("Logo eliminado. Se usará el nombre del taller.", "info")
     return redirect(url_for("perfil"))
 
 

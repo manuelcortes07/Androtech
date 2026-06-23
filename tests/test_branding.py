@@ -6,10 +6,21 @@ Cubre el hallazgo nº1 de REVISION_ESTADO.md (branding hardcodeado en los PDF):
 - el formulario /perfil/taller persiste los datos y se reflejan en la marca.
 """
 
+import io
+import json
+
 from flask import g
 
-from branding import taller_branding
+from branding import taller_branding, logo_url_absoluto
 from utils.pdf_generator import _emisor, EMISOR_DEFAULT
+
+_PNG = b"\x89PNG\r\n\x1a\n" + b"logo-bytes-reales" * 4
+
+
+def _logo_file_de(db_conn, tid):
+    row = db_conn.execute("SELECT config FROM talleres WHERE id = ?", (tid,)).fetchone()
+    cfg = json.loads(row[0]) if row and row[0] else {}
+    return cfg.get("logo_file")
 
 
 # ───────────────────────── _emisor: funde sobre defaults ────────────────────
@@ -112,3 +123,59 @@ class TestChromeRenderizado:
         # nunca como marca principal del escaparate.
         assert body.count("Kintsu") <= 2  # comentario CSS + "Hecho con Kintsu"
         assert "Hecho con Kintsu" in body
+
+
+# ───────────────────────── uploader de logo (/perfil) ──────────────────────
+class TestUploaderLogo:
+    def test_subir_logo_valido_guarda_config(self, logged_admin, db_conn):
+        data = {"logo": (io.BytesIO(_PNG), "milogo.png"),
+                "csrf_token": "test-csrf-token"}
+        r = logged_admin.post("/perfil/logo", data=data,
+                              content_type="multipart/form-data")
+        assert r.status_code == 302
+        f = _logo_file_de(db_conn, 1)
+        assert f and f.startswith("logo_1_") and f.endswith(".png")
+
+    def test_logo_trucado_se_rechaza(self, logged_admin, db_conn):
+        # Extensión de imagen pero contenido NO imagen (magic bytes falsos).
+        data = {"logo": (io.BytesIO(b"esto no es una imagen"), "fake.png"),
+                "csrf_token": "test-csrf-token"}
+        logged_admin.post("/perfil/logo", data=data,
+                          content_type="multipart/form-data")
+        assert _logo_file_de(db_conn, 1) is None  # no se guardó
+
+    def test_quitar_logo(self, logged_admin, db_conn):
+        logged_admin.post("/perfil/logo",
+                          data={"logo": (io.BytesIO(_PNG), "l.png"),
+                                "csrf_token": "test-csrf-token"},
+                          content_type="multipart/form-data")
+        assert _logo_file_de(db_conn, 1) is not None
+        r = logged_admin.post("/perfil/logo/eliminar",
+                              data={"csrf_token": "test-csrf-token"})
+        assert r.status_code == 302
+        assert _logo_file_de(db_conn, 1) is None
+
+    def test_juez_logo_no_cruza_de_taller(self, logged_admin, db_conn):
+        # El admin del taller 1 sube su logo; el taller 2 NO debe verse afectado.
+        _crear_taller2(db_conn)
+        logged_admin.post("/perfil/logo",
+                          data={"logo": (io.BytesIO(_PNG), "l.png"),
+                                "csrf_token": "test-csrf-token"},
+                          content_type="multipart/form-data")
+        assert _logo_file_de(db_conn, 1) is not None
+        assert _logo_file_de(db_conn, 2) is None  # taller 2 intacto
+
+    def test_branding_resuelve_rutas_del_logo(self, logged_admin, app, db_conn):
+        logged_admin.post("/perfil/logo",
+                          data={"logo": (io.BytesIO(_PNG), "l.png"),
+                                "csrf_token": "test-csrf-token"},
+                          content_type="multipart/form-data")
+        with app.test_request_context():
+            g.taller_id = 1
+            m = taller_branding()
+        assert m["logo_static"].startswith("uploads/logos/logo_1_")
+        assert m["logo_path"].endswith(m["logo_file"])  # ruta de fichero (PDF)
+        # URL absoluta para emails (con base) vs degradación sin base.
+        assert logo_url_absoluto(m, base_url="https://kintsu.app").startswith(
+            "https://kintsu.app/static/uploads/logos/")
+        assert logo_url_absoluto({"logo_static": ""}, base_url="https://x") == ""
