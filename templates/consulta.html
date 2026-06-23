@@ -137,11 +137,13 @@
         </div>
         {% endif %}
 
+        {% if marca.telefono %}
         <p class="at-dim at-u136">
-            ¿Dudas sobre tu reparación? Escríbenos por
-            <a href="https://wa.me/34633234395{% if reparacion %}?text=Hola%2C%20consulto%20sobre%20mi%20reparacion%20%23{{ reparacion.id }}{% endif %}" target="_blank" rel="noopener" class="at-u123">WhatsApp</a>
-            o llama al <a href="tel:+34633234395" class="at-mono at-u134">+34 633 234 395</a>.
+            ¿Dudas sobre tu reparación? {% if marca.telefono_wa %}Escríbenos por
+            <a href="https://wa.me/{{ marca.telefono_wa }}{% if reparacion %}?text=Hola%2C%20consulto%20sobre%20mi%20reparacion%20%23{{ reparacion.id }}{% endif %}" target="_blank" rel="noopener" class="at-u123">WhatsApp</a>
+            o llama{% else %}Llámanos{% endif %} al <a href="tel:{{ marca.telefono }}" class="at-mono at-u134">{{ marca.telefono }}</a>.
         </p>
+        {% endif %}
         {% endif %}
 
     </div>

@@ -159,6 +159,42 @@ def asegurar_taller_nif() -> None:
                 conn.exec_driver_sql("ALTER TABLE talleres ADD COLUMN nif TEXT")
 
 
+def normalizar_taller_demo() -> None:
+    """Rebranding: si el taller DEMO (id 1) de una BD EXISTENTE todavía tiene la
+    marca vieja (nombre 'AndroTech' o ciudad 'Huelva'), lo pasa a los datos demo
+    genéricos (`_TALLER_1`). La genericación del seed sólo aplicaba a BD nuevas;
+    esto cubre las ya creadas.
+
+    - Idempotente: tras la primera pasada el nombre ya es 'Taller Demo' y la
+      condición no vuelve a cumplirse.
+    - SÓLO toca el id 1 (el demo). NUNCA toca otros talleres: cada taller real
+      pone su marca en /perfil y no debe sobrescribirse.
+    - NO toca `email_contacto` (es el email de login/reset del admin), sólo los
+      campos que ve el cliente final (nombre, dirección, teléfono).
+    """
+    engine = get_engine()
+    try:
+        with engine.begin() as conn:
+            row = conn.execute(
+                _text("SELECT nombre, direccion FROM talleres WHERE id = 1")
+            ).mappings().first()
+            if not row:
+                return
+            nombre = (row["nombre"] or "").strip()
+            direccion = (row["direccion"] or "")
+            if nombre.lower() == "androtech" or "huelva" in direccion.lower():
+                conn.execute(
+                    _text("UPDATE talleres SET nombre = :n, direccion = :d, "
+                          "telefono = :t WHERE id = 1"),
+                    {"n": _TALLER_1["nombre"], "d": _TALLER_1["direccion"],
+                     "t": _TALLER_1["telefono"]},
+                )
+    except Exception:
+        # Si la tabla aún no existe (no debería en arranque) o cualquier fallo,
+        # no romper el arranque: es una normalización cosmética del demo.
+        pass
+
+
 def _has_column(conn, table: str, col: str) -> bool:
     rows = conn.exec_driver_sql(f"PRAGMA table_info({table})").fetchall()
     return any(r[1] == col for r in rows)

@@ -132,27 +132,31 @@
                     </div>
                 </div>
 
-                <!-- Alternativa WhatsApp -->
+                <!-- Alternativa WhatsApp / teléfono (datos del taller) -->
+                {% if marca.telefono %}
                 <div class="at-admin-card mt-4">
                     <div class="at-admin-card-header at-u293">
-                        <i class="bi bi-whatsapp me-2"></i>Contacto directo por WhatsApp
+                        <i class="bi bi-whatsapp me-2"></i>Contacto directo
                     </div>
                     <div class="p-4 text-center">
                         <p class="mb-3 at-u294">
-                            Si prefieres contactarnos directamente, puedes escribirnos por WhatsApp.
+                            Si prefieres contactarnos directamente, puedes escribirnos.
                             Te responderemos lo antes posible.
                         </p>
-                        <a href="https://wa.me/34633234395?text=Hola%2C%20me%20gustaria%20solicitar%20una%20reparacion%20para%20mi%20dispositivo."
+                        {% if marca.telefono_wa %}
+                        <a href="https://wa.me/{{ marca.telefono_wa }}?text=Hola%2C%20me%20gustaria%20solicitar%20una%20reparacion%20para%20mi%20dispositivo."
                            target="_blank" rel="noopener"
                            class="btn btn-lg px-5 py-3 at-u295"
                           >
                             <i class="bi bi-whatsapp me-2"></i>Escribir por WhatsApp
                         </a>
+                        {% endif %}
                         <p class="mt-3 mb-0 small text-muted">
-                            <i class="bi bi-telephone me-1"></i>+34 633 234 395
+                            <i class="bi bi-telephone me-1"></i>{{ marca.telefono }}
                         </p>
                     </div>
                 </div>
+                {% endif %}
 
                 <!-- Info adicional -->
                 <div class="row g-3 mt-3 mb-4">

@@ -75,17 +75,21 @@
                 </form>
             </div>
 
-            <!-- Footer info -->
+            <!-- Footer info (datos del taller) -->
+            {% if marca.telefono %}
             <div class="px-4 py-3 text-center at-u138">
                 <small class="text-muted">
                     <i class="bi bi-telephone me-1"></i>
-                    Tambien puedes llamarnos al <strong>+34 633 234 395</strong>
+                    Tambien puedes llamarnos al <strong>{{ marca.telefono }}</strong>
+                    {% if marca.telefono_wa %}
                     &nbsp;|&nbsp;
-                    <a href="https://wa.me/34633234395" target="_blank" rel="noopener" class="at-u139">
+                    <a href="https://wa.me/{{ marca.telefono_wa }}" target="_blank" rel="noopener" class="at-u139">
                         <i class="bi bi-whatsapp me-1"></i>WhatsApp
                     </a>
+                    {% endif %}
                 </small>
             </div>
+            {% endif %}
 
         </div>
     </div>

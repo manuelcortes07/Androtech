@@ -152,6 +152,29 @@ class TestChromeRenderizado:
         body = logged_admin.get("/dashboard").get_data(as_text=True)
         assert "--accent:#ff0000" not in body
 
+    def test_normaliza_demo_existente_sin_tocar_otros(self, db_conn):
+        from migrations import normalizar_taller_demo
+        # BD existente: el demo (id 1) sigue con la marca vieja.
+        db_conn.execute("UPDATE talleres SET nombre='AndroTech', "
+                        "direccion='Huelva, España', telefono='+34 633 234 395' WHERE id=1")
+        # Otro taller que a propósito se llama así: NO debe tocarse (JUEZ).
+        db_conn.execute(
+            "INSERT INTO talleres (id, nombre, slug, direccion, fecha_alta, estado, plan) "
+            "VALUES (2, 'AndroTech Real', 't2', 'Huelva centro', '2026-01-01', 'activo', 'basico')")
+        db_conn.commit()
+
+        normalizar_taller_demo()
+
+        r1 = db_conn.execute("SELECT nombre, direccion FROM talleres WHERE id=1").fetchone()
+        r2 = db_conn.execute("SELECT nombre, direccion FROM talleres WHERE id=2").fetchone()
+        assert r1[0] != "AndroTech" and "Huelva" not in (r1[1] or "")  # demo normalizado
+        assert r2[0] == "AndroTech Real" and r2[1] == "Huelva centro"   # otro taller INTACTO
+
+        # Idempotente: una 2ª pasada no vuelve a cambiar nada.
+        antes = db_conn.execute("SELECT nombre FROM talleres WHERE id=1").fetchone()[0]
+        normalizar_taller_demo()
+        assert db_conn.execute("SELECT nombre FROM talleres WHERE id=1").fetchone()[0] == antes
+
     def test_escaparate_lleva_el_nombre_del_taller(self, client, db_conn):
         # Renombra el taller 1 y comprueba que el escaparate lo muestra (no la marca).
         db_conn.execute("UPDATE talleres SET nombre = 'Reparaciones Pérez' WHERE id = 1")

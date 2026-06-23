@@ -295,6 +295,7 @@ from migrations import (
     asegurar_taller_1,
     asegurar_taller_nif,
     crear_esquema_sqlite_defensivo,
+    normalizar_taller_demo,
 )
 
 if is_postgres():
@@ -318,6 +319,9 @@ asegurar_codigo_publico()
 asegurar_es_superadmin()
 # Rebranding: NIF/CIF fiscal del taller (emisor de los documentos).
 asegurar_taller_nif()
+# Rebranding: normaliza el taller demo (id 1) si una BD existente sigue con la
+# marca vieja (AndroTech/Huelva) → datos demo genéricos (idempotente).
+normalizar_taller_demo()
 
 # Configuración de subida de fotos/firmas.
 # La ruta base sale de UPLOADS_DIR. En Railway se monta ahí un VOLUMEN
