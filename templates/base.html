@@ -150,7 +150,7 @@
     <div class="at-alert at-alert--warning at-u70" role="alert">
         <i class="bi bi-envelope-exclamation-fill"></i>
         <span>Tu email aún no está verificado. Revisa tu correo para activar todas las funciones.</span>
-        <form method="POST" action="{{ url_for('reenviar_verificacion') }}" class="at-u71">
+        <form method="POST" action="{{ url_for('auth.reenviar_verificacion') }}" class="at-u71">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <button type="submit" class="at-btn at-btn--outline at-btn--sm">Reenviar enlace</button>
         </form>

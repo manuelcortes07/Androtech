@@ -154,7 +154,7 @@ def login_required(f):
     def decorated_function(*args, **kwargs):
         if 'usuario' not in session:
             flash('Debes iniciar sesion para acceder a esta pagina.', 'danger')
-            return redirect(url_for('login'))
+            return redirect(url_for('auth.login'))
         return f(*args, **kwargs)
     return decorated_function
 
