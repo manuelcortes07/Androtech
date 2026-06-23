@@ -31,7 +31,7 @@ from database import get_session
 IVA_DEFAULT = 0.21
 MONEDA_DEFAULT = "EUR"
 PLATAFORMA = "Kintsu"  # sólo para el discreto "Hecho con Kintsu"
-ACCENT_DEFAULT = "#2B8AC4"  # azul por defecto (debe coincidir con --at-acc del CSS)
+ACCENT_DEFAULT = "#2F80FF"  # azul por defecto (= var --accent del CSS)
 
 # Subcarpeta de los logos dentro de UPLOADS_DIR. El logo se sirve como estático
 # (/static/uploads/logos/<file>), igual que las fotos de reparación.

@@ -1080,6 +1080,13 @@ def cambiar_datos_taller():
         cfg["iva_rate"] = round(iva_pct / 100.0, 4)
         cfg["moneda"] = moneda
         cfg["web"] = web
+        # Color de acento del taller (sólo superficies del cliente). Sólo se
+        # guarda si es un hex #RRGGBB válido; vacío/incorrecto → se quita.
+        accent = (request.form.get("accent_color") or "").strip()
+        if _re.fullmatch(r"#[0-9a-fA-F]{6}", accent):
+            cfg["accent_color"] = accent
+        else:
+            cfg.pop("accent_color", None)
         s.execute(
             text("UPDATE talleres SET nombre = :n, direccion = :d, telefono = :tel, "
                  "nif = :nif, config = :cfg WHERE id = :t"),

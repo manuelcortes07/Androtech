@@ -129,6 +129,29 @@ class TestChromeRenderizado:
         assert "logo_t2.png" in body       # el logo del taller DUEÑO (2)
         assert "logo_t1.png" not in body   # JUEZ: nunca el de otro taller
 
+    def test_accent_valido_se_inyecta_en_el_portal(self, logged_admin, client, db_conn):
+        logged_admin.post("/perfil/taller", data={
+            "nombre": "T", "accent_color": "#ff0000", "iva": "21",
+            "moneda": "EUR", "csrf_token": "test-csrf-token"})
+        body = client.get("/").get_data(as_text=True)
+        assert "--accent:#ff0000" in body
+
+    def test_accent_invalido_no_se_guarda(self, logged_admin, db_conn):
+        logged_admin.post("/perfil/taller", data={
+            "nombre": "T", "accent_color": "red;}body{display:none",
+            "iva": "21", "csrf_token": "test-csrf-token"})
+        row = db_conn.execute("SELECT config FROM talleres WHERE id = 1").fetchone()
+        cfg = json.loads(row[0]) if row and row[0] else {}
+        assert "accent_color" not in cfg  # no se inyecta basura en el CSS
+
+    def test_panel_no_usa_el_accent_del_taller(self, logged_admin, db_conn):
+        # El acento del taller es para el CLIENTE; el panel sigue siendo Kintsu.
+        logged_admin.post("/perfil/taller", data={
+            "nombre": "T", "accent_color": "#ff0000", "iva": "21",
+            "csrf_token": "test-csrf-token"})
+        body = logged_admin.get("/dashboard").get_data(as_text=True)
+        assert "--accent:#ff0000" not in body
+
     def test_escaparate_lleva_el_nombre_del_taller(self, client, db_conn):
         # Renombra el taller 1 y comprueba que el escaparate lo muestra (no la marca).
         db_conn.execute("UPDATE talleres SET nombre = 'Reparaciones Pérez' WHERE id = 1")

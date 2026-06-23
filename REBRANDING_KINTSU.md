@@ -214,3 +214,62 @@ esa línea; el **nombre** sale siempre el del taller (o "Taller"), nunca
   uploader. Pendiente menor.
 - **Infra** (`render.yaml`, CI db, `.env.example`, slug): se migrarán cuando se
   cree el servicio Kintsu real (despliegue PAUSADO).
+
+---
+
+## White-label Nivel 2 — la marca del taller donde la ve el CLIENTE
+
+Extensión posterior: el **logo** del taller (subible) en el portal del cliente,
+los emails y los documentos; más un **color de acento** por taller.
+
+### Superficies del cliente que ya muestran la marca del taller
+
+| Superficie | Qué muestra |
+|---|---|
+| Escaparate (landing/`sobre`) | logo (o hexágono) + nombre en cabecera y footer |
+| Portal de seguimiento (`/consulta`, `mis-reparaciones`) | **logo del taller dueño de la reparación** (resuelto por el código), nunca el de otro |
+| Emails al cliente (pago/estado/nueva/bienvenida) | logo en la cabecera (URL absoluta) o el nombre |
+| PDF/ticket/CSV (Nivel 1) | logo embebido si existe + datos del taller |
+| Panel / login / emails de cuenta | **Kintsu** (no cambia: es la plataforma) |
+
+### Cómo se resuelve el logo
+
+- Se sube en `/perfil` (`POST /perfil/logo`, quitar en `/perfil/logo/eliminar`)
+  reutilizando la validación segura existente (magic bytes, allowlist **sin
+  SVG**, 5 MB, nombre aleatorio). Se guarda en `UPLOADS_DIR/logos/` y en
+  `Taller.config.logo_file` (sólo el nombre de fichero).
+- `branding.taller_branding()` deriva tres formas del mismo logo:
+  `logo_path` (ruta de **fichero**, para embeber en el PDF), `logo_static`
+  (ruta relativa para `url_for('static', …)` en **web**) y, vía
+  `logo_url_absoluto()`, una **URL absoluta** para los **emails**.
+- **Emails en segundo plano**: los uploads se sirven como **estático público**
+  (`/static/uploads/logos/…`), así que **no hace falta infra extra de hosting de
+  imágenes**. La URL absoluta usa el host de la petición o `APP_BASE_URL`; si no
+  hay forma de construirla, degrada al nombre (el envío nunca se rompe).
+  ⚠️ En **dev puro local** el cliente de correo del destinatario no alcanza
+  `localhost` → el logo no carga (sólo visual; el nombre sí aparece). En
+  producción con host público funciona.
+
+### Color de acento por taller (Bloque 4 — ACTIVADO)
+
+- Campo opcional `Taller.config.accent_color` (hex `#RRGGBB`, validado en
+  servidor; basura se descarta). Se edita en `/perfil`.
+- Si está, se **inyecta** un `<style nonce="…">` (CSP-safe) que sobrescribe
+  `--accent`/`--accent-2`/`--accent-soft` **sólo en las superficies del cliente**
+  (`base_public.html` y la rama sin-login de `base.html`). El **panel Kintsu
+  nunca** lo usa (gate `{% if not session.usuario %}`). Si está vacío, azul por
+  defecto. Lo decidí **activar** porque es de bajo riesgo (valor validado +
+  nonce vigente) y de alto impacto white-label.
+
+### Aislamiento (JUEZ ampliado)
+
+`tests/test_branding.py` (19): subida válida/trucada, quitar, **JUEZ logo no
+cruza de taller** (subir en taller 1 no toca al 2), **JUEZ portal** (consultar un
+código del taller 2 pinta el logo del 2, nunca el del 1), logo en email (URL
+absoluta vs degradación), acento válido inyectado / inválido descartado / panel
+sin acento del taller. **184/184 verde** incl. EL JUEZ de aislamiento.
+
+### Pendiente
+
+- Validación **opcional** de dimensiones/relación de aspecto del logo (hoy se
+  acepta cualquier imagen válida ≤ 5 MB; el CSS la encuadra con `object-fit`).

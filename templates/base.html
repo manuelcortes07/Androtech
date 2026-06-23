@@ -36,6 +36,9 @@
 
     <!-- Sistema de diseño Kintsu (carga al final: gana sobre Bootstrap) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/androtech.css') }}">
+    {# White-label: el acento del taller SÓLO en el escaparate (sin login),
+       nunca en el panel Kintsu. #}
+    {% if not session.usuario and marca.accent_color %}<style nonce="{{ csp_nonce }}">html[data-theme]{--accent:{{ marca.accent_color }};--accent-2:{{ marca.accent_color }};--accent-soft:color-mix(in srgb,{{ marca.accent_color }} 14%,transparent)}</style>{% endif %}
     {% block head_extra %}{% endblock %}
 </head>
 

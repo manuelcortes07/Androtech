@@ -93,6 +93,10 @@
                         <label class="form-label" for="t_web">Web</label>
                         <input class="form-control" id="t_web" name="web" value="{{ marca.web }}" placeholder="www.tutaller.com">
                     </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="t_accent">Color de acento <small class="text-muted">(portal del cliente)</small></label>
+                        <input class="form-control form-control-color" id="t_accent" name="accent_color" type="color" value="{{ marca.accent_color or '#2F80FF' }}">
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-primary mt-3">Guardar datos del taller</button>
             </form>
