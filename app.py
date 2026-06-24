@@ -323,60 +323,18 @@ asegurar_taller_nif()
 # marca vieja (AndroTech/Huelva) → datos demo genéricos (idempotente).
 normalizar_taller_demo()
 
-# Configuración de subida de fotos/firmas.
-# La ruta base sale de UPLOADS_DIR. En Railway se monta ahí un VOLUMEN
-# PERSISTENTE para que las imágenes sobrevivan a los redeploys (el disco del
-# contenedor es efímero). Por defecto, `static/uploads` del repo.
-# ⚠️ DEBE quedar bajo `static/` para que las sirva `url_for('static', ...)`
-# (las plantillas referencian uploads/reparaciones/... y uploads/firmas/...).
-# En Railway: monta el volumen en <app>/static/uploads y pon
-# UPLOADS_DIR=/app/static/uploads (ver DEPLOY.md).
-_DEFAULT_UPLOADS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
-UPLOADS_DIR = os.environ.get('UPLOADS_DIR') or _DEFAULT_UPLOADS
-UPLOAD_FOLDER = os.path.join(UPLOADS_DIR, 'reparaciones')
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-SIGNATURES_FOLDER = os.path.join(UPLOADS_DIR, 'firmas')
-os.makedirs(SIGNATURES_FOLDER, exist_ok=True)
-# Logos de los talleres (white-label). Mismo almacenamiento/validación que el
-# resto de subidas. Se sirve como estático: /static/uploads/logos/<file>.
-LOGO_FOLDER = os.path.join(UPLOADS_DIR, 'logos')
-os.makedirs(LOGO_FOLDER, exist_ok=True)
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
-MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5 MB por archivo
+# Configuración de subida de fotos/firmas/logos: extraída a uploads.py (B1).
+# Las carpetas se leen vía `uploads.UPLOAD_FOLDER` (atributo de módulo) en
+# tiempo de llamada; los validadores y el límite por-archivo se importan.
+import uploads  # noqa: E402
+from uploads import (  # noqa: E402, F401
+    ALLOWED_EXTENSIONS,
+    MAX_CONTENT_LENGTH,
+    allowed_file,
+    es_imagen_valida,
+)
+
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB total por request
-
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-# H10: validación de CONTENIDO real por magic bytes (no sólo la extensión) +
-# límite POR ARCHIVO. Sin dependencias externas.
-def _sniff_image_type(head: bytes):
-    """Devuelve 'jpeg'|'png'|'gif'|'webp' según la cabecera, o None."""
-    if head.startswith(b"\xff\xd8\xff"):
-        return "jpeg"
-    if head.startswith(b"\x89PNG\r\n\x1a\n"):
-        return "png"
-    if head[:6] in (b"GIF87a", b"GIF89a"):
-        return "gif"
-    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
-        return "webp"
-    return None
-
-
-def es_imagen_valida(storage) -> bool:
-    """True si el FileStorage es una imagen REAL (magic bytes) y ≤ 5 MB."""
-    try:
-        stream = storage.stream
-        pos = stream.tell()
-        head = stream.read(12)
-        stream.seek(0, os.SEEK_END)
-        size = stream.tell()
-        stream.seek(pos)
-    except Exception:
-        return False
-    return _sniff_image_type(head) is not None and 0 < size <= MAX_CONTENT_LENGTH
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Flask-Mail configuration
@@ -883,12 +841,12 @@ def subir_logo_taller():
         return redirect(url_for("perfil"))
     ext = logo.filename.rsplit(".", 1)[1].lower()
     unique_name = f"logo_{tid}_{secrets.token_hex(8)}.{ext}"
-    logo.save(os.path.join(LOGO_FOLDER, unique_name))
+    logo.save(os.path.join(uploads.LOGO_FOLDER, unique_name))
     anterior = _set_logo_file(tid, unique_name)
     # Borrar el logo anterior (si lo había) para no acumular ficheros huérfanos.
     if anterior and anterior != unique_name:
         try:
-            os.remove(os.path.join(LOGO_FOLDER, anterior))
+            os.remove(os.path.join(uploads.LOGO_FOLDER, anterior))
         except OSError:
             pass
     registrar_auditoria("logo_taller_actualizado", session["usuario"],
@@ -906,7 +864,7 @@ def eliminar_logo_taller():
     anterior = _set_logo_file(tid, None)
     if anterior:
         try:
-            os.remove(os.path.join(LOGO_FOLDER, anterior))
+            os.remove(os.path.join(uploads.LOGO_FOLDER, anterior))
         except OSError:
             pass
     registrar_auditoria("logo_taller_eliminado", session["usuario"],
@@ -1881,7 +1839,7 @@ def nueva_reparacion():
                 if foto and foto.filename and allowed_file(foto.filename) and es_imagen_valida(foto):
                     ext = foto.filename.rsplit('.', 1)[1].lower()
                     unique_name = f"{new_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{secrets.token_hex(4)}.{ext}"
-                    foto.save(os.path.join(UPLOAD_FOLDER, unique_name))
+                    foto.save(os.path.join(uploads.UPLOAD_FOLDER, unique_name))
                     s.add(FotoReparacion(
                         reparacion_id=new_id, filename=unique_name,
                         descripcion='',
@@ -2133,7 +2091,7 @@ def borrar_reparacion(id):
             select(FotoReparacion).where(FotoReparacion.reparacion_id == id)
         ).all()
         for foto in fotos:
-            filepath = os.path.join(UPLOAD_FOLDER, foto.filename)
+            filepath = os.path.join(uploads.UPLOAD_FOLDER, foto.filename)
             if os.path.exists(filepath):
                 os.remove(filepath)
             s.delete(foto)
@@ -2170,7 +2128,7 @@ def subir_fotos_reparacion(id):
             if foto and foto.filename and allowed_file(foto.filename) and es_imagen_valida(foto):
                 ext = foto.filename.rsplit('.', 1)[1].lower()
                 unique_name = f"{id}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{secrets.token_hex(4)}.{ext}"
-                foto.save(os.path.join(UPLOAD_FOLDER, unique_name))
+                foto.save(os.path.join(uploads.UPLOAD_FOLDER, unique_name))
                 s.add(FotoReparacion(
                     reparacion_id=id, filename=unique_name, descripcion='',
                     fecha_subida=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -2200,7 +2158,7 @@ def eliminar_foto_reparacion(foto_id):
         reparacion_id = foto.reparacion_id
 
         # Eliminar archivo físico
-        filepath = os.path.join(UPLOAD_FOLDER, foto.filename)
+        filepath = os.path.join(uploads.UPLOAD_FOLDER, foto.filename)
         if os.path.exists(filepath):
             os.remove(filepath)
 
@@ -2263,13 +2221,13 @@ def guardar_firma_reparacion(id):
 
         # Eliminar firma anterior si existe
         if rep.firma:
-            old_path = os.path.join(SIGNATURES_FOLDER, rep.firma)
+            old_path = os.path.join(uploads.SIGNATURES_FOLDER, rep.firma)
             if os.path.exists(old_path):
                 os.remove(old_path)
 
         # Guardar nueva firma
         filename = f"firma_{id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.png"
-        filepath = os.path.join(SIGNATURES_FOLDER, filename)
+        filepath = os.path.join(uploads.SIGNATURES_FOLDER, filename)
         with open(filepath, 'wb') as f:
             f.write(img_bytes)
 

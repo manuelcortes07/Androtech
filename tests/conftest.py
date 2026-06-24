@@ -140,6 +140,13 @@ if USE_POSTGRES:
 else:
     _bootstrap_core_schema(TEST_DB_PATH)
 
+# Subidas a un tmpdir EFÍMERO: se fija UPLOADS_DIR *antes* de importar la app,
+# así `uploads.py` (importado por app) computa UPLOAD_FOLDER/SIGNATURES_FOLDER/
+# LOGO_FOLDER bajo el tmpdir y ningún test escribe en `static/uploads/` real.
+# branding.py también resuelve el logo por esta env var → todo coherente.
+_TEST_UPLOAD_ROOT = tempfile.mkdtemp(prefix="androtech_test_uploads_")
+os.environ["UPLOADS_DIR"] = _TEST_UPLOAD_ROOT
+
 # Ahora sí importar la app. En SQLite crea las 8 tablas restantes y siembra
 # roles; en Postgres crea TODO el esquema desde los modelos + roles + taller 1.
 from werkzeug.security import generate_password_hash  # noqa: E402
@@ -156,22 +163,8 @@ def _raw_conn():
     conn.row_factory = sqlite3.Row
     return conn
 
-# ───────────────────────────────────────────────────────────────────
-# Redirigir las subidas (fotos/firmas) a un tmpdir EFÍMERO.
-# Los handlers leen `UPLOAD_FOLDER`/`SIGNATURES_FOLDER` como globals de
-# `app.py` en cada llamada, así que reasignarlos aquí basta para que ningún
-# test escriba jamás en el `static/uploads/` real del repo (Fase 2.0).
-# ───────────────────────────────────────────────────────────────────
-_TEST_UPLOAD_ROOT = tempfile.mkdtemp(prefix="androtech_test_uploads_")
-app_module.UPLOAD_FOLDER = os.path.join(_TEST_UPLOAD_ROOT, "reparaciones")
-app_module.SIGNATURES_FOLDER = os.path.join(_TEST_UPLOAD_ROOT, "firmas")
-app_module.LOGO_FOLDER = os.path.join(_TEST_UPLOAD_ROOT, "logos")
-os.makedirs(app_module.UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(app_module.SIGNATURES_FOLDER, exist_ok=True)
-os.makedirs(app_module.LOGO_FOLDER, exist_ok=True)
-# branding.py resuelve la ruta del logo por env UPLOADS_DIR; apuntarlo al tmpdir
-# mantiene coherente dónde se guarda (app) y dónde se lee (branding) en tests.
-os.environ["UPLOADS_DIR"] = _TEST_UPLOAD_ROOT
+# (Las carpetas de subida ya quedaron bajo el tmpdir vía UPLOADS_DIR fijado
+# antes de importar la app — ver arriba. `uploads.py` las creó al importarse.)
 
 # El rate limiting es infraestructura: NO debe interferir con los tests
 # funcionales (que repiten POSTs a /login, /signup, etc.). Se desactiva aquí.
