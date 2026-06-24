@@ -53,9 +53,9 @@
         <a class="at-side-brand" href="/dashboard"><span class="at-logo">⬡</span>Kintsu</a>
         <nav class="at-side-nav">
             <a class="at-nav-link {% if request.endpoint == 'dashboard' %}is-active{% endif %}" href="/dashboard"><i class="bi bi-speedometer2"></i>Dashboard</a>
-            <a class="at-nav-link {% if request.endpoint == 'clientes' %}is-active{% endif %}" href="/clientes"><i class="bi bi-people"></i>Clientes</a>
+            <a class="at-nav-link {% if request.endpoint == 'clientes.clientes' %}is-active{% endif %}" href="/clientes"><i class="bi bi-people"></i>Clientes</a>
             {% if session.rol == 'admin' %}
-            <a class="at-nav-link {% if request.endpoint == 'historial_cliente' %}is-active{% endif %}" href="/cliente/historial"><i class="bi bi-clock-history"></i>Historial clientes</a>
+            <a class="at-nav-link {% if request.endpoint == 'clientes.historial_cliente' %}is-active{% endif %}" href="/cliente/historial"><i class="bi bi-clock-history"></i>Historial clientes</a>
             {% endif %}
             <a class="at-nav-link {% if request.endpoint == 'reparaciones' %}is-active{% endif %}" href="/reparaciones"><i class="bi bi-tools"></i>Reparaciones</a>
             <a class="at-nav-link {% if request.endpoint == 'calendario' %}is-active{% endif %}" href="/calendario"><i class="bi bi-calendar3"></i>Calendario</a>

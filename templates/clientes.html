@@ -18,12 +18,12 @@
 
         <!-- Barra de herramientas -->
         <div class="at-card__body at-u89">
-            <form method="get" action="{{ url_for('clientes') }}">
+            <form method="get" action="{{ url_for('clientes.clientes') }}">
                 <div class="d-flex gap-2 flex-wrap at-u90">
                     <input id="clientes-search" name="q" type="search" class="at-input at-u91"
                            value="{{ q or '' }}" placeholder="Buscar por nombre, email o teléfono…">
                     <button type="submit" class="at-btn at-btn--primary"><i class="bi bi-search"></i> Buscar</button>
-                    {% if q %}<a href="{{ url_for('clientes') }}" class="at-btn at-btn--outline">Limpiar</a>{% endif %}
+                    {% if q %}<a href="{{ url_for('clientes.clientes') }}" class="at-btn at-btn--outline">Limpiar</a>{% endif %}
                 </div>
             </form>
         </div>
