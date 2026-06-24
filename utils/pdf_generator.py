@@ -317,10 +317,8 @@ def _build_qr(styles, reparacion_id, base_url=None, taller_slug=None, codigo=Non
             )
         base = base_url.rstrip('/')
         prefijo = f"/t/{taller_slug}" if taller_slug else ""
-        if codigo:
-            url = f"{base}{prefijo}/consulta?codigo={codigo}"
-        else:
-            url = f"{base}{prefijo}/consulta"
+        portal_url = f"{base}{prefijo}/consulta"
+        url = f"{portal_url}?codigo={codigo}" if codigo else portal_url
 
         qr = QrCodeWidget(url)
         qr.barWidth = 80
@@ -328,10 +326,23 @@ def _build_qr(styles, reparacion_id, base_url=None, taller_slug=None, codigo=Non
         d = Drawing(90, 90)
         d.add(qr)
 
+        # Caption: el CÓDIGO en texto + la URL del portal (para teclear si no se
+        # escanea) o, si no hubiera código, sólo la instrucción del QR.
+        if codigo:
+            caption = (
+                f'<b>Reparacion #{reparacion_id}</b><br/>'
+                f'Sigue tu reparacion en:<br/>{portal_url}<br/>'
+                f'<b>Codigo:</b> {codigo}<br/>'
+                f'(o escanea el QR)'
+            )
+        else:
+            caption = (
+                f'<b>Reparacion #{reparacion_id}</b><br/>'
+                f'Escanea el QR para consultar<br/>el estado de tu reparacion'
+            )
         qr_data = [
             [d, Paragraph(
-                f'<b>Reparacion #{reparacion_id}</b><br/>'
-                f'Escanea el QR para consultar<br/>el estado de tu reparacion',
+                caption,
                 ParagraphStyle('QRText', parent=styles['Normal'], fontSize=8,
                                textColor=AT_GRAY, alignment=TA_LEFT)
             )]

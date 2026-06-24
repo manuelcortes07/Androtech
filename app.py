@@ -2442,18 +2442,20 @@ def ticket_recogida(id):
     # H3: el QR lleva el CÓDIGO PÚBLICO no adivinable (no el id secuencial).
     _codigo = reparacion['codigo_publico']
     if getattr(g, 'taller_slug', None):
-        qr_data = f"{base_url}/t/{g.taller_slug}/consulta?codigo={_codigo}"
+        portal_url = f"{base_url}/t/{g.taller_slug}/consulta"
     else:
-        qr_data = f"{base_url}/consulta?codigo={_codigo}"
+        portal_url = f"{base_url}/consulta"
+    qr_data = f"{portal_url}?codigo={_codigo}"
     qr = QrCodeWidget(qr_data)
     qr.barWidth = 100
     qr.barHeight = 100
     d = Drawing(110, 110)
     d.add(qr)
 
-    # Info table with QR
+    # Info table with QR. El CÓDIGO va también en TEXTO (por si no se escanea).
     info_rows = [
         ['Reparación:', f'#{id}'],
+        ['Código seguim.:', _codigo or '—'],
         ['Cliente:', reparacion['cliente_nombre']],
         ['Dispositivo:', reparacion['dispositivo']],
         ['Estado:', reparacion['estado']],
@@ -2488,11 +2490,12 @@ def ticket_recogida(id):
     elements.append(divider)
     elements.append(Spacer(1, 5))
 
-    # Footer note
+    # Footer note: instrucción de seguimiento con la URL y el código (para teclear).
     elements.append(Paragraph(
         '<font size="8" color="#6c757d">'
-        'Presente este ticket al recoger su dispositivo. '
-        'Escanee el código QR para consultar el estado de su reparación en línea.<br/>'
+        'Presente este ticket al recoger su dispositivo.<br/>'
+        f'<b>Sigue tu reparación en:</b> {portal_url} &nbsp;·&nbsp; '
+        f'<b>código:</b> {_codigo} &nbsp;·&nbsp; o escanea el QR.<br/>'
         f'Generado: {datetime.now().strftime("%d/%m/%Y %H:%M")} — '
         f'{" · ".join(filter(None, [_marca["nombre"] or "Taller", _marca["direccion"], _marca["telefono"]]))}'
         '</font>', styles['TKCenter']
