@@ -64,7 +64,7 @@
             {% if tiene_permiso('usuarios_ver') or tiene_permiso('roles_gestionar') or tiene_permiso('inventario_ver') or session.rol == 'admin' %}
             <div class="at-side-sect">Administración</div>
             {% if tiene_permiso('inventario_ver') %}
-            <a class="at-nav-link {% if request.endpoint == 'inventario' %}is-active{% endif %}" href="{{ url_for('inventario') }}"><i class="bi bi-box-seam"></i>Inventario</a>
+            <a class="at-nav-link {% if request.endpoint == 'inventario.inventario' %}is-active{% endif %}" href="{{ url_for('inventario.inventario') }}"><i class="bi bi-box-seam"></i>Inventario</a>
             {% endif %}
             {% if tiene_permiso('usuarios_ver') %}
             <a class="at-nav-link {% if request.endpoint == 'admin_usuarios' %}is-active{% endif %}" href="{{ url_for('admin_usuarios') }}"><i class="bi bi-people-fill"></i>Usuarios</a>

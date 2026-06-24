@@ -15,7 +15,7 @@
                     {{ pieza.nombre }}
                 </div>
                 <div class="p-4">
-                    <form action="{{ url_for('editar_pieza', id=pieza.id) }}" method="POST" class="at-admin-form needs-validation" novalidate>
+                    <form action="{{ url_for('inventario.editar_pieza', id=pieza.id) }}" method="POST" class="at-admin-form needs-validation" novalidate>
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
                         <div class="mb-3">
@@ -74,7 +74,7 @@
                         </div>
 
                         <div class="d-flex gap-2 mt-4 pt-3 at-u163">
-                            <a href="{{ url_for('inventario') }}" class="at-btn-outline btn flex-fill text-center">
+                            <a href="{{ url_for('inventario.inventario') }}" class="at-btn-outline btn flex-fill text-center">
                                 <i class="bi bi-x-lg me-1"></i>Cancelar
                             </a>
                             <button type="submit" class="at-btn-primary btn flex-fill">

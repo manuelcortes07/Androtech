@@ -9,7 +9,7 @@
             <h1 class="at-page-title">Inventario de piezas</h1>
             <p class="at-page-sub">Gestión de repuestos y componentes del taller.</p>
         </div>
-        <a href="{{ url_for('nueva_pieza') }}" class="at-btn at-btn--primary at-btn--sm"><i class="bi bi-plus-lg"></i> Nueva pieza</a>
+        <a href="{{ url_for('inventario.nueva_pieza') }}" class="at-btn at-btn--primary at-btn--sm"><i class="bi bi-plus-lg"></i> Nueva pieza</a>
     </div>
 
     <!-- KPIs -->
@@ -31,7 +31,7 @@
     <!-- Filtros -->
     <div class="at-card mb-4">
         <div class="at-card__body">
-            <form method="GET" action="{{ url_for('inventario') }}">
+            <form method="GET" action="{{ url_for('inventario.inventario') }}">
                 <div class="d-flex gap-2 flex-wrap align-items-center">
                     <input type="text" name="q" class="at-input at-u91" placeholder="Buscar por nombre o proveedor…" value="{{ buscar }}">
                     <select name="categoria" class="at-select at-u244">
@@ -41,7 +41,7 @@
                         {% endfor %}
                     </select>
                     <button type="submit" class="at-btn at-btn--primary"><i class="bi bi-funnel"></i> Filtrar</button>
-                    {% if buscar or categoria %}<a href="{{ url_for('inventario') }}" class="at-btn at-btn--outline at-btn--icon"><i class="bi bi-x-lg"></i></a>{% endif %}
+                    {% if buscar or categoria %}<a href="{{ url_for('inventario.inventario') }}" class="at-btn at-btn--outline at-btn--icon"><i class="bi bi-x-lg"></i></a>{% endif %}
                 </div>
             </form>
         </div>
@@ -74,8 +74,8 @@
                         <td class="at-mono at-u96">{{ "%.2f"|format(pieza.precio_venta or 0) }}€</td>
                         <td>{{ pieza.proveedor or '—' }}</td>
                         <td class="text-end">
-                            <a href="{{ url_for('editar_pieza', id=pieza.id) }}" class="at-btn at-btn--ghost at-btn--icon at-btn--sm" title="Editar"><i class="bi bi-pencil"></i></a>
-                            <a href="{{ url_for('eliminar_pieza', id=pieza.id) }}" class="at-btn at-btn--icon at-btn--sm at-u97" title="Eliminar" data-confirm="Eliminar esta pieza del inventario?"><i class="bi bi-trash"></i></a>
+                            <a href="{{ url_for('inventario.editar_pieza', id=pieza.id) }}" class="at-btn at-btn--ghost at-btn--icon at-btn--sm" title="Editar"><i class="bi bi-pencil"></i></a>
+                            <a href="{{ url_for('inventario.eliminar_pieza', id=pieza.id) }}" class="at-btn at-btn--icon at-btn--sm at-u97" title="Eliminar" data-confirm="Eliminar esta pieza del inventario?"><i class="bi bi-trash"></i></a>
                         </td>
                     </tr>
                     {% else %}
@@ -84,7 +84,7 @@
                             <div class="text-center at-u245">
                                 <i class="bi bi-box-seam at-u246"></i>
                                 <p class="at-dim at-u128">No hay piezas en el inventario</p>
-                                <a href="{{ url_for('nueva_pieza') }}" class="at-btn at-btn--primary at-btn--sm"><i class="bi bi-plus-lg"></i> Añadir primera pieza</a>
+                                <a href="{{ url_for('inventario.nueva_pieza') }}" class="at-btn at-btn--primary at-btn--sm"><i class="bi bi-plus-lg"></i> Añadir primera pieza</a>
                             </div>
                         </td>
                     </tr>
