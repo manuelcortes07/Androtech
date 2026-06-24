@@ -40,55 +40,56 @@
 | publico | ✅ | 7 | `publico.{index,contacto,sobre,servicios,consulta,mis_reparaciones,solicitar_reparacion}` |
 | **clientes** | ✅ | 8 | `clientes.{clientes,nuevo_cliente,editar_cliente,borrar_cliente,historial_cliente,exportar_historial_cliente_pdf,buscar,exportar_clientes_csv}` |
 | **inventario** | ✅ | 7 | `inventario.{inventario,nueva_pieza,editar_pieza,eliminar_pieza,api_buscar_piezas,agregar_pieza_reparacion,eliminar_pieza_reparacion}` |
+| **cuenta/perfil** | ✅ | 6 | `cuenta.{perfil,cambiar_password,cambiar_email,cambiar_datos_taller,subir_logo_taller,eliminar_logo_taller}` |
 
 **Módulos de helpers compartidos extraídos** (para no ciclar): `csv_utils.py`
 (export CSV), `query_helpers.py` (`build_reparaciones_filters`,
-`_ultimas_actualizaciones`).
+`_ultimas_actualizaciones`), **`uploads.py`** (carpetas de subida +
+`allowed_file`/`es_imagen_valida`/`_sniff_image_type`), `utils.security.email_valido`.
 
-**`app.py`: 5.301 → 4.146 líneas.** Quedan **~50 rutas** por mover.
+**`app.py`: 5.301 → 3.906 líneas.** Quedan **~44 rutas** (admin, reparaciones,
+facturación/pagos, suscripción, dashboard).
 
-### ⚠️ Prerrequisito para los siguientes (perfil + reparaciones): `uploads.py`
+### ✅ `uploads.py` — hecho
 
-`subir_logo_taller`/`subir_fotos_reparacion`/`guardar_firma_reparacion` usan
-`UPLOAD_FOLDER`/`SIGNATURES_FOLDER`/`LOGO_FOLDER` + `allowed_file`/
-`es_imagen_valida` (hoy globals de `app.py`, **parcheados por conftest** a un
-tmpdir). Antes de mover esos blueprints hay que extraerlos a `uploads.py` y que
-**los handlers lean la carpeta vía atributo de módulo en tiempo de llamada**
-(`uploads.LOGO_FOLDER`), no `from uploads import LOGO_FOLDER` (el `from` fija el
-valor en import y el parche de conftest no llegaría). Actualizar conftest para
-parchear `uploads.*` en vez de `app.*`.
+Carpetas (`UPLOAD_FOLDER`/`SIGNATURES_FOLDER`/`LOGO_FOLDER`) + validadores
+extraídos. Los handlers leen las carpetas por atributo de módulo
+(`uploads.LOGO_FOLDER`) en call-time. **conftest fija `UPLOADS_DIR` al tmpdir
+ANTES de importar la app**, así `uploads.py` computa las carpetas bajo el tmpdir
+al importarse (se eliminaron los parches `app_module.*FOLDER`). Tests de
+foto/firma/logo verdes.
 
 ## Plan restante (un blueprint por commit, mismo checklist)
 
 > Orden por riesgo/acoplamiento. Cada uno necesita extraer antes sus helpers
 > compartidos (indicados) a un módulo común para no ciclar con `app.py`.
 
-3. **cuenta/perfil** — `perfil, cambiar_password, cambiar_email,
-   cambiar_datos_taller, subir_logo_taller, eliminar_logo_taller`. **Requiere
-   `uploads.py`** (logo). Helpers locales `_email_valido`, `_set_logo_file`,
-   `validar_contraseña` (último ya en utils.security). Nav: `url_for('perfil')`.
-4. **admin** — `admin_usuarios, nuevo_usuario, editar_usuario, borrar_usuario,
+1. **admin** — `admin_usuarios, nuevo_usuario, editar_usuario, borrar_usuario,
    admin_roles, nuevo_rol, editar_rol, borrar_rol, admin_auditoria,
    admin_seed_demo, admin_sistema, admin_test_email, admin_solicitudes,
    aceptar_solicitud, rechazar_solicitud, borrar_solicitud`. No usa uploads.
-   `admin_seed_demo` es grande (~262 líneas); muévela entera.
-5. **reparaciones** — `reparaciones, nueva_reparacion, editar_reparacion,
+   `admin_seed_demo` es grande (~262 líneas); muévela entera. ~16 rutas.
+2. **reparaciones** — `reparaciones, nueva_reparacion, editar_reparacion,
    borrar_reparacion, subir_fotos_reparacion, eliminar_foto_reparacion,
    firmar_reparacion, guardar_firma_reparacion, agregar_nota_reparacion,
    eliminar_nota_reparacion, ticket_recogida, generar_pdf_presupuesto,
    exportar_reparaciones_csv, calendario, api_calendario_eventos`. Helpers:
    `build_reparaciones_filters`, `_ultimas_actualizaciones`, `es_imagen_valida`/
-   `allowed_file`/`UPLOAD_FOLDER`/`SIGNATURES_FOLDER`, PDF. **Bloque caliente** —
-   muchos `url_for('editar_reparacion')` en plantillas.
-6. **facturacion/pagos** — `marcar_reparacion_pagada, publico_pagar, pago_exito,
+   `allowed_file`/`uploads.*` (✅ ya extraído), PDF. **Bloque caliente** —
+   muchos `url_for('editar_reparacion')` en plantillas; ojo: `agregar/
+   eliminar_pieza_reparacion` (ya en `inventario`) redirigen a `editar_reparacion`
+   → al renombrarlo a `reparaciones.editar_reparacion` hay que actualizar esos
+   `url_for` en `blueprints/inventario.py`.
+3. **facturacion/pagos** — `marcar_reparacion_pagada, publico_pagar, pago_exito,
    stripe_webhook`. ⚠️ `stripe_webhook` **CSRF-exento** (`_CSRF_EXENTAS`) y por
    **firma de Stripe**: al mover, conservar la exención (ahora
    `pagos.stripe_webhook`) y la verificación de firma intactas.
-7. **suscripcion** — `signup, suscripcion, suscripcion_bloqueado,
+4. **suscripcion** — `signup, suscripcion, suscripcion_bloqueado,
    suscripcion_portal, saas_webhook`. ⚠️ `saas_webhook` CSRF-exento + firma.
    Mover también la **puerta** `_GATE_EXENTAS`/`puerta_suscripcion` o dejarla en
    la fábrica (es before_request). Actualizar las exenciones a `suscripcion.*`.
-8. **dashboard + resto** — `dashboard, healthcheck`. La función `dashboard`
+   Nota: `signup` usa `email_valido` (✅ en utils.security) + `_slugify`/`_slug_unico`.
+5. **dashboard + resto** — `dashboard, healthcheck`. La función `dashboard`
    (~276 líneas, ~20 queries) es la más grande; muévela entera sin trocear su
    lógica.
 
