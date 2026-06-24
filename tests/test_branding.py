@@ -152,6 +152,20 @@ class TestChromeRenderizado:
         body = logged_admin.get("/dashboard").get_data(as_text=True)
         assert "--accent:#ff0000" not in body
 
+    def test_reparaciones_blueprint_rutas_cargan(self, logged_admin, db_conn):
+        # Guarda el blueprint reparaciones (movido por slice+transform).
+        db_conn.execute("INSERT INTO clientes (id, nombre, taller_id) VALUES (95, 'C', 1)")
+        db_conn.execute(
+            "INSERT INTO reparaciones (id, cliente_id, dispositivo, estado, taller_id, "
+            "codigo_publico) VALUES (95, 95, 'iPhone', 'Pendiente', 1, 'RCODE95')")
+        db_conn.commit()
+        assert logged_admin.get("/reparaciones").status_code == 200
+        assert logged_admin.get("/reparaciones/editar/95").status_code == 200
+        assert logged_admin.get("/calendario").status_code == 200
+        assert logged_admin.get("/api/calendario/eventos").status_code == 200
+        assert logged_admin.get("/reparaciones/95/ticket").get_data()[:4] == b"%PDF"
+        assert logged_admin.get("/reparaciones/pdf/95").get_data()[:4] == b"%PDF"
+
     def test_admin_blueprint_rutas_cargan(self, logged_admin):
         # Guarda el blueprint admin (movido por transformación): las rutas no
         # cubiertas por otros tests deben responder sin 500 (NameError, etc.).

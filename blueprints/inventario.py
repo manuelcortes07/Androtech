@@ -171,11 +171,11 @@ def agregar_pieza_reparacion(id):
         pieza = s.get(InventarioPieza, pieza_id)
         if not pieza:
             flash('Pieza no encontrada.', 'danger')
-            return redirect(url_for('editar_reparacion', id=id))
+            return redirect(url_for('reparaciones.editar_reparacion', id=id))
 
         if pieza.cantidad < cantidad:
             flash(f'Stock insuficiente. Disponible: {pieza.cantidad}', 'warning')
-            return redirect(url_for('editar_reparacion', id=id))
+            return redirect(url_for('reparaciones.editar_reparacion', id=id))
 
         s.add(PiezaReparacion(
             reparacion_id=id, pieza_id=pieza_id, cantidad=cantidad,
@@ -187,7 +187,7 @@ def agregar_pieza_reparacion(id):
         pieza_nombre = pieza.nombre
         s.commit()
     flash(f'Pieza "{pieza_nombre}" x{cantidad} añadida a la reparación.', 'success')
-    return redirect(url_for('editar_reparacion', id=id))
+    return redirect(url_for('reparaciones.editar_reparacion', id=id))
 
 
 @bp.route("/reparaciones/piezas/<int:uso_id>/eliminar", methods=["POST"])
@@ -198,7 +198,7 @@ def eliminar_pieza_reparacion(uso_id):
         uso = s.get(PiezaReparacion, uso_id)
         if not uso:
             flash('Registro no encontrado.', 'danger')
-            return redirect(url_for('reparaciones'))
+            return redirect(url_for('reparaciones.reparaciones'))
 
         reparacion_id = uso.reparacion_id
         # Restaurar stock
@@ -209,4 +209,4 @@ def eliminar_pieza_reparacion(uso_id):
         s.delete(uso)
         s.commit()
     flash('Pieza devuelta al inventario.', 'success')
-    return redirect(url_for('editar_reparacion', id=reparacion_id))
+    return redirect(url_for('reparaciones.editar_reparacion', id=reparacion_id))

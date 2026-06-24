@@ -57,8 +57,8 @@
             {% if session.rol == 'admin' %}
             <a class="at-nav-link {% if request.endpoint == 'clientes.historial_cliente' %}is-active{% endif %}" href="/cliente/historial"><i class="bi bi-clock-history"></i>Historial clientes</a>
             {% endif %}
-            <a class="at-nav-link {% if request.endpoint == 'reparaciones' %}is-active{% endif %}" href="/reparaciones"><i class="bi bi-tools"></i>Reparaciones</a>
-            <a class="at-nav-link {% if request.endpoint == 'calendario' %}is-active{% endif %}" href="/calendario"><i class="bi bi-calendar3"></i>Calendario</a>
+            <a class="at-nav-link {% if request.endpoint == 'reparaciones.reparaciones' %}is-active{% endif %}" href="/reparaciones"><i class="bi bi-tools"></i>Reparaciones</a>
+            <a class="at-nav-link {% if request.endpoint == 'reparaciones.calendario' %}is-active{% endif %}" href="/calendario"><i class="bi bi-calendar3"></i>Calendario</a>
             <a class="at-nav-link {% if request.endpoint == 'publico.servicios' %}is-active{% endif %}" href="/servicios"><i class="bi bi-wrench"></i>Servicios</a>
 
             {% if tiene_permiso('usuarios_ver') or tiene_permiso('roles_gestionar') or tiene_permiso('inventario_ver') or session.rol == 'admin' %}
