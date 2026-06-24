@@ -18,13 +18,14 @@
             <div class="at-card__body">
                 <form method="POST" novalidate>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <label class="at-label" for="codigo"><i class="bi bi-qr-code"></i> Código de seguimiento</label>
+                    <label class="at-label" for="codigo"><i class="bi bi-qr-code"></i> Introduce tu código de seguimiento</label>
                     <div class="at-u114">
                         <input class="at-input at-u115" type="text" id="codigo" name="codigo" required
-                               autocomplete="off" placeholder="Ej: aK9p-2Lq..." value="{{ codigo_prefill if codigo_prefill else '' }}">
+                               autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+                               placeholder="Ej: aK9p-2Lq8xZ" value="{{ codigo_prefill if codigo_prefill else '' }}">
                         <button type="submit" class="at-btn at-btn--primary"><i class="bi bi-search"></i> Consultar</button>
                     </div>
-                    <p class="at-dim at-u116">El código aparece en tu resguardo y en el QR de tu recibo de entrega.</p>
+                    <p class="at-dim at-u116">Lo encontrarás en tu resguardo (recibo de entrega) o en el enlace/QR que te enviamos. Respeta mayúsculas y minúsculas.</p>
                 </form>
                 {% if error %}
                 <div class="at-alert at-alert--danger at-u117" role="alert">

@@ -123,7 +123,10 @@ def consulta(slug=None):
     codigo_get = request.args.get('codigo', '').strip()
 
     if request.method == "POST" or codigo_get:
-        codigo = (request.form.get("codigo") or codigo_get).strip()
+        # UX de tecleo: tolera espacios (un código válido NUNCA los lleva, así que
+        # quitar TODO el whitespace es seguro). NO se normaliza mayúsc./minúsc.:
+        # el código es case-SENSITIVE (token_urlsafe) y la resolución H3 no cambia.
+        codigo = "".join((request.form.get("codigo") or codigo_get).split())
         if not codigo:
             error = "Por favor, introduce tu código de seguimiento."
         else:

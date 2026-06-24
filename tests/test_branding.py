@@ -176,6 +176,33 @@ class TestChromeRenderizado:
         assert r.status_code == 404
         assert "OTHERCODE81" not in r.get_data(as_text=True)
 
+    def test_consulta_tolera_espacios_en_codigo(self, client, db_conn):
+        db_conn.execute("INSERT INTO clientes (id, nombre, taller_id) VALUES (90, 'C', 1)")
+        db_conn.execute(
+            "INSERT INTO reparaciones (id, cliente_id, dispositivo, estado, taller_id, "
+            "codigo_publico) VALUES (90, 90, 'iPhone 90', 'Terminado', 1, 'ABC123XYZ')")
+        db_conn.commit()
+        # Código tecleado con espacios de más (alrededor y en medio).
+        r = client.post("/consulta", data={"codigo": "  ABC1 23X YZ  ", "csrf_token": "tk"})
+        assert r.status_code == 200
+        assert "iPhone 90" in r.get_data(as_text=True)
+
+    def test_consulta_codigo_invalido_mensaje_generico(self, client):
+        r = client.post("/consulta", data={"codigo": "NOEXISTE999", "csrf_token": "tk"})
+        assert r.status_code == 200
+        assert "No se encontró" in r.get_data(as_text=True)
+
+    def test_consulta_no_busca_por_id_secuencial(self, client, db_conn):
+        # H3: jamás por id. Teclear el id NO debe encontrar la reparación.
+        db_conn.execute("INSERT INTO clientes (id, nombre, taller_id) VALUES (91, 'C', 1)")
+        db_conn.execute(
+            "INSERT INTO reparaciones (id, cliente_id, dispositivo, estado, taller_id, "
+            "codigo_publico) VALUES (91, 91, 'SecretDevice', 'Terminado', 1, 'REALCODE91')")
+        db_conn.commit()
+        r = client.post("/consulta", data={"codigo": "91", "csrf_token": "tk"})  # el id
+        assert r.status_code == 200
+        assert "SecretDevice" not in r.get_data(as_text=True)
+
     def test_mis_reparaciones_muestra_repas_de_email_valido(self, client, db_conn):
         # Reproducción del reporte: con un email que SÍ tiene reparaciones en el
         # taller, /mis-reparaciones debe listarlas (no es regresión del refactor).
