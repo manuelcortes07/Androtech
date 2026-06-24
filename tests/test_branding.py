@@ -152,6 +152,30 @@ class TestChromeRenderizado:
         body = logged_admin.get("/dashboard").get_data(as_text=True)
         assert "--accent:#ff0000" not in body
 
+    def test_ficha_muestra_codigo_y_enlace_publico(self, logged_admin, db_conn):
+        # UX: el taller ve el código y el enlace público para dárselo al cliente.
+        db_conn.execute("INSERT INTO clientes (id, nombre, taller_id) VALUES (80, 'C', 1)")
+        db_conn.execute(
+            "INSERT INTO reparaciones (id, cliente_id, dispositivo, estado, taller_id, "
+            "codigo_publico) VALUES (80, 80, 'iPhone', 'Pendiente', 1, 'TRACKCODE80')")
+        db_conn.commit()
+        body = logged_admin.get("/reparaciones/editar/80").get_data(as_text=True)
+        assert "TRACKCODE80" in body
+        assert "consulta?codigo=TRACKCODE80" in body  # enlace público completo
+
+    def test_ficha_de_otro_taller_404_no_expone_codigo(self, logged_admin, db_conn):
+        # JUEZ: la ficha (y su código) de otro taller NO es accesible.
+        db_conn.execute("INSERT INTO talleres (id, nombre, slug, fecha_alta, estado, plan) "
+                        "VALUES (2, 'B', 'b', '2026-01-01', 'activo', 'basico')")
+        db_conn.execute("INSERT INTO clientes (id, nombre, taller_id) VALUES (81, 'C', 2)")
+        db_conn.execute(
+            "INSERT INTO reparaciones (id, cliente_id, dispositivo, estado, taller_id, "
+            "codigo_publico) VALUES (81, 81, 'X', 'Pendiente', 2, 'OTHERCODE81')")
+        db_conn.commit()
+        r = logged_admin.get("/reparaciones/editar/81")
+        assert r.status_code == 404
+        assert "OTHERCODE81" not in r.get_data(as_text=True)
+
     def test_mis_reparaciones_muestra_repas_de_email_valido(self, client, db_conn):
         # Reproducción del reporte: con un email que SÍ tiene reparaciones en el
         # taller, /mis-reparaciones debe listarlas (no es regresión del refactor).

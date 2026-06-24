@@ -200,6 +200,52 @@
                         </div>
                     </form>
 
+                    <!-- SEGUIMIENTO DEL CLIENTE (código público + enlace compartible) -->
+                    {% if reparacion.codigo_publico %}
+                    <div class="mt-4 pt-4 at-u184">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <i class="bi bi-link-45deg at-u22"></i>
+                            <h6 class="fw-bold mb-0 at-u42">Seguimiento del cliente</h6>
+                        </div>
+                        <p class="at-dim small mb-3">
+                            Comparte este enlace o código con el cliente para que siga su reparación
+                            <strong>sin iniciar sesión</strong>.
+                        </p>
+                        <div class="mb-3">
+                            <span class="form-label fw-semibold small d-block mb-1">Código de seguimiento</span>
+                            <code class="at-track-code">{{ reparacion.codigo_publico }}</code>
+                        </div>
+                        <label class="form-label fw-semibold small" for="trackLink">Enlace público</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control at-mono" id="trackLink" readonly
+                                   value="{{ request.host_url }}{% if taller_slug %}t/{{ taller_slug }}/{% endif %}consulta?codigo={{ reparacion.codigo_publico }}">
+                            <button class="btn at-btn-outline" type="button" id="btnCopyTrack">
+                                <i class="bi bi-clipboard me-1"></i><span>Copiar</span>
+                            </button>
+                            <a class="btn at-btn-outline" href="/reparaciones/{{ reparacion.id }}/ticket" title="Ticket de recogida con QR">
+                                <i class="bi bi-qr-code me-1"></i>QR
+                            </a>
+                        </div>
+                    </div>
+                    <script nonce="{{ csp_nonce }}">
+                    (function(){
+                        var btn=document.getElementById('btnCopyTrack');
+                        var inp=document.getElementById('trackLink');
+                        if(!btn||!inp) return;
+                        btn.addEventListener('click',function(){
+                            inp.focus(); inp.select(); inp.setSelectionRange(0,99999);
+                            var ok=function(){ var s=btn.querySelector('span'); if(!s) return;
+                                var t=s.textContent; s.textContent='¡Copiado!';
+                                setTimeout(function(){ s.textContent=t; },1500); };
+                            if(navigator.clipboard&&navigator.clipboard.writeText){
+                                navigator.clipboard.writeText(inp.value).then(ok).catch(function(){
+                                    try{ document.execCommand('copy'); ok(); }catch(e){} });
+                            }else{ try{ document.execCommand('copy'); ok(); }catch(e){} }
+                        });
+                    })();
+                    </script>
+                    {% endif %}
+
                     <!-- GALERÍA DE FOTOS -->
                     <div class="mt-4 pt-4 at-u184">
                         <div class="d-flex align-items-center justify-content-between mb-3">
