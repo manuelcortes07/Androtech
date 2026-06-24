@@ -10,7 +10,7 @@
     <!-- Contadores -->
     <div class="row g-3 mb-4">
         <div class="col-6 col-md-3">
-            <a href="{{ url_for('admin_solicitudes') }}" class="text-decoration-none">
+            <a href="{{ url_for('admin.admin_solicitudes') }}" class="text-decoration-none">
                 <div class="at-admin-card p-3 text-center {% if estado_filtro == 'todas' %}border border-primary{% endif %}">
                     <div class="fw-bold fs-3 at-u42">{{ total }}</div>
                     <small class="text-muted">Total</small>
@@ -18,7 +18,7 @@
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a href="{{ url_for('admin_solicitudes', estado='pendiente') }}" class="text-decoration-none">
+            <a href="{{ url_for('admin.admin_solicitudes', estado='pendiente') }}" class="text-decoration-none">
                 <div class="at-admin-card p-3 text-center {% if estado_filtro == 'pendiente' %}border border-warning{% endif %}">
                     <div class="fw-bold fs-3 at-u43">{{ pendientes }}</div>
                     <small class="text-muted">Pendientes</small>
@@ -26,7 +26,7 @@
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a href="{{ url_for('admin_solicitudes', estado='aceptada') }}" class="text-decoration-none">
+            <a href="{{ url_for('admin.admin_solicitudes', estado='aceptada') }}" class="text-decoration-none">
                 <div class="at-admin-card p-3 text-center {% if estado_filtro == 'aceptada' %}border border-success{% endif %}">
                     <div class="fw-bold fs-3 at-u15">{{ aceptadas }}</div>
                     <small class="text-muted">Aceptadas</small>
@@ -34,7 +34,7 @@
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a href="{{ url_for('admin_solicitudes', estado='rechazada') }}" class="text-decoration-none">
+            <a href="{{ url_for('admin.admin_solicitudes', estado='rechazada') }}" class="text-decoration-none">
                 <div class="at-admin-card p-3 text-center {% if estado_filtro == 'rechazada' %}border border-danger{% endif %}">
                     <div class="fw-bold fs-3 at-u44">{{ rechazadas }}</div>
                     <small class="text-muted">Rechazadas</small>
@@ -127,7 +127,7 @@
                         </a>
                     </div>
                     {% elif s.estado == 'rechazada' %}
-                    <form method="POST" action="{{ url_for('borrar_solicitud', id=s.id) }}" class="d-inline"
+                    <form method="POST" action="{{ url_for('admin.borrar_solicitud', id=s.id) }}" class="d-inline"
                           data-confirm="Eliminar esta solicitud permanentemente?">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <button class="btn btn-outline-danger btn-sm px-3">
@@ -144,7 +144,7 @@
         <div class="modal fade" id="aceptarModal{{ s.id }}" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <form method="POST" action="{{ url_for('aceptar_solicitud', id=s.id) }}">
+                    <form method="POST" action="{{ url_for('admin.aceptar_solicitud', id=s.id) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <div class="modal-header at-u53">
                             <h5 class="modal-title"><i class="bi bi-check-circle me-2"></i>Aceptar solicitud</h5>
@@ -175,7 +175,7 @@
         <div class="modal fade" id="rechazarModal{{ s.id }}" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <form method="POST" action="{{ url_for('rechazar_solicitud', id=s.id) }}">
+                    <form method="POST" action="{{ url_for('admin.rechazar_solicitud', id=s.id) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <div class="modal-header at-u54">
                             <h5 class="modal-title"><i class="bi bi-x-circle me-2"></i>Rechazar solicitud</h5>
@@ -208,7 +208,7 @@
         <p class="text-muted">
             {% if estado_filtro != 'todas' %}
             No hay solicitudes con estado "{{ estado_filtro }}".
-            <a href="{{ url_for('admin_solicitudes') }}">Ver todas</a>
+            <a href="{{ url_for('admin.admin_solicitudes') }}">Ver todas</a>
             {% else %}
             Cuando un cliente envie una solicitud desde la web, aparecera aqui.
             {% endif %}

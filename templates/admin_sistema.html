@@ -12,7 +12,7 @@
             <h1 class="at-section-title mt-2 mb-1">Estado del Sistema</h1>
             <p class="at-section-sub">Estadisticas tecnicas del servidor en tiempo real</p>
         </div>
-        <a href="{{ url_for('admin_sistema') }}" class="btn at-btn-primary mt-2 mt-md-0">
+        <a href="{{ url_for('admin.admin_sistema') }}" class="btn at-btn-primary mt-2 mt-md-0">
             <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
         </a>
     </div>
@@ -218,7 +218,7 @@
                             Falta MAIL_USERNAME o MAIL_PASSWORD (App Password 16 chars).
                         </p>
                     {% endif %}
-                    <a href="{{ url_for('admin_test_email') }}" class="btn btn-sm btn-outline-primary mt-2">
+                    <a href="{{ url_for('admin.admin_test_email') }}" class="btn btn-sm btn-outline-primary mt-2">
                         <i class="bi bi-send me-1"></i>Probar envio
                     </a>
                 </div>

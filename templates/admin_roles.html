@@ -10,7 +10,7 @@
             <h1 class="at-section-title mt-2 mb-1">Gestion de Roles y Permisos</h1>
             <p class="at-section-sub">Define que puede hacer cada tipo de usuario en el sistema</p>
         </div>
-        <a href="{{ url_for('nuevo_rol') }}" class="at-btn-primary btn mt-2 mt-md-0">
+        <a href="{{ url_for('admin.nuevo_rol') }}" class="at-btn-primary btn mt-2 mt-md-0">
             <i class="bi bi-plus-circle me-1"></i> Nuevo Rol
         </a>
     </div>
@@ -85,12 +85,12 @@
 
                     <!-- Acciones -->
                     <div class="d-flex gap-2">
-                        <a href="{{ url_for('editar_rol', id=rol.id) }}" class="btn btn-sm flex-fill at-u19"
+                        <a href="{{ url_for('admin.editar_rol', id=rol.id) }}" class="btn btn-sm flex-fill at-u19"
                           >
                             <i class="bi bi-pencil me-1"></i>Editar Permisos
                         </a>
                         {% if not rol.es_sistema %}
-                        <a href="{{ url_for('borrar_rol', id=rol.id) }}"
+                        <a href="{{ url_for('admin.borrar_rol', id=rol.id) }}"
                            class="btn btn-sm at-u20"
                            data-confirm="Eliminar el rol {{ rol.nombre }}?">
                             <i class="bi bi-trash"></i>
@@ -127,7 +127,7 @@
                     <i class="bi bi-arrow-left-right me-2 at-u15"></i>Volver
                 </div>
                 <div class="at-dash-card-body">
-                    <a href="{{ url_for('admin_usuarios') }}" class="at-btn-outline btn btn-sm">
+                    <a href="{{ url_for('admin.admin_usuarios') }}" class="at-btn-outline btn btn-sm">
                         <i class="bi bi-people me-1"></i>Gestion de Usuarios
                     </a>
                 </div>

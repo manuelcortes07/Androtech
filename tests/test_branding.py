@@ -152,6 +152,17 @@ class TestChromeRenderizado:
         body = logged_admin.get("/dashboard").get_data(as_text=True)
         assert "--accent:#ff0000" not in body
 
+    def test_admin_blueprint_rutas_cargan(self, logged_admin):
+        # Guarda el blueprint admin (movido por transformación): las rutas no
+        # cubiertas por otros tests deben responder sin 500 (NameError, etc.).
+        assert logged_admin.get("/admin/usuarios").status_code == 200
+        assert logged_admin.get("/admin/sistema").status_code == 200
+        assert logged_admin.get("/admin/test-email").status_code == 200
+        assert logged_admin.get("/admin/solicitudes").status_code == 200
+        assert logged_admin.get("/admin/auditoria").status_code == 200
+        # seed-demo sin clave → 403 (no 500).
+        assert logged_admin.get("/admin/seed-demo").status_code == 403
+
     def test_ficha_muestra_codigo_y_enlace_publico(self, logged_admin, db_conn):
         # UX: el taller ve el código y el enlace público para dárselo al cliente.
         db_conn.execute("INSERT INTO clientes (id, nombre, taller_id) VALUES (80, 'C', 1)")

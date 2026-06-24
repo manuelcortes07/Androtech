@@ -13,7 +13,7 @@
             <h1 class="at-section-title mt-2 mb-1">Gestion de Usuarios</h1>
             <p class="at-section-sub">Administra usuarios y roles del sistema</p>
         </div>
-        <a href="{{ url_for('nuevo_usuario') }}" class="at-btn-primary btn mt-2 mt-md-0">
+        <a href="{{ url_for('admin.nuevo_usuario') }}" class="at-btn-primary btn mt-2 mt-md-0">
             <i class="bi bi-plus-circle me-1"></i> Nuevo Usuario
         </a>
     </div>
@@ -106,14 +106,14 @@
                             </span>
                         </td>
                         <td class="text-end">
-                            <a href="{{ url_for('editar_usuario', id=usuario.id) }}"
+                            <a href="{{ url_for('admin.editar_usuario', id=usuario.id) }}"
                                class="btn btn-sm at-u19"
                               
                                title="Editar usuario">
                                 <i class="bi bi-pencil"></i> Editar
                             </a>
                             {% if session.get('usuario') != usuario.usuario %}
-                            <a href="{{ url_for('borrar_usuario', id=usuario.id) }}"
+                            <a href="{{ url_for('admin.borrar_usuario', id=usuario.id) }}"
                                class="btn btn-sm ms-1 at-u20"
                               
                                data-confirm="¿Estas seguro de que quieres eliminar este usuario?"
@@ -138,7 +138,7 @@
             <i class="bi bi-people at-u67"></i>
             <h5 class="mt-3 mb-1 at-u42">No hay usuarios registrados</h5>
             <p class="text-muted mb-3">Crea el primer usuario para comenzar a gestionar el sistema.</p>
-            <a href="{{ url_for('nuevo_usuario') }}" class="at-btn-primary btn btn-sm">
+            <a href="{{ url_for('admin.nuevo_usuario') }}" class="at-btn-primary btn btn-sm">
                 <i class="bi bi-plus-circle me-1"></i> Crear primer usuario
             </a>
         </div>
