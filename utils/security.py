@@ -80,3 +80,9 @@ def validar_precio(precio):
         return p > 0
     except Exception:
         return False
+
+
+def email_valido(email: str) -> bool:
+    """True si `email` tiene una forma básica válida (local@dominio.tld)."""
+    import re
+    return bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email or ""))

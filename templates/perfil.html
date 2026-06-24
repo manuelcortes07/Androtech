@@ -42,13 +42,13 @@
                 </div>
                 {% endif %}
                 <div class="d-flex flex-column gap-2">
-                    <form method="POST" action="{{ url_for('subir_logo_taller') }}" enctype="multipart/form-data" class="d-flex gap-2 align-items-center flex-wrap">
+                    <form method="POST" action="{{ url_for('cuenta.subir_logo_taller') }}" enctype="multipart/form-data" class="d-flex gap-2 align-items-center flex-wrap">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <input type="file" class="form-control form-control-sm at-u272b" name="logo" accept="image/png,image/jpeg,image/webp,image/gif" required>
                         <button type="submit" class="btn btn-primary btn-sm">{{ 'Reemplazar' if marca.logo_static else 'Subir logo' }}</button>
                     </form>
                     {% if marca.logo_static %}
-                    <form method="POST" action="{{ url_for('eliminar_logo_taller') }}">
+                    <form method="POST" action="{{ url_for('cuenta.eliminar_logo_taller') }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i> Quitar logo</button>
                     </form>
@@ -62,7 +62,7 @@
         <div class="card-body p-4">
             <h5 class="card-title mb-3"><i class="bi bi-shop me-1"></i>Datos de facturación del taller</h5>
             <p class="text-muted at-u171">Aparecen como <strong>emisor</strong> en tus presupuestos, facturas, tickets, exports CSV y emails a clientes. El email de contacto se cambia más abajo.</p>
-            <form method="POST" action="{{ url_for('cambiar_datos_taller') }}" novalidate>
+            <form method="POST" action="{{ url_for('cuenta.cambiar_datos_taller') }}" novalidate>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -106,7 +106,7 @@
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-body p-4">
             <h5 class="card-title mb-3"><i class="bi bi-lock-fill me-1"></i>Cambiar contraseña</h5>
-            <form method="POST" action="{{ url_for('cambiar_password') }}" novalidate>
+            <form method="POST" action="{{ url_for('cuenta.cambiar_password') }}" novalidate>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <div class="mb-3">
                     <label for="actual" class="form-label">Contraseña actual</label>
@@ -128,7 +128,7 @@
         <div class="card-body p-4">
             <h5 class="card-title mb-3"><i class="bi bi-envelope-fill me-1"></i>Cambiar email</h5>
             <p class="text-muted at-u171">Al cambiar el email tendrás que volver a verificarlo.</p>
-            <form method="POST" action="{{ url_for('cambiar_email') }}" novalidate>
+            <form method="POST" action="{{ url_for('cuenta.cambiar_email') }}" novalidate>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <div class="mb-3">
                     <label for="email" class="form-label">Nuevo email</label>
