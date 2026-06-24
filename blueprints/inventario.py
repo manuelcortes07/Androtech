@@ -3,8 +3,8 @@
 Inventario de piezas (CRUD + API de búsqueda) y el uso de piezas en una
 reparación (alta/baja con ajuste de stock). Comportamiento idéntico al que tenían
 en app.py; sólo cambia el nombre de endpoint (inventario → inventario.inventario,
-etc.). Las redirecciones a `editar_reparacion`/`reparaciones` siguen apuntando a
-esos endpoints (aún en app.py) hasta que se migre el dominio reparaciones.
+etc.). Las redirecciones al detalle de una reparación apuntan a
+`reparaciones.editar_reparacion` (ya migrado a su propio blueprint).
 """
 
 from __future__ import annotations

@@ -42,14 +42,21 @@
 | **inventario** | ✅ | 7 | `inventario.{inventario,nueva_pieza,editar_pieza,eliminar_pieza,api_buscar_piezas,agregar_pieza_reparacion,eliminar_pieza_reparacion}` |
 | **cuenta/perfil** | ✅ | 6 | `cuenta.{perfil,cambiar_password,cambiar_email,cambiar_datos_taller,subir_logo_taller,eliminar_logo_taller}` |
 | **admin** | ✅ | 16 | `admin.{admin_usuarios,nuevo_usuario,editar_usuario,borrar_usuario,admin_roles,nuevo_rol,editar_rol,borrar_rol,admin_auditoria,admin_seed_demo,admin_sistema,admin_test_email,admin_solicitudes,aceptar_solicitud,rechazar_solicitud,borrar_solicitud}` |
+| **reparaciones** | ✅ | 16 | `reparaciones.{reparaciones,nueva_reparacion,editar_reparacion,borrar_reparacion,subir_fotos_reparacion,eliminar_foto_reparacion,firmar_reparacion,guardar_firma_reparacion,agregar_nota_reparacion,eliminar_nota_reparacion,calendario,api_calendario_eventos,ticket_recogida,generar_pdf_presupuesto,export_reparaciones,exportar_reparaciones_csv}` |
 
 **Módulos de helpers compartidos extraídos** (para no ciclar): `csv_utils.py`
 (export CSV), `query_helpers.py` (`build_reparaciones_filters`,
 `_ultimas_actualizaciones`), **`uploads.py`** (carpetas de subida +
 `allowed_file`/`es_imagen_valida`/`_sniff_image_type`), `utils.security.email_valido`.
 
-**`app.py`: 5.301 → 2.859 líneas.** Quedan **~28 rutas** (reparaciones,
-facturación/pagos, suscripción, dashboard).
+**`app.py`: 5.301 → 1.757 líneas (−67 %).** Quedan **~12 rutas**:
+facturación/pagos, suscripción, dashboard.
+
+> **Trampa observada al mover reparaciones**: sus rutas estaban interleadas con
+> las **registraciones** de `inventario` y `admin` (insertadas en commits
+> anteriores). El slice se las llevó a `reparaciones.py` (donde `app` no existe).
+> Solución: quitarlas de `reparaciones.py` y reubicarlas en `app.py`. Lección: al
+> hacer slice por rango, comprobar que no engulle líneas `app.register_blueprint`.
 
 > **Técnica para bloques grandes** (admin): mover el bloque por *slice +
 > transform* programático (`@app.route`→`@bp.route`, `url_for('X'`→`url_for('admin.X'`,
@@ -72,30 +79,18 @@ foto/firma/logo verdes.
 > Orden por riesgo/acoplamiento. Cada uno necesita extraer antes sus helpers
 > compartidos (indicados) a un módulo común para no ciclar con `app.py`.
 
-1. **reparaciones** — `reparaciones, nueva_reparacion, editar_reparacion,
-   borrar_reparacion, subir_fotos_reparacion, eliminar_foto_reparacion,
-   firmar_reparacion, guardar_firma_reparacion, agregar_nota_reparacion,
-   eliminar_nota_reparacion, ticket_recogida, generar_pdf_presupuesto,
-   exportar_reparaciones_csv, calendario, api_calendario_eventos`. Helpers:
-   `build_reparaciones_filters`, `_ultimas_actualizaciones`, `es_imagen_valida`/
-   `allowed_file`/`uploads.*` (✅ ya extraído), PDF. **Bloque caliente** —
-   muchos `url_for('editar_reparacion')` en plantillas; ojo: `agregar/
-   eliminar_pieza_reparacion` (ya en `inventario`) redirigen a `editar_reparacion`
-   → al renombrarlo a `reparaciones.editar_reparacion` hay que actualizar esos
-   `url_for` en `blueprints/inventario.py`. **3 slices** (no contiguo):
-   `export_reparaciones` (early, ~474), bloque grande
-   `exportar_reparaciones_csv`…`ticket_recogida`, y `generar_pdf_presupuesto`
-   (separado por `marcar_reparacion_pagada`, que es de facturación).
-2. **facturacion/pagos** — `marcar_reparacion_pagada, publico_pagar, pago_exito,
+1. **facturacion/pagos** — `marcar_reparacion_pagada, publico_pagar, pago_exito,
    stripe_webhook`. ⚠️ `stripe_webhook` **CSRF-exento** (`_CSRF_EXENTAS`) y por
    **firma de Stripe**: al mover, conservar la exención (ahora
-   `pagos.stripe_webhook`) y la verificación de firma intactas.
-3. **suscripcion** — `signup, suscripcion, suscripcion_bloqueado,
-   suscripcion_portal, saas_webhook`. ⚠️ `saas_webhook` CSRF-exento + firma.
-   Mover también la **puerta** `_GATE_EXENTAS`/`puerta_suscripcion` o dejarla en
-   la fábrica (es before_request). Actualizar las exenciones a `suscripcion.*`.
-   Nota: `signup` usa `email_valido` (✅ en utils.security) + `_slugify`/`_slug_unico`.
-4. **dashboard + resto** — `dashboard, healthcheck`. La función `dashboard`
+   `pagos.stripe_webhook`) y la verificación de firma + idempotencia/importe (H4/H6)
+   intactas. `marcar_reparacion_pagada` redirige a `reparaciones.editar_reparacion`.
+2. **suscripcion** — `signup, suscripcion, suscripcion_bloqueado,
+   suscripcion_portal, saas_webhook`. ⚠️ `saas_webhook` CSRF-exento + firma +
+   verificación de `taller_id` de la metadata. Mover también la **puerta**
+   `_GATE_EXENTAS`/`puerta_suscripcion` o dejarla en la fábrica (es before_request).
+   Actualizar las exenciones a `suscripcion.*`. `signup` usa `email_valido` (✅) +
+   `_slugify`/`_slug_unico`.
+3. **dashboard + resto** — `dashboard, healthcheck`. La función `dashboard`
    (~276 líneas, ~20 queries) es la más grande; muévela entera sin trocear su
    lógica.
 
