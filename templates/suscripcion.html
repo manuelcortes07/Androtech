@@ -47,7 +47,7 @@
 
             {# El botón al Stripe Customer Portal se añade en 3b.5. #}
             {% if taller and taller.stripe_customer_id %}
-                <a href="{{ url_for('suscripcion_portal') }}" class="btn btn-primary">
+                <a href="{{ url_for('suscripcion.suscripcion_portal') }}" class="btn btn-primary">
                     <i class="bi bi-gear me-1"></i>Gestionar suscripción y pago
                 </a>
             {% else %}

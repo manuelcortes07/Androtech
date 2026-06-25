@@ -104,7 +104,7 @@
                 <div class="at-usermenu-pop">
                     <a href="{{ url_for('cuenta.perfil') }}"><i class="bi bi-person-circle"></i>Mi perfil</a>
                     {% if session.rol == 'admin' %}
-                    <a href="{{ url_for('suscripcion') }}"><i class="bi bi-credit-card-2-front"></i>Suscripción</a>
+                    <a href="{{ url_for('suscripcion.suscripcion') }}"><i class="bi bi-credit-card-2-front"></i>Suscripción</a>
                     {% endif %}
                     <hr>
                     <a href="/logout" class="is-danger"><i class="bi bi-box-arrow-right"></i>Cerrar sesión</a>
