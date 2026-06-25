@@ -184,6 +184,13 @@ class TestChromeRenderizado:
         r = client.get("/pago_exito?session_id=cs_test&id=1")
         assert r.status_code == 200
 
+    def test_dashboard_blueprint_rutas_cargan(self, logged_admin, client):
+        # Guarda el blueprint dashboard (movido por slice+transform): el panel
+        # (KPIs + ~20 queries + config Chart.js inline con nonce) renderiza con
+        # 200, y /health responde sin sesión.
+        assert logged_admin.get("/dashboard").status_code == 200
+        assert client.get("/health").status_code == 200
+
     def test_ficha_muestra_codigo_y_enlace_publico(self, logged_admin, db_conn):
         # UX: el taller ve el código y el enlace público para dárselo al cliente.
         db_conn.execute("INSERT INTO clientes (id, nombre, taller_id) VALUES (80, 'C', 1)")

@@ -93,7 +93,7 @@ def login(slug=None):
             except Exception:
                 logger.info(f"login_success user={user.usuario}")
 
-            return redirect(url_for("dashboard"))
+            return redirect(url_for("dashboard.dashboard"))
         else:
             flash("Usuario o contraseña incorrectos.", "danger")
 
@@ -243,7 +243,7 @@ def verificar_email(token):
     registrar_auditoria("email_verificado", "sistema", {"taller_id": tid},
                         taller_id=tid)
     flash("¡Email verificado correctamente! Gracias.", "success")
-    return redirect(url_for("dashboard") if session.get("usuario")
+    return redirect(url_for("dashboard.dashboard") if session.get("usuario")
                     else url_for("auth.login"))
 
 
@@ -268,4 +268,4 @@ def reenviar_verificacion():
                                      "error": str(e)}, ensure_ascii=False))
     flash("Si tu email está pendiente de verificar, te hemos reenviado el enlace.",
           "info")
-    return redirect(request.referrer or url_for("dashboard"))
+    return redirect(request.referrer or url_for("dashboard.dashboard"))

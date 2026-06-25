@@ -167,7 +167,7 @@ def role_required(rol_requerido):
         def decorated_function(*args, **kwargs):
             if session.get('rol') != rol_requerido and session.get('rol') != 'admin':
                 flash('No tienes permisos para acceder a esta pagina.', 'danger')
-                return redirect(url_for('dashboard'))
+                return redirect(url_for('dashboard.dashboard'))
             return f(*args, **kwargs)
         return decorated_function
     return decorator
@@ -197,7 +197,7 @@ def permiso_requerido(permiso):
         def decorated_function(*args, **kwargs):
             if not tiene_permiso(permiso):
                 flash('No tienes permisos para realizar esta accion.', 'danger')
-                return redirect(url_for('dashboard'))
+                return redirect(url_for('dashboard.dashboard'))
             return f(*args, **kwargs)
         return decorated_function
     return decorator

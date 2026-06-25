@@ -492,7 +492,7 @@ def borrar_rol(id):
 def admin_auditoria():
     if session.get("rol") != "admin":
         flash("Acceso restringido al administrador.", "danger")
-        return redirect(url_for("dashboard"))
+        return redirect(url_for("dashboard.dashboard"))
     from sqlalchemy import func as _func
 
     from models import AuditLog
@@ -530,7 +530,7 @@ def admin_seed_demo():
     """
     if session.get('rol') != 'admin':
         flash('Acceso restringido al administrador.', 'danger')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('dashboard.dashboard'))
 
     SEED_KEY = os.environ.get("SEED_KEY", "demo2026")
     if request.args.get('key') != SEED_KEY:
@@ -771,7 +771,7 @@ def admin_seed_demo():
           <li>Notas: {skipped['notas']}</li>
         </ul>
       </div>
-      <a class="btn" href="{url_for('dashboard')}">Ir al dashboard →</a>
+      <a class="btn" href="{url_for('dashboard.dashboard')}">Ir al dashboard →</a>
     </body>
     </html>
     """
@@ -788,7 +788,7 @@ def admin_sistema():
     """Estadisticas tecnicas del servidor en tiempo real (solo admin)."""
     if session.get('rol') != 'admin':
         flash('Acceso restringido al administrador.', 'danger')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('dashboard.dashboard'))
 
     import sys
 
@@ -891,7 +891,7 @@ def admin_test_email():
     """
     if session.get('rol') != 'admin':
         flash('Acceso restringido al administrador.', 'danger')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('dashboard.dashboard'))
 
     # Diagnostico (siempre visible)
     pwd_len = len(current_app.config.get('MAIL_PASSWORD') or '')

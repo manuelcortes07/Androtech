@@ -369,7 +369,7 @@ def buscar():
     q = request.args.get('q', '').strip()
     if not q or len(q) < 2:
         flash('Introduce al menos 2 caracteres para buscar.', 'warning')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('dashboard.dashboard'))
 
     like = f'%{q}%'
 

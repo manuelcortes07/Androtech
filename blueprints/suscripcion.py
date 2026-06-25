@@ -77,10 +77,6 @@ def _slug_unico(base: str) -> str:
     return f"{base}-{i}"
 
 
-# _email_valido se trasladó a utils.security.email_valido (B1); alias local.
-_email_valido = email_valido
-
-
 def _sval(obj, key):
     """Lee un campo de un objeto Stripe (atributo) o de un dict (mock/test)."""
     if isinstance(obj, dict):
@@ -173,7 +169,7 @@ def signup():
             if saas_billing.is_configured():
                 checkout = saas_billing.crear_checkout_suscripcion(
                     customer_id, nuevo_tid,
-                    success_url=url_for("dashboard", _external=True),
+                    success_url=url_for("dashboard.dashboard", _external=True),
                     cancel_url=url_for("suscripcion.suscripcion", _external=True),
                 )
                 checkout_url = _sval(checkout, "url")
@@ -211,7 +207,7 @@ def signup():
         # A Stripe Checkout a por la tarjeta (requerida durante el trial).
         return redirect(checkout_url)
     flash("¡Bienvenido a Kintsu! Tu prueba de 14 días está activa.", "success")
-    return redirect(url_for("dashboard"))
+    return redirect(url_for("dashboard.dashboard"))
 
 
 @bp.route("/suscripcion")
