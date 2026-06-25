@@ -11,8 +11,8 @@ import json
 
 from flask import g
 
-from branding import taller_branding, logo_url_absoluto
-from utils.pdf_generator import _emisor, EMISOR_DEFAULT
+from branding import logo_url_absoluto, taller_branding
+from utils.pdf_generator import EMISOR_DEFAULT, _emisor
 
 _PNG = b"\x89PNG\r\n\x1a\n" + b"logo-bytes-reales" * 4
 
@@ -176,6 +176,13 @@ class TestChromeRenderizado:
         assert logged_admin.get("/admin/auditoria").status_code == 200
         # seed-demo sin clave → 403 (no 500).
         assert logged_admin.get("/admin/seed-demo").status_code == 403
+
+    def test_pagos_blueprint_rutas_cargan(self, client):
+        # Guarda el blueprint pagos (movido por slice+transform): la página de
+        # retorno de Stripe (GET) renderiza sin 500 (NameError de imports, etc.).
+        # El webhook y el checkout (POST) los cubren H4/H6/H8 y conftest.
+        r = client.get("/pago_exito?session_id=cs_test&id=1")
+        assert r.status_code == 200
 
     def test_ficha_muestra_codigo_y_enlace_publico(self, logged_admin, db_conn):
         # UX: el taller ve el código y el enlace público para dárselo al cliente.

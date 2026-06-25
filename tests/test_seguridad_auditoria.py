@@ -33,8 +33,10 @@ def _mock_construct(monkeypatch, event):
 # ════════════════════════════════════════════════════════════════════════
 class TestH4H6WebhookReparaciones:
     def test_h4_sin_libreria_stripe_falla_cerrado(self, client, seed_reparacion, db_conn, monkeypatch):
-        import app as app_module
-        monkeypatch.setattr(app_module, "stripe", None)  # no se puede verificar firma
+        # El webhook vive ahora en blueprints/pagos.py (refactor B1): se parchea
+        # ahí el nombre `stripe` que lee la ruta.
+        import blueprints.pagos as pagos_module
+        monkeypatch.setattr(pagos_module, "stripe", None)  # no se puede verificar firma
         ev = stripe_webhook_event(reparacion_id=str(seed_reparacion))
         r = client.post("/stripe/webhook", data=json.dumps(ev),
                         headers={"Stripe-Signature": "t=0,v1=x"},
@@ -199,7 +201,7 @@ class TestH2CsrfPorDefecto:
     def test_marcar_pagado_sin_csrf_es_rechazado(self, admin_A, db_conn, dos_talleres, monkeypatch):
         _reactivar_csrf_real(monkeypatch)
         repA = dos_talleres["repA"]
-        r = admin_A.post(
+        admin_A.post(
             f"/reparaciones/{repA}/marcar-pagado",
             data={"metodo_pago": "Efectivo"},  # ← sin csrf_token
             follow_redirects=False,
@@ -326,13 +328,15 @@ class TestH7SesionRegenerada:
 # ════════════════════════════════════════════════════════════════════════
 class TestH8NoFiltraExcepciones:
     def test_excepcion_no_aparece_en_respuesta(self, client, seed_reparacion, monkeypatch):
-        import app as app_module
+        # publico_pagar vive ahora en blueprints/pagos.py (refactor B1): se
+        # parchea ahí el get_session que usa la ruta.
+        import blueprints.pagos as pagos_module
         SECRET = "TRAZA_INTERNA_SECRETA_9988"
 
         def _boom(*a, **k):
             raise RuntimeError(SECRET)
 
-        monkeypatch.setattr(app_module, "get_session", _boom)
+        monkeypatch.setattr(pagos_module, "get_session", _boom)
         r = client.post(f"/publico/pagar/{seed_reparacion}",
                         data={"cliente_email": "a@b.com", "csrf_token": "x"},
                         follow_redirects=True)
