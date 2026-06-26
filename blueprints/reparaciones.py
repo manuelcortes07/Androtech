@@ -36,6 +36,7 @@ from sqlalchemy import select
 import uploads
 from alerts import calcular_alertas_reparacion
 from auth import login_required, permiso_requerido
+from avisos import avisar_cambio_estado
 from branding import taller_branding
 from csv_utils import (
     _SEP_CSV,
@@ -556,26 +557,20 @@ def editar_reparacion(id):
                 cliente_email = cliente_obj.email
                 cliente_nombre = cliente_obj.nombre
 
-        # Enviar email de actualización de estado si cambió
-        if estado_anterior != estado:
-            try:
-                if cliente_email:
-                    # Enviar email de actualización de estado
-                    notificador.enviar_email("send_repair_status_update",
-                        to_email=cliente_email,
-                        cliente_nombre=cliente_nombre,
-                        reparacion_id=id,
-                        estado_anterior=estado_anterior,
-                        estado_nuevo=estado,
-                        dispositivo=dispositivo,
-                        descripcion=descripcion
-                    )
-                    logger.info(f'[EMAIL] Email de actualizacion de estado enviado a {cliente_email} para reparacion {id}')
-                else:
-                    logger.warning(f'[EMAIL] ⚠️ No se pudo enviar email de actualización: cliente sin email para reparación {id}')
-
-            except Exception as e:
-                logger.exception(f'Error enviando email de actualización de estado para reparación {id}: {str(e)}')
+        # Aviso automático al cliente del cambio de estado (efecto secundario,
+        # nunca tumba la operación). El punto único `avisos.avisar_cambio_estado`
+        # aplica las guardas (estado cambió / hay email / no de baja / taller con
+        # avisos activos) y usa el branding del taller dueño. Multi-tenant: el
+        # email lo construye el Notificador con g.taller_id de ESTA petición.
+        avisar_cambio_estado(
+            reparacion_id=id,
+            cliente_email=cliente_email,
+            cliente_nombre=cliente_nombre,
+            estado_anterior=estado_anterior,
+            estado_nuevo=estado,
+            dispositivo=dispositivo,
+            descripcion=descripcion,
+        )
 
         try:
             logger.info(json.dumps({
