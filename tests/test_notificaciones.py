@@ -103,6 +103,33 @@ class TestJuezBrandingNotificacion:
         assert "Rival" not in captura_email.get("subject", "")
 
 
+class TestPlantillaWhiteLabel:
+    """B2: el email incluye el botón de seguimiento (por código) y el enlace de
+    baja, y ya NO filtra el contacto hardcodeado del desarrollador."""
+
+    def test_email_incluye_seguimiento_baja_y_sin_fuga(self, admin_A, dos_talleres,
+                                                       captura_email, db_conn):
+        repA, cliA = dos_talleres["repA"], dos_talleres["cliA"]
+        db_conn.execute(
+            "UPDATE reparaciones SET codigo_publico = 'TRACK-A-1' WHERE id = ?", (repA,)
+        )
+        db_conn.commit()
+        admin_A.post(f"/reparaciones/editar/{repA}", data={
+            "cliente_id": cliA, "dispositivo": "iPhoneA",
+            "descripcion": "normal de A", "estado": "En proceso",
+            "precio": "100", "csrf_token": "tk",
+        }, follow_redirects=False)
+        html = captura_email.get("html", "")
+        # Botón al portal de seguimiento por código + enlace de baja firmado.
+        assert "consulta?codigo=TRACK-A-1" in html
+        assert "/notificaciones/baja/" in html
+        # Estado en lenguaje claro para el cliente ('En proceso' → 'En reparación').
+        assert "En reparación" in html
+        # Fuga white-label ARREGLADA: ni teléfono ni email del desarrollador.
+        assert "manuelcortescontreras11@gmail.com" not in html
+        assert "633 234 395" not in html
+
+
 class TestBajaOptOut:
     """B3: el cliente se da de baja por un enlace firmado; tras la baja no recibe
     avisos, y un token manipulado no puede dar de baja a otro."""

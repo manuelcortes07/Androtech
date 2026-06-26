@@ -553,6 +553,7 @@ def editar_reparacion(id):
             cliente_email = None
             cliente_nombre = None
             cliente_acepta = True
+            codigo_publico = rep.codigo_publico  # B2: para el enlace de seguimiento
             cliente_obj = s.get(Cliente, cliente_id)
             if cliente_obj:
                 cliente_email = cliente_obj.email
@@ -568,12 +569,14 @@ def editar_reparacion(id):
         # email lo construye el Notificador con g.taller_id de ESTA petición.
         avisar_cambio_estado(
             reparacion_id=id,
+            cliente_id=cliente_id,
             cliente_email=cliente_email,
             cliente_nombre=cliente_nombre,
             estado_anterior=estado_anterior,
             estado_nuevo=estado,
             dispositivo=dispositivo,
             descripcion=descripcion,
+            codigo_publico=codigo_publico,
             acepta_emails=cliente_acepta,
         )
 

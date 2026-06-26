@@ -113,7 +113,7 @@
         .status-icon { color: #28a745; }
         {% elif estado_nuevo == 'Entregado' %}
         .status-icon { color: #20c997; }
-        {% elif estado_nuevo == 'En Progreso' %}
+        {% elif estado_nuevo == 'En proceso' %}
         .status-icon { color: #ffc107; }
         {% elif estado_nuevo == 'Pendiente' %}
         .status-icon { color: #6c757d; }
@@ -126,7 +126,7 @@
     <div class="container">
         <div class="header">
             <div class="status-icon">
-                {% if estado_nuevo == 'Terminado' %}✅{% elif estado_nuevo == 'Entregado' %}📦{% elif estado_nuevo == 'En Progreso' %}🔧{% elif estado_nuevo == 'Pendiente' %}⏳{% else %}📋{% endif %}
+                {% if estado_nuevo == 'Terminado' %}✅{% elif estado_nuevo == 'Entregado' %}📦{% elif estado_nuevo == 'En proceso' %}🔧{% elif estado_nuevo == 'Pendiente' %}⏳{% else %}📋{% endif %}
             </div>
             {% if emisor.logo_url %}<img class="logo" src="{{ emisor.logo_url }}" alt="{{ emisor.nombre or 'Tu taller' }}" style="max-height:54px;width:auto;display:inline-block;">{% else %}<div class="logo">{{ emisor.nombre or 'Tu taller' }}</div>{% endif %}
             <h1>Actualización de Reparación</h1>
@@ -136,9 +136,9 @@
         <div class="status-update">
             <h3>Cambio de Estado</h3>
             <div class="status-change">
-                <span class="status-old">{{ estado_anterior }}</span>
+                <span class="status-old">{{ estado_anterior_label or estado_anterior }}</span>
                 <span class="arrow">→</span>
-                <span class="status-new">{{ estado_nuevo }}</span>
+                <span class="status-new">{{ estado_nuevo_label or estado_nuevo }}</span>
             </div>
         </div>
 
@@ -178,7 +178,7 @@
             <p>Tu dispositivo ha sido entregado. Esperamos que estés satisfecho con nuestro servicio.</p>
             <p>Si tienes alguna pregunta o necesitas soporte adicional, no dudes en contactarnos.</p>
         </div>
-        {% elif estado_nuevo == 'En Progreso' %}
+        {% elif estado_nuevo == 'En proceso' %}
         <div class="next-steps">
             <h4>Estamos trabajando en tu reparación</h4>
             <p>Tu dispositivo está siendo reparado por nuestros técnicos especializados. Te mantendremos informado sobre cualquier actualización.</p>
@@ -190,12 +190,23 @@
         </div>
         {% endif %}
 
+        {% if tracking_url %}
+        <div style="text-align:center;margin:28px 0;">
+            <a href="{{ tracking_url }}"
+               style="display:inline-block;background-color:#007bff;color:#ffffff;
+                      text-decoration:none;padding:14px 28px;border-radius:8px;
+                      font-weight:bold;">
+                Ver el estado de mi reparación
+            </a>
+        </div>
+        {% endif %}
+
         <div class="contact-info">
-            <h4>¿Necesitas Más Información?</h4>
+            <h4>¿Necesitas más información?</h4>
             <p>
-                📞 <strong>Teléfono:</strong> +34 633 234 395<br>
-                📧 <strong>Email:</strong> manuelcortescontreras11@gmail.com<br>
-                🏪 <strong>Dirección:</strong> {{ emisor.direccion or 'Consulta con tu taller' }}
+                {% if emisor.telefono %}📞 <strong>Teléfono:</strong> {{ emisor.telefono }}<br>{% endif %}
+                {% if emisor.email %}📧 <strong>Email:</strong> {{ emisor.email }}<br>{% endif %}
+                {% if emisor.direccion %}🏪 <strong>Dirección:</strong> {{ emisor.direccion }}{% endif %}
             </p>
             <p><strong>Referencia de reparación:</strong> #{{ reparacion_id }}</p>
         </div>
@@ -209,6 +220,12 @@
                 <strong>{{ emisor.nombre or 'Tu taller' }}</strong> - Servicio técnico especializado<br>
                 © {{ year|default('2026') }} {{ emisor.nombre or 'Tu taller' }}. Todos los derechos reservados.
             </p>
+            {% if baja_url %}
+            <p style="font-size:12px;color:#999;margin-top:16px;">
+                ¿No quieres recibir más avisos de tus reparaciones?
+                <a href="{{ baja_url }}" style="color:#999;">Darme de baja</a>.
+            </p>
+            {% endif %}
         </div>
     </div>
 </body>

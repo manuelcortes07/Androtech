@@ -19,8 +19,11 @@ from __future__ import annotations
 
 import logging
 
+from flask import g, url_for
+
 from services import notificador
 from settings import get_setting
+from tokens import generar_token_baja
 
 logger = logging.getLogger("androtech")
 
@@ -34,8 +37,30 @@ def taller_avisos_activos() -> bool:
     return get_setting(SETTING_AVISOS, "1") != "0"
 
 
+def _url_seguimiento(codigo_publico) -> str | None:
+    """URL absoluta al portal de seguimiento por código (consulta?codigo=…)."""
+    if not codigo_publico:
+        return None
+    try:
+        return url_for("publico.consulta", codigo=codigo_publico, _external=True)
+    except Exception:
+        return None
+
+
+def _url_baja(cliente_id) -> str | None:
+    """URL absoluta de baja firmada para ESTE cliente del taller activo."""
+    if not cliente_id:
+        return None
+    try:
+        token = generar_token_baja(cliente_id, g.taller_id)
+        return url_for("publico.baja_notificaciones", token=token, _external=True)
+    except Exception:
+        return None
+
+
 def avisar_cambio_estado(*, reparacion_id, cliente_email, cliente_nombre,
                          estado_anterior, estado_nuevo, dispositivo, descripcion,
+                         cliente_id=None, codigo_publico=None,
                          acepta_emails: bool = True) -> str:
     """Envía (o no) el aviso de cambio de estado al cliente final.
 
@@ -67,6 +92,8 @@ def avisar_cambio_estado(*, reparacion_id, cliente_email, cliente_nombre,
             estado_nuevo=estado_nuevo,
             dispositivo=dispositivo,
             descripcion=descripcion,
+            tracking_url=_url_seguimiento(codigo_publico),
+            baja_url=_url_baja(cliente_id),
         )
         logger.info('{"event": "aviso_estado_enviado", "reparacion_id": "%s", '
                     '"estado": "%s"}' % (reparacion_id, estado_nuevo))

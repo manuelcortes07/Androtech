@@ -42,7 +42,7 @@ class EmailService:
         Degrada a un dict con nombre genérico si no hay taller en contexto.
         """
         try:
-            from branding import taller_branding, logo_url_absoluto
+            from branding import logo_url_absoluto, taller_branding
             m = dict(taller_branding())
             base = None
             try:
@@ -157,9 +157,23 @@ class EmailService:
             logger.error(f'Error enviando email de confirmacion de pago: {type(e).__name__}: {str(e)}')
             raise
 
+    # Estados internos → etiqueta clara para el cliente final (decisión de
+    # producto: el cliente ve lenguaje cercano, no la jerga del taller).
+    _ESTADO_CLIENTE = {
+        'Pendiente': 'Recibido',
+        'En proceso': 'En reparación',
+        'Terminado': 'Listo para recoger',
+        'Entregado': 'Entregado',
+    }
+
     def send_repair_status_update(self, to_email, cliente_nombre, reparacion_id,
-                                  estado_anterior, estado_nuevo, dispositivo, descripcion):
-        """Actualizacion de estado de una reparacion."""
+                                  estado_anterior, estado_nuevo, dispositivo,
+                                  descripcion, tracking_url=None, baja_url=None):
+        """Actualizacion de estado de una reparacion (white-label).
+
+        `tracking_url` (portal de seguimiento por código) y `baja_url` (opt-out
+        firmado) son opcionales: si faltan, la plantilla los omite.
+        """
         try:
             emisor = self._emisor()
             html = render_template(
@@ -168,8 +182,12 @@ class EmailService:
                 reparacion_id=reparacion_id,
                 estado_anterior=estado_anterior,
                 estado_nuevo=estado_nuevo,
+                estado_anterior_label=self._ESTADO_CLIENTE.get(estado_anterior, estado_anterior),
+                estado_nuevo_label=self._ESTADO_CLIENTE.get(estado_nuevo, estado_nuevo),
                 dispositivo=dispositivo,
                 descripcion=descripcion,
+                tracking_url=tracking_url,
+                baja_url=baja_url,
                 fecha_actualizacion=datetime.now().strftime('%d/%m/%Y %H:%M'),
                 year=datetime.now().year,
                 emisor=emisor,
