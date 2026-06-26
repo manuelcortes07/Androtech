@@ -125,9 +125,9 @@
         <div class="contact-info">
             <h4>¿Necesitas Más Información?</h4>
             <p>
-                📞 <strong>Teléfono:</strong> +34 633 234 395<br>
-                📧 <strong>Email:</strong> manuelcortescontreras11@gmail.com<br>
-                🏪 <strong>Dirección:</strong> {{ emisor.direccion or 'Consulta con tu taller' }}
+                {% if emisor.telefono %}📞 <strong>Teléfono:</strong> {{ emisor.telefono }}<br>{% endif %}
+                {% if emisor.email %}📧 <strong>Email:</strong> {{ emisor.email }}<br>{% endif %}
+                {% if emisor.direccion %}🏪 <strong>Dirección:</strong> {{ emisor.direccion }}{% endif %}
             </p>
             <p><strong>Referencia de reparación:</strong> #{{ reparacion_id }}</p>
         </div>
