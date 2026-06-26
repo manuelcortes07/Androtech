@@ -159,6 +159,29 @@ def asegurar_taller_nif() -> None:
                 conn.exec_driver_sql("ALTER TABLE talleres ADD COLUMN nif TEXT")
 
 
+def asegurar_cliente_acepta_emails() -> None:
+    """Notificaciones (B3): garantiza `clientes.acepta_emails` (opt-out de avisos).
+
+    Idempotente y agnóstica de motor. Default 1 (los clientes existentes siguen
+    recibiendo avisos hasta que se den de baja por el enlace del email).
+    """
+    from database import is_postgres
+
+    engine = get_engine()
+    with engine.begin() as conn:
+        if is_postgres():
+            conn.exec_driver_sql(
+                "ALTER TABLE clientes ADD COLUMN IF NOT EXISTS acepta_emails INTEGER NOT NULL DEFAULT 1"
+            )
+        else:
+            if not _table_exists(conn, "clientes"):
+                return
+            if not _has_column(conn, "clientes", "acepta_emails"):
+                conn.exec_driver_sql(
+                    "ALTER TABLE clientes ADD COLUMN acepta_emails INTEGER NOT NULL DEFAULT 1"
+                )
+
+
 def normalizar_taller_demo() -> None:
     """Rebranding: si el taller DEMO (id 1) de una BD EXISTENTE todavía tiene la
     marca vieja (nombre 'AndroTech' o ciudad 'Huelva'), lo pasa a los datos demo

@@ -259,6 +259,7 @@ import models as _models  # noqa: F401  (registra todos los modelos en Base.meta
 from database import Base as _Base
 from migrations import (
     aplicar_migracion_multitenant,
+    asegurar_cliente_acepta_emails,
     asegurar_codigo_publico,
     asegurar_es_superadmin,
     asegurar_taller_1,
@@ -288,6 +289,8 @@ asegurar_codigo_publico()
 asegurar_es_superadmin()
 # Rebranding: NIF/CIF fiscal del taller (emisor de los documentos).
 asegurar_taller_nif()
+# Notificaciones (B3): opt-out de avisos por email a nivel de cliente.
+asegurar_cliente_acepta_emails()
 # Rebranding: normaliza el taller demo (id 1) si una BD existente sigue con la
 # marca vieja (AndroTech/Huelva) → datos demo genéricos (idempotente).
 normalizar_taller_demo()

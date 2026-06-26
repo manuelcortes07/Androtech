@@ -101,3 +101,45 @@ class TestJuezBrandingNotificacion:
         assert nombre_A in html
         assert "Rival" not in html
         assert "Rival" not in captura_email.get("subject", "")
+
+
+class TestBajaOptOut:
+    """B3: el cliente se da de baja por un enlace firmado; tras la baja no recibe
+    avisos, y un token manipulado no puede dar de baja a otro."""
+
+    def test_baja_marca_al_cliente(self, client, dos_talleres, db_conn, app):
+        cliA = dos_talleres["cliA"]
+        with app.test_request_context():
+            from tokens import generar_token_baja
+            token = generar_token_baja(cliA, 1)
+        r = client.get(f"/notificaciones/baja/{token}")
+        assert r.status_code == 200
+        acepta = db_conn.execute(
+            "SELECT acepta_emails FROM clientes WHERE id = ?", (cliA,)
+        ).fetchone()["acepta_emails"]
+        assert acepta == 0
+
+    def test_token_manipulado_no_da_de_baja(self, client, dos_talleres, db_conn, app):
+        cliA = dos_talleres["cliA"]
+        with app.test_request_context():
+            from tokens import generar_token_baja
+            token = generar_token_baja(cliA, 1)
+        # Corromper la firma → no debe tocar nada.
+        r = client.get(f"/notificaciones/baja/{token}xxx")
+        assert r.status_code == 400
+        acepta = db_conn.execute(
+            "SELECT acepta_emails FROM clientes WHERE id = ?", (cliA,)
+        ).fetchone()["acepta_emails"]
+        assert acepta == 1  # sigue suscrito
+
+    def test_cliente_de_baja_no_recibe_aviso(self, admin_A, dos_talleres,
+                                             captura_email, db_conn):
+        repA, cliA = dos_talleres["repA"], dos_talleres["cliA"]
+        db_conn.execute("UPDATE clientes SET acepta_emails = 0 WHERE id = ?", (cliA,))
+        db_conn.commit()
+        admin_A.post(f"/reparaciones/editar/{repA}", data={
+            "cliente_id": cliA, "dispositivo": "iPhoneA",
+            "descripcion": "normal de A", "estado": "En proceso",
+            "precio": "100", "csrf_token": "tk",
+        }, follow_redirects=False)
+        assert "enviado" not in captura_email  # la guarda de baja cortó el envío

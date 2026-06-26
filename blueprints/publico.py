@@ -28,6 +28,7 @@ from sqlalchemy import func, select, text
 from database import get_session
 from extensions import limiter
 from models import Cliente, Reparacion, SolicitudReparacion
+from tokens import cargar_token_baja
 from utils.security import csrf_protect
 
 logger = logging.getLogger("androtech")
@@ -257,3 +258,38 @@ def solicitar_reparacion(slug=None):
         return redirect(url_for("publico.solicitar_reparacion"))
 
     return render_template("solicitar_reparacion.html")
+
+
+@bp.route("/notificaciones/baja/<token>")
+def baja_notificaciones(token):
+    """Opt-out del cliente final de los avisos automáticos por email (B3).
+
+    Enlace del pie de los emails de aviso. Sin login. El token va FIRMADO: nadie
+    puede dar de baja a otro cliente manipulando el id. El UPDATE va acotado al
+    (cliente, taller) DEL TOKEN — no a g.taller_id — y es Core/raw, así que el
+    aislamiento lo impone el WHERE explícito (el token lo dicta, no la URL).
+    """
+    from itsdangerous import BadData
+
+    try:
+        datos = cargar_token_baja(token)
+    except BadData:
+        return render_template("baja_notificaciones.html", ok=False), 400
+
+    cid, tid = datos.get("cid"), datos.get("tid")
+    nombre = None
+    with get_session() as s:
+        s.execute(
+            text("UPDATE clientes SET acepta_emails = 0 "
+                 "WHERE id = :cid AND taller_id = :tid"),
+            {"cid": cid, "tid": tid},
+        )
+        row = s.execute(
+            text("SELECT nombre FROM clientes WHERE id = :cid AND taller_id = :tid"),
+            {"cid": cid, "tid": tid},
+        ).first()
+        nombre = row[0] if row else None
+        s.commit()
+    logger.info('{"event": "notif_baja_cliente", "cliente_id": "%s", "taller_id": "%s"}'
+                % (cid, tid))
+    return render_template("baja_notificaciones.html", ok=True, nombre=nombre)

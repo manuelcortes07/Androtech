@@ -230,6 +230,10 @@ class Cliente(Base):
     telefono = Column(Text)
     email = Column(Text)
     direccion = Column(Text)
+    # Notificaciones (B3): opt-out de avisos automáticos por email. 1 = recibe,
+    # 0 = se dio de baja por el enlace del email. server_default replica el
+    # DEFAULT del DDL para que los INSERT crudos no dejen NULL en Postgres.
+    acepta_emails = Column(Integer, nullable=False, server_default="1")
 
     def __repr__(self) -> str:
         return f"<Cliente(id={self.id}, nombre={self.nombre!r})>"

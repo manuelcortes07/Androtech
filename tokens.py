@@ -21,6 +21,7 @@ from itsdangerous import URLSafeTimedSerializer
 
 _SALT_RESET = "androtech-password-reset"
 _SALT_VERIFY = "androtech-email-verify"
+_SALT_BAJA = "androtech-notif-baja"
 
 MAX_AGE_RESET = 3600  # 1 hora
 MAX_AGE_VERIFY = 86400  # 24 horas
@@ -74,3 +75,17 @@ def cargar_token_verificacion(token: str, max_age: int = MAX_AGE_VERIFY) -> dict
 
 def huella_email(email: str) -> str:
     return _fingerprint((email or "").lower())
+
+
+# ─── Baja de notificaciones (opt-out del cliente final) ─────────────────────
+def generar_token_baja(cliente_id: int, taller_id: int) -> str:
+    """Token de baja atado a (cliente, taller). Sin caducidad de uso (el enlace
+    de baja del pie del email debe valer siempre); va FIRMADO, así que nadie
+    puede dar de baja a otro cliente manipulando el id."""
+    return _serializer(_SALT_BAJA).dumps({"cid": cliente_id, "tid": taller_id})
+
+
+def cargar_token_baja(token: str) -> dict:
+    """Devuelve {cid, tid}; lanza BadSignature si la firma no es válida. No se
+    aplica max_age: la baja es un enlace permanente."""
+    return _serializer(_SALT_BAJA).loads(token)

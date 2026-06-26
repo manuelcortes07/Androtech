@@ -552,10 +552,14 @@ def editar_reparacion(id):
             # Datos del cliente para el email (tras el update, igual que antes)
             cliente_email = None
             cliente_nombre = None
+            cliente_acepta = True
             cliente_obj = s.get(Cliente, cliente_id)
             if cliente_obj:
                 cliente_email = cliente_obj.email
                 cliente_nombre = cliente_obj.nombre
+                # B3: opt-out del cliente (1=recibe, 0=de baja). Defensivo por si
+                # una BD antigua aún no tuviera la columna poblada.
+                cliente_acepta = bool(getattr(cliente_obj, "acepta_emails", 1))
 
         # Aviso automático al cliente del cambio de estado (efecto secundario,
         # nunca tumba la operación). El punto único `avisos.avisar_cambio_estado`
@@ -570,6 +574,7 @@ def editar_reparacion(id):
             estado_nuevo=estado,
             dispositivo=dispositivo,
             descripcion=descripcion,
+            acepta_emails=cliente_acepta,
         )
 
         try:
