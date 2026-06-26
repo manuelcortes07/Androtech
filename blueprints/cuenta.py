@@ -30,9 +30,11 @@ import tokens as account_tokens
 import uploads
 from audit import registrar_auditoria
 from auth import login_required
+from avisos import SETTING_AVISOS, taller_avisos_activos
 from database import get_session
 from models import Usuario
 from services import notificador
+from settings import set_setting
 from uploads import allowed_file, es_imagen_valida
 from utils.security import csrf_protect, email_valido, validar_contraseña
 
@@ -49,7 +51,28 @@ def perfil():
             text("SELECT nombre, email_contacto, email_verificado FROM talleres "
                  "WHERE id = :t"), {"t": session.get("taller_id")},
         ).mappings().first()
-    return render_template("perfil.html", taller=taller)
+    # B4: estado del interruptor de avisos automáticos al cliente (default on).
+    return render_template("perfil.html", taller=taller,
+                           notif_avisos_activos=taller_avisos_activos())
+
+
+@bp.route("/perfil/notificaciones", methods=["POST"])
+@login_required
+@csrf_protect
+def cambiar_notificaciones():
+    """Activa/desactiva los avisos automáticos por email del taller (B4).
+
+    Interruptor por taller (TallerSetting, auto-scoped). Si se desactiva, el
+    punto único `avisos.avisar_cambio_estado` deja de enviar para este taller.
+    """
+    activar = request.form.get("avisos") == "on"
+    set_setting(SETTING_AVISOS, "1" if activar else "0")
+    registrar_auditoria("notif_avisos_toggle", session["usuario"],
+                        {"taller_id": session.get("taller_id"),
+                         "activas": activar})
+    flash("Avisos automáticos al cliente "
+          + ("activados." if activar else "desactivados."), "success")
+    return redirect(url_for("cuenta.perfil"))
 
 
 @bp.route("/perfil/password", methods=["POST"])

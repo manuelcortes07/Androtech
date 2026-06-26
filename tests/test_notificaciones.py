@@ -130,6 +130,37 @@ class TestPlantillaWhiteLabel:
         assert "633 234 395" not in html
 
 
+class TestInterruptorTaller:
+    """B4: el taller puede apagar los avisos automáticos desde /perfil; con el
+    interruptor en off, no sale ningún email."""
+
+    def test_taller_con_avisos_off_no_envia(self, admin_A, dos_talleres,
+                                            captura_email):
+        # Apagar el interruptor del taller A (POST sin 'avisos' = desactivar).
+        r = admin_A.post("/perfil/notificaciones", data={"csrf_token": "tk"},
+                         follow_redirects=False)
+        assert r.status_code in (302, 303)
+        repA, cliA = dos_talleres["repA"], dos_talleres["cliA"]
+        admin_A.post(f"/reparaciones/editar/{repA}", data={
+            "cliente_id": cliA, "dispositivo": "iPhoneA",
+            "descripcion": "normal de A", "estado": "En proceso",
+            "precio": "100", "csrf_token": "tk",
+        }, follow_redirects=False)
+        assert "enviado" not in captura_email
+
+    def test_reactivar_vuelve_a_enviar(self, admin_A, dos_talleres, captura_email):
+        admin_A.post("/perfil/notificaciones", data={"csrf_token": "tk"})  # off
+        admin_A.post("/perfil/notificaciones",
+                     data={"avisos": "on", "csrf_token": "tk"})  # on de nuevo
+        repA, cliA = dos_talleres["repA"], dos_talleres["cliA"]
+        admin_A.post(f"/reparaciones/editar/{repA}", data={
+            "cliente_id": cliA, "dispositivo": "iPhoneA",
+            "descripcion": "normal de A", "estado": "En proceso",
+            "precio": "100", "csrf_token": "tk",
+        }, follow_redirects=False)
+        assert captura_email.get("enviado") is True
+
+
 class TestBajaOptOut:
     """B3: el cliente se da de baja por un enlace firmado; tras la baja no recibe
     avisos, y un token manipulado no puede dar de baja a otro."""
