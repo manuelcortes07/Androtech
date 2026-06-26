@@ -43,14 +43,20 @@
 | **cuenta/perfil** | ✅ | 6 | `cuenta.{perfil,cambiar_password,cambiar_email,cambiar_datos_taller,subir_logo_taller,eliminar_logo_taller}` |
 | **admin** | ✅ | 16 | `admin.{admin_usuarios,nuevo_usuario,editar_usuario,borrar_usuario,admin_roles,nuevo_rol,editar_rol,borrar_rol,admin_auditoria,admin_seed_demo,admin_sistema,admin_test_email,admin_solicitudes,aceptar_solicitud,rechazar_solicitud,borrar_solicitud}` |
 | **reparaciones** | ✅ | 16 | `reparaciones.{reparaciones,nueva_reparacion,editar_reparacion,borrar_reparacion,subir_fotos_reparacion,eliminar_foto_reparacion,firmar_reparacion,guardar_firma_reparacion,agregar_nota_reparacion,eliminar_nota_reparacion,calendario,api_calendario_eventos,ticket_recogida,generar_pdf_presupuesto,export_reparaciones,exportar_reparaciones_csv}` |
+| **pagos** | ✅ | 5 | `pagos.{marcar_reparacion_pagada,publico_pagar,pago_exito,stripe_webhook}` (flujo Stripe de **reparaciones**, api_key global) |
+| **suscripcion** | ✅ | 5 | `suscripcion.{signup,suscripcion,suscripcion_bloqueado,suscripcion_portal,saas_webhook}` (flujo Stripe del **SaaS**, StripeClient dedicado) |
+| **dashboard** | ✅ | 2 | `dashboard.{dashboard,healthcheck}` |
 
 **Módulos de helpers compartidos extraídos** (para no ciclar): `csv_utils.py`
 (export CSV), `query_helpers.py` (`build_reparaciones_filters`,
 `_ultimas_actualizaciones`), **`uploads.py`** (carpetas de subida +
 `allowed_file`/`es_imagen_valida`/`_sniff_image_type`), `utils.security.email_valido`.
 
-**`app.py`: 5.301 → 1.757 líneas (−67 %).** Quedan **~12 rutas**:
-facturación/pagos, suscripción, dashboard.
+**`app.py`: 5.301 → 671 líneas (−87 %).** **0 `@app.route` restantes**: las
+82 reglas de ruta (65 endpoints) viven en **10 blueprints**. `app.py` es ya
+config + extensiones + hooks (before_request/context_processor/error_handlers) +
+registro de blueprints. Pendiente opcional: envolver esos hooks dentro de
+`create_app()` (ver "Cierre" abajo) — hoy corren a nivel de módulo, idénticos.
 
 > **Trampa observada al mover reparaciones**: sus rutas estaban interleadas con
 > las **registraciones** de `inventario` y `admin` (insertadas en commits
@@ -74,36 +80,43 @@ ANTES de importar la app**, así `uploads.py` computa las carpetas bajo el tmpdi
 al importarse (se eliminaron los parches `app_module.*FOLDER`). Tests de
 foto/firma/logo verdes.
 
-## Plan restante (un blueprint por commit, mismo checklist)
+## Plan restante — ✅ COMPLETADO (3 blueprints finales)
 
-> Orden por riesgo/acoplamiento. Cada uno necesita extraer antes sus helpers
-> compartidos (indicados) a un módulo común para no ciclar con `app.py`.
+Los tres dominios más acoplados (los DOS flujos Stripe + la puerta) ya migraron,
+verde tras cada movimiento, un commit por blueprint:
 
-1. **facturacion/pagos** — `marcar_reparacion_pagada, publico_pagar, pago_exito,
-   stripe_webhook`. ⚠️ `stripe_webhook` **CSRF-exento** (`_CSRF_EXENTAS`) y por
-   **firma de Stripe**: al mover, conservar la exención (ahora
-   `pagos.stripe_webhook`) y la verificación de firma + idempotencia/importe (H4/H6)
-   intactas. `marcar_reparacion_pagada` redirige a `reparaciones.editar_reparacion`.
-2. **suscripcion** — `signup, suscripcion, suscripcion_bloqueado,
-   suscripcion_portal, saas_webhook`. ⚠️ `saas_webhook` CSRF-exento + firma +
-   verificación de `taller_id` de la metadata. Mover también la **puerta**
-   `_GATE_EXENTAS`/`puerta_suscripcion` o dejarla en la fábrica (es before_request).
-   Actualizar las exenciones a `suscripcion.*`. `signup` usa `email_valido` (✅) +
-   `_slugify`/`_slug_unico`.
-3. **dashboard + resto** — `dashboard, healthcheck`. La función `dashboard`
-   (~276 líneas, ~20 queries) es la más grande; muévela entera sin trocear su
-   lógica.
+1. ✅ **pagos** — `marcar_reparacion_pagada, publico_pagar, pago_exito,
+   stripe_webhook`. `stripe_webhook` sigue **CSRF-exento** (`pagos.stripe_webhook`
+   en `_CSRF_EXENTAS`), firma **fail-closed** (sin lib → 503), idempotente y con
+   control de importe. Reproductores **H4/H8** reapuntados a `blueprints.pagos`
+   (parchean ahí `stripe`/`get_session`); **H6** intacto (parchea la lib global).
+2. ✅ **suscripcion** — `signup, suscripcion, suscripcion_bloqueado,
+   suscripcion_portal, saas_webhook` + helpers (`_slugify/_slug_unico/_sval/
+   _taller_por_customer/_saas_aplicar_evento`). `saas_webhook` CSRF-exento
+   (`suscripcion.saas_webhook`), firma propia, idempotente, valida `taller_id` de
+   la metadata. **La puerta `puerta_suscripcion` se quedó en `app.py`** (es
+   before_request: debe correr para TODAS las peticiones); `_GATE_EXENTAS` y su
+   `url_for("suscripcion.suscripcion_bloqueado")` actualizados a `suscripcion.*`.
+3. ✅ **dashboard** — `dashboard` (KPIs + Chart.js, ~20 queries raw con filtro
+   manual `taller_id`) + `healthcheck`. `url_for('dashboard')` reescrito a
+   `dashboard.dashboard` en TODO el código + `request.endpoint` de la nav.
+   `bool(MAIL_CONFIGURED)` → `_mail_configured()` local (como admin.py).
 
-### Cierre previsto
+### Cierre — estado
 
-- Mover los **before_request** (CSP/nonce, `enforce_csrf`, `resolver_taller`,
-  `puerta_suscripcion`, sesión permanente), **context processors**
-  (`csp_nonce`, `marca`/taller, csrf_token, permisos, email_verificacion) y
-  **error handlers** (403/404/429/500) DENTRO de `create_app()` (hoy siguen a
-  nivel de módulo en `app.py`). Es seguro hacerlo al final, cuando ya no queden
-  rutas a nivel de módulo.
-- `app.py` quedará como **entrypoint fino**: config + `create_app()` + registro
-  de blueprints. Objetivo orientativo: < 400 líneas.
+- ✅ **0 `@app.route` en `app.py`** (grep): las 82 reglas viven en 10 blueprints.
+- ✅ **0 referencias `url_for`/`request.endpoint` colgantes** (grep repo-wide).
+- ✅ Smoke GET de las rutas movidas (pagos `/pago_exito`, dashboard `/dashboard`
+  + `/health`) en `tests/test_branding.py`, como admin/reparaciones.
+- ⏭ **PENDIENTE OPCIONAL** (no bloqueante, estructura pura): envolver los
+  **before_request** (CSP/nonce, `enforce_csrf`, `resolver_taller`,
+  `puerta_suscripcion`, sesión permanente), **context processors** y **error
+  handlers** (403/404/429/500) DENTRO de `create_app()`. Hoy corren a nivel de
+  módulo sobre la app-singleton — comportamiento idéntico y verificado por la
+  suite; moverlos es cosmético. Se deja como paso aparte para no hacer big-bang
+  sobre los hooks de seguridad (CSP, CSRF, tenant, gate) en el mismo tramo.
+  `app.py` ya es entrypoint sin rutas: **671 líneas** (config + extensiones +
+  hooks + registro de 10 blueprints).
 
 ## Verificación visual para el HUMANO (lo que los tests NO cubren)
 
