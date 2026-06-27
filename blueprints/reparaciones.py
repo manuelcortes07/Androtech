@@ -669,6 +669,17 @@ def editar_reparacion(id):
     presupuesto_efectivo = _estado_efectivo(
         reparacion["presupuesto_estado"], reparacion["presupuesto_caduca_en"]
     )
+    # Persistencia perezosa de la caducidad: si al abrir la ficha un presupuesto
+    # 'enviado' ya venció, lo sellamos 'caducado' en BD para que el taller lo vea
+    # estable. (No hay cron en este entorno; un barrido programado sería mejora
+    # futura — ver informe.) Auto-scoped: la reparación ya es de este taller.
+    if (presupuesto_efectivo == "caducado"
+            and reparacion["presupuesto_estado"] == "enviado"):
+        with get_session() as _s:
+            _rep = _s.get(Reparacion, id)
+            if _rep and _rep.presupuesto_estado == "enviado":
+                _rep.presupuesto_estado = "caducado"
+                _s.commit()
 
     # Calcular estados disponibles según rol
     from historial import ESTADOS_VALIDOS, TRANSICIONES_VALIDAS

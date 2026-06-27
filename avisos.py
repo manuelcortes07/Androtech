@@ -92,6 +92,34 @@ def avisar_presupuesto_enviado(*, reparacion_id, cliente_email, cliente_nombre,
         return "error"
 
 
+def avisar_taller_respuesta_presupuesto(*, taller_email, taller_nombre, dispositivo,
+                                        reparacion_id, estado, comentario=None) -> str:
+    """Email AL TALLER cuando el cliente responde a un presupuesto (aprobado/
+    rechazado/cambios). Es una notificación operativa interna al taller dueño;
+    best-effort: 'enviado' | 'sin_email' | 'error' (nunca lanza)."""
+    if not taller_email:
+        return "sin_email"
+    try:
+        notificador.enviar_email(
+            "send_presupuesto_respuesta_taller",
+            to_email=taller_email,
+            taller_nombre=taller_nombre,
+            dispositivo=dispositivo,
+            reparacion_id=reparacion_id,
+            estado=estado,
+            comentario=comentario,
+        )
+        logger.info('{"event": "presupuesto_aviso_taller", "estado": "%s", '
+                    '"reparacion_id": "%s"}' % (estado, reparacion_id))
+        return "enviado"
+    except Exception:
+        logger.exception(
+            "Error avisando al taller de respuesta de presupuesto (rep %s)"
+            % reparacion_id
+        )
+        return "error"
+
+
 def avisar_cambio_estado(*, reparacion_id, cliente_email, cliente_nombre,
                          estado_anterior, estado_nuevo, dispositivo, descripcion,
                          cliente_id=None, codigo_publico=None,

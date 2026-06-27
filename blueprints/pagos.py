@@ -30,7 +30,7 @@ from flask import (
     session,
     url_for,
 )
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 try:
     import stripe
@@ -500,6 +500,8 @@ def stripe_webhook():
             if es_presupuesto:
                 rep.presupuesto_estado = 'aprobado'
                 rep.presupuesto_respondido_en = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            _rep_dispositivo = rep.dispositivo  # capturado antes del commit (B4)
+            _rep_taller_id = rep.taller_id
             s.commit()
 
             # Registrar auditoría y log estructurado
@@ -512,6 +514,24 @@ def stripe_webhook():
                 }, ip_address=request.remote_addr)
             except Exception:
                 logger.exception('Error registrando auditoría de pago')
+
+            # B4: si era aprobación de presupuesto, avisar al taller dueño
+            # (best-effort; el pago ya está registrado, no se revierte por esto).
+            if es_presupuesto:
+                try:
+                    from avisos import avisar_taller_respuesta_presupuesto
+                    trow = s.execute(
+                        text("SELECT email_contacto, nombre FROM talleres WHERE id = :t"),
+                        {"t": _rep_taller_id},
+                    ).first()
+                    avisar_taller_respuesta_presupuesto(
+                        taller_email=(trow[0] if trow else None),
+                        taller_nombre=(trow[1] if trow else None),
+                        dispositivo=_rep_dispositivo, reparacion_id=reparacion_id,
+                        estado='aprobado',
+                    )
+                except Exception:
+                    logger.exception('Error avisando al taller de presupuesto aprobado')
 
             # Enviar email de confirmación de pago
             try:

@@ -248,6 +248,44 @@ class TestJuezPresupuesto:
         assert row["estado_pago"] != "Pagado"
 
 
+class TestAvisoTallerYCaducidad:
+    """B4 — el taller recibe aviso cuando el cliente responde, y la caducidad se
+    sella en lectura al abrir la ficha."""
+
+    def test_rechazo_avisa_al_taller(self, client, dos_talleres, db_conn,
+                                     captura_email):
+        repA = dos_talleres["repA"]
+        _armar_presupuesto(db_conn, repA, "PRESUP-A")
+        db_conn.execute(
+            "UPDATE talleres SET email_contacto = 'taller-a@demo.com' WHERE id = 1")
+        db_conn.commit()
+        client.post("/presupuesto/rechazar",
+                    data={"codigo": "PRESUP-A", "csrf_token": "x"})
+        assert captura_email.get("to") == "taller-a@demo.com"
+        assert "rechazado" in captura_email.get("html", "")
+
+    def test_cambios_incluye_comentario_al_taller(self, client, dos_talleres,
+                                                  db_conn, captura_email):
+        repA = dos_talleres["repA"]
+        _armar_presupuesto(db_conn, repA, "PRESUP-A")
+        db_conn.execute(
+            "UPDATE talleres SET email_contacto = 'taller-a@demo.com' WHERE id = 1")
+        db_conn.commit()
+        client.post("/presupuesto/cambios", data={
+            "codigo": "PRESUP-A", "comentario": "Cambiad la pantalla",
+            "csrf_token": "x"})
+        assert "Cambiad la pantalla" in captura_email.get("html", "")
+
+    def test_ficha_sella_caducidad_en_lectura(self, admin_A, dos_talleres, db_conn):
+        repA = dos_talleres["repA"]
+        _armar_presupuesto(db_conn, repA, "PRESUP-A", dias=-1)  # vencido, 'enviado'
+        admin_A.get(f"/reparaciones/editar/{repA}")  # abrir la ficha
+        estado = db_conn.execute(
+            "SELECT presupuesto_estado FROM reparaciones WHERE id = ?", (repA,)
+        ).fetchone()["presupuesto_estado"]
+        assert estado == "caducado"  # persistido al leer
+
+
 # Garantiza que las constantes de validez/timedelta son coherentes (no negativas).
 def test_constantes_sanas():
     assert P.PRESUPUESTO_VALIDEZ_DIAS > 0

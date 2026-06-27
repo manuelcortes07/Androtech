@@ -293,6 +293,35 @@ class EmailService:
             logger.error(f'Error enviando email de presupuesto: {type(e).__name__}: {str(e)}')
             raise
 
+    _RESPUESTA_LABEL = {
+        'aprobado': 'aprobado y pagado',
+        'rechazado': 'rechazado',
+        'cambios_solicitados': 'pedido cambios en',
+    }
+
+    def send_presupuesto_respuesta_taller(self, to_email, taller_nombre, dispositivo,
+                                          reparacion_id, estado, comentario=None):
+        """Aviso AL TALLER de que el cliente respondió a un presupuesto."""
+        try:
+            html = render_template(
+                'emails/presupuesto_respuesta_taller.html',
+                taller_nombre=taller_nombre,
+                dispositivo=dispositivo,
+                reparacion_id=reparacion_id,
+                estado=estado,
+                estado_label=self._RESPUESTA_LABEL.get(estado, estado),
+                comentario=comentario,
+                year=datetime.now().year,
+            )
+            self._send(
+                subject=f'Respuesta a tu presupuesto - Reparacion #{reparacion_id}',
+                to_email=to_email, html_body=html,
+            )
+            logger.info(f'Aviso de respuesta de presupuesto enviado al taller {to_email} (rep {reparacion_id})')
+        except Exception as e:
+            logger.error(f'Error avisando al taller de respuesta de presupuesto: {type(e).__name__}: {str(e)}')
+            raise
+
     def send_password_reset(self, to_email, reset_url, taller_nombre=None):
         """Email con el enlace de reset de contraseña (B3.1)."""
         html = render_template(

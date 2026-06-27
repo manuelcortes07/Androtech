@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Respuesta a tu presupuesto - Reparación #{{ reparacion_id }}</title>
+</head>
+<body style="font-family:'Segoe UI',Tahoma,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;background:#f4f4f4;padding:20px;">
+    <div style="background:#fff;padding:30px;border-radius:10px;box-shadow:0 0 20px rgba(0,0,0,.1);">
+        <h1 style="font-size:20px;border-bottom:3px solid #007bff;padding-bottom:14px;">
+            Tu cliente ha respondido a un presupuesto
+        </h1>
+        <p>Hola{% if taller_nombre %} {{ taller_nombre }}{% endif %},</p>
+        <p>El cliente ha
+           {% if estado == 'aprobado' %}<strong style="color:#28a745;">aprobado y pagado</strong>{% elif estado == 'rechazado' %}<strong style="color:#dc3545;">rechazado</strong>{% else %}<strong style="color:#e0a800;">pedido cambios en</strong>{% endif %}
+           el presupuesto de la reparación
+           <strong>#{{ reparacion_id }}</strong>{% if dispositivo %} ({{ dispositivo }}){% endif %}.</p>
+
+        {% if comentario %}
+        <div style="background:#fff3cd;border-left:4px solid #ffc107;padding:14px;border-radius:6px;margin:18px 0;">
+            <strong>Comentario del cliente:</strong><br>{{ comentario }}
+        </div>
+        {% endif %}
+
+        <p style="color:#666;font-size:14px;margin-top:24px;">
+            Entra en tu panel para ver la reparación y continuar.
+        </p>
+        <div style="margin-top:24px;padding-top:16px;border-top:1px solid #eee;color:#999;font-size:12px;">
+            © {{ year|default('2026') }} · Aviso automático de tu panel de gestión.
+        </div>
+    </div>
+</body>
+</html>

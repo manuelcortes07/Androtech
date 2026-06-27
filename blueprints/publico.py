@@ -26,6 +26,7 @@ from flask import (
 from sqlalchemy import func, select, text
 
 from audit import registrar_auditoria
+from avisos import avisar_taller_respuesta_presupuesto
 from database import get_session
 from extensions import limiter
 from models import Cliente, Reparacion, SolicitudReparacion
@@ -304,13 +305,26 @@ def _responder_presupuesto(codigo, nuevo_estado, comentario=None):
         rep.presupuesto_respondido_en = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         rep.presupuesto_comentario_cliente = comentario
         rep_id = rep.id
+        dispositivo = rep.dispositivo
         s.commit()
+        # Datos del taller dueño para avisarle (email_contacto del taller activo).
+        trow = s.execute(
+            text("SELECT email_contacto, nombre FROM talleres WHERE id = :t"),
+            {"t": g.taller_id},
+        ).first()
     registrar_auditoria(f"presupuesto_{nuevo_estado}", None,
                         {"reparacion_id": rep_id, "taller_id": g.taller_id},
                         ip_address=request.remote_addr)
     logger.info('{"event": "presupuesto_respuesta_cliente", "estado": "%s", '
                 '"reparacion_id": "%s", "taller_id": "%s"}'
                 % (nuevo_estado, rep_id, g.taller_id))
+    # B4: avisar al taller (best-effort; nunca rompe la respuesta del cliente).
+    avisar_taller_respuesta_presupuesto(
+        taller_email=(trow[0] if trow else None),
+        taller_nombre=(trow[1] if trow else None),
+        dispositivo=dispositivo, reparacion_id=rep_id,
+        estado=nuevo_estado, comentario=comentario,
+    )
     return True, None
 
 
