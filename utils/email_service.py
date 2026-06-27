@@ -300,6 +300,7 @@ class EmailService:
             'emails/bienvenida_cliente.html',
             cliente_nombre=cliente_nombre,
             year=datetime.now().year,
+            emisor=self._emisor(),  # white-label: previsualiza el branding del taller
         )
         self._send(
             subject='Kintsu - Prueba de envio de email',

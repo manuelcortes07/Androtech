@@ -130,6 +130,67 @@ class TestPlantillaWhiteLabel:
         assert "633 234 395" not in html
 
 
+class TestGuardiaAntiFuga:
+    """Red de seguridad anti-regresión: ninguna plantilla de email que ve el
+    CLIENTE final puede contener datos de contacto PERSONALES hardcodeados. Si
+    alguien vuelve a meter un teléfono/email del desarrollador, esto lo caza.
+    (reset_password/verificar_email NO entran: van al admin del taller y pueden
+    llevar la marca Kintsu de plataforma.)"""
+
+    _CLIENTE_TEMPLATES = [
+        "repair_status_update.html", "payment_confirmation.html",
+        "nueva_reparacion.html", "bienvenida_cliente.html",
+    ]
+    # Contacto personal del desarrollador + cualquier @gmail hardcodeado.
+    _PROHIBIDO = ["633 234 395", "633234395", "manuelcortescontreras11", "@gmail.com"]
+
+    def test_plantillas_cliente_sin_contacto_personal(self):
+        import os
+        base = os.path.join(os.path.dirname(os.path.dirname(__file__)),
+                            "templates", "emails")
+        for nombre in self._CLIENTE_TEMPLATES:
+            with open(os.path.join(base, nombre), encoding="utf-8") as f:
+                contenido = f.read()
+            for prohibido in self._PROHIBIDO:
+                assert prohibido not in contenido, (
+                    f"FUGA: la plantilla {nombre} contiene '{prohibido}' "
+                    "hardcodeado (debe venir del taller emisor)."
+                )
+
+
+class TestJuezBrandingTodasLasPlantillas:
+    """EL JUEZ extendido a TODAS las plantillas al cliente: renderizadas con el
+    taller A activo, llevan el branding de A — nunca el de B ('Rival') ni el
+    contacto del desarrollador."""
+
+    def test_cada_email_solo_branding_del_taller_dueno(self, app, dos_talleres,
+                                                       captura_email, db_conn):
+        from flask import g
+
+        from services import email_service
+        nombre_A = db_conn.execute(
+            "SELECT nombre FROM talleres WHERE id = 1"
+        ).fetchone()["nombre"]
+
+        renders = []
+        with app.test_request_context():
+            g.taller_id = 1
+            g.taller_slug = "androtech"
+            email_service.send_payment_confirmation("c@a.com", "Cli", 1, 10.0, "desc")
+            renders.append(("payment", captura_email.get("html", "")))
+            email_service.send_nueva_reparacion("c@a.com", "Cli", 1, "iPhone",
+                                                "desc", "2026-01-01")
+            renders.append(("nueva", captura_email.get("html", "")))
+            email_service.send_bienvenida_cliente("c@a.com", "Cli")
+            renders.append(("bienvenida", captura_email.get("html", "")))
+
+        for etiqueta, html in renders:
+            assert nombre_A in html, f"{etiqueta}: falta el branding del taller A"
+            assert "Rival" not in html, f"{etiqueta}: filtra el branding de B"
+            assert "manuelcortescontreras11" not in html, f"{etiqueta}: contacto dev"
+            assert "633 234 395" not in html, f"{etiqueta}: teléfono dev"
+
+
 class TestInterruptorTaller:
     """B4: el taller puede apagar los avisos automáticos desde /perfil; con el
     interruptor en off, no sale ningún email."""
