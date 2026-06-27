@@ -258,6 +258,83 @@ def publico_pagar(id, slug=None):
         return redirect(url_for('publico.consulta'))
 
 
+@bp.route('/presupuesto/aprobar', methods=['POST'])
+@csrf_protect
+def presupuesto_aprobar():
+    """El cliente APRUEBA el presupuesto desde el portal → pago Stripe.
+
+    El presupuesto se marca 'aprobado' SÓLO en el webhook (tras confirmación de
+    pago real y firma verificada), nunca aquí. resolver_taller ya fijó g.taller_id
+    desde el `codigo`, así que el ORM resuelve la reparación del taller correcto;
+    la metadata lleva taller_id y el webhook lo re-verifica (no cruza de taller).
+    """
+    from presupuestos import estado_efectivo, importe_a_cobrar, puede_responder
+    codigo = "".join((request.form.get('codigo') or '').split())
+    if not codigo:
+        flash('Falta el código de seguimiento.', 'danger')
+        return redirect(url_for('publico.consulta'))
+    with get_session() as s:
+        rep = s.execute(
+            select(
+                Reparacion.id, Reparacion.precio, Reparacion.estado_pago,
+                Reparacion.presupuesto_estado, Reparacion.presupuesto_caduca_en,
+                Cliente.nombre.label('cliente_nombre'),
+                Cliente.email.label('cliente_email'),
+            ).join(Cliente, Cliente.id == Reparacion.cliente_id)
+            .where(Reparacion.codigo_publico == codigo)
+        ).mappings().first()
+    if not rep:
+        flash('No se encontró el presupuesto.', 'danger')
+        return redirect(url_for('publico.consulta'))
+    efectivo = estado_efectivo(rep['presupuesto_estado'], rep['presupuesto_caduca_en'])
+    if not puede_responder(efectivo):
+        flash('Este presupuesto ya no admite respuesta (caducado o ya respondido).',
+              'warning')
+        return redirect(url_for('publico.consulta', codigo=codigo))
+    if rep['estado_pago'] == 'Pagado':
+        flash('Esta reparación ya está pagada.', 'info')
+        return redirect(url_for('publico.consulta', codigo=codigo))
+    importe = importe_a_cobrar(rep['precio'])
+    if importe <= 0:
+        flash('El importe del presupuesto no es válido.', 'danger')
+        return redirect(url_for('publico.consulta', codigo=codigo))
+    if not STRIPE_SECRET_KEY or stripe is None or STRIPE_SECRET_KEY.startswith('pk_'):
+        flash('El sistema de pagos no está disponible. Contacta con el taller.',
+              'danger')
+        return redirect(url_for('publico.consulta', codigo=codigo))
+
+    rid = rep['id']
+    cliente_nombre = rep['cliente_nombre'] or ''
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'eur',
+                    'product_data': {'name': f"Presupuesto reparación #{rid} - {cliente_nombre or 'Cliente'}"},
+                    'unit_amount': int(round(importe * 100)),
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=url_for('pagos.pago_exito', id=rid, _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=url_for('publico.consulta', codigo=codigo, _external=True),
+            metadata={
+                'reparacion_id': str(rid),
+                'taller_id': str(g.taller_id),     # el webhook lo verifica
+                'cliente_email': rep['cliente_email'] or '',
+                'cliente_nombre': cliente_nombre,
+                'presupuesto': '1',                # marca: aprobar presupuesto
+            },
+        )
+        return redirect(checkout_session.url, code=303)
+    except Exception:
+        logger.exception(json.dumps({"event": "presupuesto_aprobar_error",
+                                     "reparacion_id": rid}, ensure_ascii=False))
+        flash('No se pudo iniciar el pago. Inténtalo de nuevo.', 'danger')
+        return redirect(url_for('publico.consulta', codigo=codigo))
+
+
 @bp.route('/pago_exito')
 def pago_exito():
     # Página de éxito (Stripe redirige aquí con session_id)
@@ -301,6 +378,9 @@ def stripe_webhook():
         reparacion_id = metadata.get('reparacion_id')
         meta_taller_id = metadata.get('taller_id')
         cliente_email = metadata.get('cliente_email', 'unknown')
+        # Si el pago viene de APROBAR un presupuesto, el webhook (única fuente de
+        # verdad del pago real) marca además el presupuesto como aprobado.
+        es_presupuesto = metadata.get('presupuesto') == '1'
         session_id = session_obj.get('id')
 
         # Validar metadata
@@ -415,6 +495,11 @@ def stripe_webhook():
             rep.estado_pago = 'Pagado'
             rep.fecha_pago = datetime.now().strftime('%Y-%m-%d')
             rep.metodo_pago = 'Tarjeta (Stripe)'
+            # Presupuesto aprobado SÓLO aquí (tras confirmación de pago real y
+            # verificada la firma): el cliente que aprueba paga y queda autorizado.
+            if es_presupuesto:
+                rep.presupuesto_estado = 'aprobado'
+                rep.presupuesto_respondido_en = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             s.commit()
 
             # Registrar auditoría y log estructurado

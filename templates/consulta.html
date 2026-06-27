@@ -99,8 +99,63 @@
             </div>
         </div>
 
+        {# ─── Presupuesto con aprobación del cliente ─── #}
+        {% if presupuesto_efectivo %}
+        <div class="at-card at-reveal at-u118">
+            <div class="at-card__head">
+                <span class="at-u124"><i class="bi bi-file-earmark-check"></i> Presupuesto</span>
+            </div>
+            <div class="at-card__body">
+                {% if presupuesto_efectivo == 'enviado' %}
+                <p>{{ marca.nombre or 'El taller' }} te ha enviado un presupuesto para esta reparación.</p>
+                <div class="at-u125">
+                    <div class="at-u129"><strong>Importe del presupuesto</strong><strong class="at-mono at-u130">{{ "%.2f"|format(importe_aprobar or 0) }} €</strong></div>
+                </div>
+                {% if reparacion.presupuesto_caduca_en %}
+                <p class="at-dim at-u131"><i class="bi bi-clock"></i> Válido hasta el {{ reparacion.presupuesto_caduca_en[:10] }}.</p>
+                {% endif %}
+
+                <form action="{{ url_for('pagos.presupuesto_aprobar') }}" method="POST" class="mb-3">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="codigo" value="{{ reparacion.codigo_publico }}">
+                    <button type="submit" class="at-btn at-btn--primary at-btn--block at-btn--lg">
+                        <i class="bi bi-check-circle"></i> Aprobar y pagar {{ "%.2f"|format(importe_aprobar or 0) }} €
+                    </button>
+                </form>
+
+                <form action="{{ url_for('publico.presupuesto_cambios') }}" method="POST" class="mb-3">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="codigo" value="{{ reparacion.codigo_publico }}">
+                    <label class="at-label" for="comentario">¿Necesitas cambios? Cuéntanos</label>
+                    <textarea class="at-input" id="comentario" name="comentario" rows="2"
+                              placeholder="Ej: ¿podríais revisar también la batería?"></textarea>
+                    <button type="submit" class="at-btn at-btn--block">
+                        <i class="bi bi-chat-dots"></i> Pedir cambios
+                    </button>
+                </form>
+
+                <form action="{{ url_for('publico.presupuesto_rechazar') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="codigo" value="{{ reparacion.codigo_publico }}">
+                    <button type="submit" class="at-btn at-btn--block">
+                        <i class="bi bi-x-circle"></i> Rechazar presupuesto
+                    </button>
+                </form>
+                {% elif presupuesto_efectivo == 'aprobado' %}
+                <p><i class="bi bi-check-circle-fill"></i> Has aprobado este presupuesto. ¡Gracias!</p>
+                {% elif presupuesto_efectivo == 'rechazado' %}
+                <p class="at-dim"><i class="bi bi-x-circle"></i> Has rechazado este presupuesto.</p>
+                {% elif presupuesto_efectivo == 'cambios_solicitados' %}
+                <p class="at-dim"><i class="bi bi-chat-dots"></i> Has pedido cambios. {{ marca.nombre or 'El taller' }} revisará tu petición.</p>
+                {% elif presupuesto_efectivo == 'caducado' %}
+                <p class="at-dim"><i class="bi bi-clock-history"></i> Este presupuesto ha caducado. Contacta con {{ marca.nombre or 'el taller' }} para uno nuevo.</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
         {# ─── Pago pendiente: formulario Stripe (flujo de reparaciones) ─── #}
-        {% if reparacion.precio and reparacion.estado_pago != 'Pagado' %}
+        {% if reparacion.precio and reparacion.estado_pago != 'Pagado' and presupuesto_efectivo != 'enviado' %}
         <div class="at-card at-reveal at-u118">
             <div class="at-card__head">
                 <span class="at-u124"><i class="bi bi-credit-card-2-front"></i> Proceder al pago</span>

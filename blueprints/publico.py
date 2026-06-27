@@ -25,6 +25,7 @@ from flask import (
 )
 from sqlalchemy import func, select, text
 
+from audit import registrar_auditoria
 from database import get_session
 from extensions import limiter
 from models import Cliente, Reparacion, SolicitudReparacion
@@ -141,6 +142,10 @@ def consulta(slug=None):
                         Cliente.email.label('cliente_email'),
                         Reparacion.estado_pago, Reparacion.fecha_pago,
                         Reparacion.metodo_pago,
+                        Reparacion.codigo_publico,
+                        Reparacion.presupuesto_estado,
+                        Reparacion.presupuesto_caduca_en,
+                        Reparacion.presupuesto_comentario_cliente,
                     ).join(Cliente, Cliente.id == Reparacion.cliente_id)
                     .where(Reparacion.codigo_publico == codigo)
                 ).mappings().first()
@@ -148,8 +153,20 @@ def consulta(slug=None):
             if not reparacion:
                 error = "No se encontró ninguna reparación con ese código."
 
+    # Estado EFECTIVO del presupuesto (caducidad evaluada en lectura).
+    presupuesto_efectivo = None
+    importe_aprobar = None
+    if reparacion:
+        from presupuestos import estado_efectivo, importe_a_cobrar
+        presupuesto_efectivo = estado_efectivo(
+            reparacion["presupuesto_estado"], reparacion["presupuesto_caduca_en"]
+        )
+        importe_aprobar = importe_a_cobrar(reparacion["precio"])
+
     return render_template("consulta.html", reparacion=reparacion, error=error,
-                           codigo_prefill=codigo_get)
+                           codigo_prefill=codigo_get,
+                           presupuesto_efectivo=presupuesto_efectivo,
+                           importe_aprobar=importe_aprobar)
 
 
 @bp.route("/mis-reparaciones", methods=["GET", "POST"])
@@ -258,6 +275,69 @@ def solicitar_reparacion(slug=None):
         return redirect(url_for("publico.solicitar_reparacion"))
 
     return render_template("solicitar_reparacion.html")
+
+
+def _responder_presupuesto(codigo, nuevo_estado, comentario=None):
+    """Aplica una respuesta del cliente (rechazar / pedir cambios) al presupuesto.
+
+    Auto-scoped: `resolver_taller` (before_request) ya fijó g.taller_id desde el
+    `codigo`, así que el ORM filtra al taller correcto — un cliente sólo puede
+    responder al presupuesto de SU reparación (la del código que posee). Devuelve
+    (ok, mensaje_error). El aviso al taller por email lo añade B4.
+    """
+    from datetime import datetime
+
+    from presupuestos import estado_efectivo, puede_responder
+    if not codigo:
+        return False, "Falta el código de seguimiento."
+    with get_session() as s:
+        rep = s.scalars(
+            select(Reparacion).where(Reparacion.codigo_publico == codigo)
+        ).first()
+        if not rep:
+            return False, "No se encontró el presupuesto."
+        efectivo = estado_efectivo(rep.presupuesto_estado, rep.presupuesto_caduca_en)
+        if not puede_responder(efectivo):
+            return False, ("Este presupuesto ya no admite respuesta "
+                           "(caducado o ya respondido).")
+        rep.presupuesto_estado = nuevo_estado
+        rep.presupuesto_respondido_en = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        rep.presupuesto_comentario_cliente = comentario
+        rep_id = rep.id
+        s.commit()
+    registrar_auditoria(f"presupuesto_{nuevo_estado}", None,
+                        {"reparacion_id": rep_id, "taller_id": g.taller_id},
+                        ip_address=request.remote_addr)
+    logger.info('{"event": "presupuesto_respuesta_cliente", "estado": "%s", '
+                '"reparacion_id": "%s", "taller_id": "%s"}'
+                % (nuevo_estado, rep_id, g.taller_id))
+    return True, None
+
+
+@bp.route("/presupuesto/rechazar", methods=["POST"])
+@csrf_protect
+def presupuesto_rechazar():
+    """El cliente RECHAZA el presupuesto (sin pago)."""
+    codigo = "".join((request.form.get("codigo") or "").split())
+    ok, msg = _responder_presupuesto(codigo, "rechazado")
+    flash("Has rechazado el presupuesto. El taller ha sido informado." if ok else msg,
+          "info" if ok else "warning")
+    return redirect(url_for("publico.consulta", codigo=codigo))
+
+
+@bp.route("/presupuesto/cambios", methods=["POST"])
+@csrf_protect
+def presupuesto_cambios():
+    """El cliente PIDE CAMBIOS al presupuesto (con comentario)."""
+    codigo = "".join((request.form.get("codigo") or "").split())
+    comentario = (request.form.get("comentario") or "").strip()[:1000]
+    if not comentario:
+        flash("Cuéntanos qué cambios necesitas.", "warning")
+        return redirect(url_for("publico.consulta", codigo=codigo))
+    ok, msg = _responder_presupuesto(codigo, "cambios_solicitados", comentario)
+    flash("Hemos enviado tu petición de cambios al taller." if ok else msg,
+          "info" if ok else "warning")
+    return redirect(url_for("publico.consulta", codigo=codigo))
 
 
 @bp.route("/notificaciones/baja/<token>")
