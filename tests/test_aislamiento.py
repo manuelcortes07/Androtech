@@ -65,7 +65,7 @@ def dos_talleres(db_conn):
     db_conn.execute(
         "INSERT INTO reparaciones (cliente_id, dispositivo, descripcion, estado, "
         "fecha_entrada, precio, estado_pago, taller_id) "
-        f"VALUES (?, '{RIVAL_DISPOSITIVO}', '{RIVAL_DESC}', 'Pendiente', '2026-02-01', 999.0, 'Pendiente', 2)",
+        f"VALUES (?, '{RIVAL_DISPOSITIVO}', '{RIVAL_DESC}', 'Pendiente', '2026-02-01', 987654.0, 'Pendiente', 2)",
         (cliB,),
     )
     repB = db_conn.execute("SELECT id FROM reparaciones WHERE taller_id=2").fetchone()["id"]
@@ -103,7 +103,7 @@ def _sin_marcadores_b(data: bytes):
     """True si NINGÚN marcador único del taller B aparece en la respuesta."""
     txt = data.decode("utf-8", errors="replace")
     return not any(m in txt for m in (
-        RIVAL_DISPOSITIVO, RIVAL_DESC, RIVAL_PIEZA, RIVAL_SOLICITANTE, "999"
+        RIVAL_DISPOSITIVO, RIVAL_DESC, RIVAL_PIEZA, RIVAL_SOLICITANTE, "987654"
     ))
 
 
