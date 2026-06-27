@@ -268,6 +268,31 @@ class EmailService:
             logger.error(f'Error enviando email de bienvenida: {type(e).__name__}: {str(e)}')
             raise
 
+    def send_presupuesto_enviado(self, to_email, cliente_nombre, reparacion_id,
+                                 dispositivo, precio, caduca_en, tracking_url=None):
+        """Presupuesto listo para que el cliente lo apruebe/rechace (white-label)."""
+        try:
+            emisor = self._emisor()
+            html = render_template(
+                'emails/presupuesto_enviado.html',
+                cliente_nombre=cliente_nombre,
+                reparacion_id=reparacion_id,
+                dispositivo=dispositivo,
+                precio=precio,
+                caduca_en=caduca_en,
+                tracking_url=tracking_url,
+                year=datetime.now().year,
+                emisor=emisor,
+            )
+            self._send(
+                subject=f'Presupuesto de tu reparacion #{reparacion_id} - {emisor.get("nombre") or "Tu taller"}',
+                to_email=to_email, html_body=html,
+            )
+            logger.info(f'Email de presupuesto enviado a {to_email} para reparacion {reparacion_id}')
+        except Exception as e:
+            logger.error(f'Error enviando email de presupuesto: {type(e).__name__}: {str(e)}')
+            raise
+
     def send_password_reset(self, to_email, reset_url, taller_nombre=None):
         """Email con el enlace de reset de contraseña (B3.1)."""
         html = render_template(

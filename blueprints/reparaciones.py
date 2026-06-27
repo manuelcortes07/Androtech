@@ -35,8 +35,9 @@ from sqlalchemy import select
 
 import uploads
 from alerts import calcular_alertas_reparacion
+from audit import registrar_auditoria
 from auth import login_required, permiso_requerido
-from avisos import avisar_cambio_estado
+from avisos import avisar_cambio_estado, avisar_presupuesto_enviado
 from branding import taller_branding
 from csv_utils import (
     _SEP_CSV,
@@ -663,6 +664,12 @@ def editar_reparacion(id):
     # Calcular alertas
     alertas_info = calcular_alertas_reparacion(reparacion, ultima_act)
 
+    # Estado EFECTIVO del presupuesto (caducidad evaluada en lectura).
+    from presupuestos import estado_efectivo as _estado_efectivo
+    presupuesto_efectivo = _estado_efectivo(
+        reparacion["presupuesto_estado"], reparacion["presupuesto_caduca_en"]
+    )
+
     # Calcular estados disponibles según rol
     from historial import ESTADOS_VALIDOS, TRANSICIONES_VALIDAS
     rol = session.get('rol', 'tecnico')
@@ -683,8 +690,60 @@ def editar_reparacion(id):
         estados_disponibles=estados_disponibles,
         fotos=fotos,
         notas=notas,
-        piezas_usadas=piezas_usadas
+        piezas_usadas=piezas_usadas,
+        presupuesto_efectivo=presupuesto_efectivo,
     )
+
+
+@bp.route("/reparaciones/<int:id>/presupuesto/enviar", methods=["POST"])
+@login_required
+@csrf_protect
+def enviar_presupuesto(id):
+    """El taller envía (o reenvía) el presupuesto al cliente para que lo apruebe,
+    rechace o pida cambios desde el portal público. Fija la validez y dispara un
+    email transaccional white-label. Reenviar reinicia el periodo y el estado."""
+    from presupuestos import caduca_en as _caduca_en
+    with get_session() as s:
+        rep = s.get(Reparacion, id)  # auto-scoped al taller de la sesión
+        if not rep:
+            flash("Reparación no encontrada.", "danger")
+            return redirect(url_for("reparaciones.reparaciones"))
+        if not rep.precio or rep.precio <= 0:
+            flash("Asigna un precio a la reparación antes de enviar el presupuesto.",
+                  "danger")
+            return redirect(url_for("reparaciones.editar_reparacion", id=id))
+        ahora = datetime.now()
+        rep.presupuesto_estado = "enviado"
+        rep.presupuesto_enviado_en = ahora.strftime("%Y-%m-%d %H:%M:%S")
+        rep.presupuesto_caduca_en = _caduca_en(ahora)
+        rep.presupuesto_respondido_en = None
+        rep.presupuesto_comentario_cliente = None
+        # Datos para el email (se leen antes de cerrar la sesión).
+        precio = rep.precio
+        dispositivo = rep.dispositivo
+        codigo_publico = rep.codigo_publico
+        caduca = rep.presupuesto_caduca_en
+        cliente = s.get(Cliente, rep.cliente_id)
+        cliente_email = cliente.email if cliente else None
+        cliente_nombre = cliente.nombre if cliente else None
+        s.commit()
+
+    registrar_auditoria("presupuesto_enviado", session.get("usuario"),
+                        {"reparacion_id": id, "precio": precio,
+                         "caduca_en": caduca, "taller_id": g.taller_id})
+
+    resultado = avisar_presupuesto_enviado(
+        reparacion_id=id, cliente_email=cliente_email,
+        cliente_nombre=cliente_nombre, dispositivo=dispositivo, precio=precio,
+        caduca_en=caduca, codigo_publico=codigo_publico,
+    )
+    if resultado == "sin_email":
+        flash("Presupuesto marcado como enviado, pero el cliente no tiene email: "
+              "compártele el enlace de seguimiento manualmente.", "warning")
+    else:
+        flash("Presupuesto enviado al cliente. Te avisaremos cuando responda.",
+              "success")
+    return redirect(url_for("reparaciones.editar_reparacion", id=id))
 
 
 # BORRAR REPARACIÓN

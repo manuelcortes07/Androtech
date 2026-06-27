@@ -58,6 +58,40 @@ def _url_baja(cliente_id) -> str | None:
         return None
 
 
+def avisar_presupuesto_enviado(*, reparacion_id, cliente_email, cliente_nombre,
+                               dispositivo, precio, caduca_en,
+                               codigo_publico=None) -> str:
+    """Email al cliente cuando el taller le ENVÍA un presupuesto para aprobar.
+
+    TRANSACCIONAL y DELIBERADO (el taller pulsa "enviar"): NO se sujeta al opt-out
+    de avisos automáticos ni al interruptor del taller — el cliente necesita el
+    presupuesto para poder responder. Sólo exige un email válido. Best-effort:
+    'enviado' | 'sin_email' | 'error' (nunca lanza)."""
+    if not cliente_email:
+        logger.info('{"event": "presupuesto_email_omitido", "motivo": "sin_email", '
+                    '"reparacion_id": "%s"}' % reparacion_id)
+        return "sin_email"
+    try:
+        notificador.enviar_email(
+            "send_presupuesto_enviado",
+            to_email=cliente_email,
+            cliente_nombre=cliente_nombre,
+            reparacion_id=reparacion_id,
+            dispositivo=dispositivo,
+            precio=precio,
+            caduca_en=caduca_en,
+            tracking_url=_url_seguimiento(codigo_publico),
+        )
+        logger.info('{"event": "presupuesto_email_enviado", "reparacion_id": "%s"}'
+                    % reparacion_id)
+        return "enviado"
+    except Exception:
+        logger.exception(
+            "Error enviando email de presupuesto para reparacion %s" % reparacion_id
+        )
+        return "error"
+
+
 def avisar_cambio_estado(*, reparacion_id, cliente_email, cliente_nombre,
                          estado_anterior, estado_nuevo, dispositivo, descripcion,
                          cliente_id=None, codigo_publico=None,

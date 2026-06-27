@@ -200,6 +200,50 @@
                         </div>
                     </form>
 
+                    <!-- PRESUPUESTO CON APROBACIÓN DEL CLIENTE -->
+                    <div class="mt-4 pt-4 at-u184">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <i class="bi bi-file-earmark-check at-u22"></i>
+                            <h6 class="fw-bold mb-0 at-u42">Presupuesto del cliente</h6>
+                            {% if presupuesto_efectivo == 'enviado' %}
+                            <span class="badge bg-info text-dark">Enviado · pendiente de respuesta</span>
+                            {% elif presupuesto_efectivo == 'aprobado' %}
+                            <span class="badge bg-success">Aprobado por el cliente</span>
+                            {% elif presupuesto_efectivo == 'rechazado' %}
+                            <span class="badge bg-danger">Rechazado</span>
+                            {% elif presupuesto_efectivo == 'cambios_solicitados' %}
+                            <span class="badge bg-warning text-dark">El cliente pide cambios</span>
+                            {% elif presupuesto_efectivo == 'caducado' %}
+                            <span class="badge bg-secondary">Caducado (sin respuesta)</span>
+                            {% endif %}
+                        </div>
+
+                        {% if presupuesto_efectivo == 'cambios_solicitados' and reparacion.presupuesto_comentario_cliente %}
+                        <div class="alert alert-warning small">
+                            <strong>Comentario del cliente:</strong>
+                            {{ reparacion.presupuesto_comentario_cliente }}
+                        </div>
+                        {% endif %}
+
+                        {% if reparacion.presupuesto_respondido_en %}
+                        <p class="at-dim small mb-2">Respondido el {{ reparacion.presupuesto_respondido_en[:16] }}.</p>
+                        {% elif presupuesto_efectivo == 'enviado' and reparacion.presupuesto_caduca_en %}
+                        <p class="at-dim small mb-2">Válido hasta el {{ reparacion.presupuesto_caduca_en[:10] }}.</p>
+                        {% endif %}
+
+                        <form method="POST" action="{{ url_for('reparaciones.enviar_presupuesto', id=reparacion.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-outline-primary btn-sm"
+                                    {% if not reparacion.precio %}disabled{% endif %}>
+                                <i class="bi bi-send me-1"></i>
+                                {% if presupuesto_efectivo %}Reenviar presupuesto{% else %}Enviar presupuesto al cliente{% endif %}
+                            </button>
+                            {% if not reparacion.precio %}
+                            <span class="at-dim small ms-2">Asigna un precio para poder enviarlo.</span>
+                            {% endif %}
+                        </form>
+                    </div>
+
                     <!-- SEGUIMIENTO DEL CLIENTE (código público + enlace compartible) -->
                     {% if reparacion.codigo_publico %}
                     <div class="mt-4 pt-4 at-u184">

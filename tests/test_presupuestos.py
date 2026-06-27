@@ -7,6 +7,8 @@ B1: lógica pura (caducidad en lectura, importe a cobrar). Los bloques de flujo
 from datetime import datetime, timedelta
 
 import presupuestos as P
+from tests.test_aislamiento import admin_A, dos_talleres  # noqa: F401
+from tests.test_notificaciones import captura_email  # noqa: F401
 
 
 class TestHelpersPuros:
@@ -53,6 +55,46 @@ def test_migracion_anade_columnas(db_conn):
         "presupuesto_respondido_en, presupuesto_comentario_cliente "
         "FROM reparaciones WHERE 1=0"
     ).fetchall()
+
+
+class TestEnviarPresupuesto:
+    """B2 — el taller envía el presupuesto: fija estado/validez y dispara el email
+    transaccional white-label del taller dueño."""
+
+    def test_enviar_fija_estado_y_caducidad(self, admin_A, dos_talleres,
+                                            captura_email, db_conn):
+        repA = dos_talleres["repA"]  # precio 100.0, cliente con email
+        nombre_A = db_conn.execute(
+            "SELECT nombre FROM talleres WHERE id = 1"
+        ).fetchone()["nombre"]
+        r = admin_A.post(f"/reparaciones/{repA}/presupuesto/enviar",
+                         data={"csrf_token": "tk"}, follow_redirects=False)
+        assert r.status_code in (302, 303)
+        row = db_conn.execute(
+            "SELECT presupuesto_estado, presupuesto_enviado_en, presupuesto_caduca_en "
+            "FROM reparaciones WHERE id = ?", (repA,)
+        ).fetchone()
+        assert row["presupuesto_estado"] == "enviado"
+        assert row["presupuesto_enviado_en"]
+        assert row["presupuesto_caduca_en"] > row["presupuesto_enviado_en"]
+        # Email transaccional al cliente, white-label del taller A (no B='Rival').
+        assert captura_email.get("enviado") is True
+        html = captura_email.get("html", "")
+        assert nombre_A in html
+        assert "Rival" not in html
+
+    def test_sin_precio_no_envia(self, admin_A, dos_talleres, db_conn,
+                                 captura_email):
+        repA = dos_talleres["repA"]
+        db_conn.execute("UPDATE reparaciones SET precio = NULL WHERE id = ?", (repA,))
+        db_conn.commit()
+        admin_A.post(f"/reparaciones/{repA}/presupuesto/enviar",
+                     data={"csrf_token": "tk"}, follow_redirects=False)
+        estado = db_conn.execute(
+            "SELECT presupuesto_estado FROM reparaciones WHERE id = ?", (repA,)
+        ).fetchone()["presupuesto_estado"]
+        assert estado is None  # no se marcó enviado sin precio
+        assert "enviado" not in captura_email
 
 
 # Garantiza que las constantes de validez/timedelta son coherentes (no negativas).
