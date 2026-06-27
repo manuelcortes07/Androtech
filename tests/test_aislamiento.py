@@ -11,8 +11,20 @@ de aceptación de toda la Fase 2.
 """
 
 import json
+import re
 
 import pytest
+
+# Valores DINÁMICOS por petición (tokens base64url aleatorios) que NO contienen
+# nunca datos de tenant pero sí podían, por azar, incluir un marcador corto y
+# disparar un falso "FUGA" (flaky). Se eliminan antes de buscar marcadores:
+#   - nonce CSP de cada <script>/<style> (secrets.token_urlsafe por petición)
+#   - el value del csrf_token en los formularios
+_DINAMICOS_RE = re.compile(
+    r'nonce="[^"]*"'
+    r'|name="csrf_token"[^>]*value="[^"]*"'
+    r'|value="[^"]*"[^>]*name="csrf_token"'
+)
 
 # Marcadores ÚNICOS del taller B: si aparecen logueado como A, hay fuga.
 RIVAL_DISPOSITIVO = "PixelRIVAL"
@@ -100,8 +112,16 @@ def admin_A(client, dos_talleres):
 
 
 def _sin_marcadores_b(data: bytes):
-    """True si NINGÚN marcador único del taller B aparece en la respuesta."""
-    txt = data.decode("utf-8", errors="replace")
+    """True si NINGÚN marcador único del taller B aparece en la respuesta.
+
+    Antes de buscar se eliminan los valores DINÁMICOS por petición (nonce CSP,
+    csrf_token): son tokens base64url aleatorios que NO contienen datos de tenant
+    pero que, por azar, podían incluir un marcador y disparar un falso "FUGA"
+    (era la causa del flaky con "999"). Así la comprobación es DETERMINISTA:
+    rojo = fuga real. Los marcadores de B son largos/únicos (incluido el precio
+    987654) y jamás viven en esos atributos.
+    """
+    txt = _DINAMICOS_RE.sub("", data.decode("utf-8", errors="replace"))
     return not any(m in txt for m in (
         RIVAL_DISPOSITIVO, RIVAL_DESC, RIVAL_PIEZA, RIVAL_SOLICITANTE, "987654"
     ))
