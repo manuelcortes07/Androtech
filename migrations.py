@@ -182,6 +182,40 @@ def asegurar_cliente_acepta_emails() -> None:
                 )
 
 
+def asegurar_presupuesto_campos() -> None:
+    """Presupuestos con aprobación (feature): garantiza las columnas de estado del
+    presupuesto en `reparaciones`. Idempotente y agnóstica de motor.
+
+    Todas NULL por defecto: una reparación sin presupuesto enviado tiene
+    `presupuesto_estado` NULL (no participa del flujo). No llevan default de
+    servidor: el estado lo siembra el código al ENVIAR el presupuesto.
+    """
+    from database import is_postgres
+
+    cols = {
+        "presupuesto_estado": "TEXT",
+        "presupuesto_enviado_en": "TEXT",
+        "presupuesto_caduca_en": "TEXT",
+        "presupuesto_respondido_en": "TEXT",
+        "presupuesto_comentario_cliente": "TEXT",
+    }
+    engine = get_engine()
+    with engine.begin() as conn:
+        if is_postgres():
+            for col, tipo in cols.items():
+                conn.exec_driver_sql(
+                    f"ALTER TABLE reparaciones ADD COLUMN IF NOT EXISTS {col} {tipo}"
+                )
+        else:
+            if not _table_exists(conn, "reparaciones"):
+                return
+            for col, tipo in cols.items():
+                if not _has_column(conn, "reparaciones", col):
+                    conn.exec_driver_sql(
+                        f"ALTER TABLE reparaciones ADD COLUMN {col} {tipo}"
+                    )
+
+
 def normalizar_taller_demo() -> None:
     """Rebranding: si el taller DEMO (id 1) de una BD EXISTENTE todavía tiene la
     marca vieja (nombre 'AndroTech' o ciudad 'Huelva'), lo pasa a los datos demo

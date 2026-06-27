@@ -270,6 +270,14 @@ class Reparacion(Base):
     # NO por el id secuencial. Se genera al crear la reparación (ORM default);
     # los inserts crudos y el backfill lo rellenan en migrations.py.
     codigo_publico = Column(Text, index=True, default=generar_codigo_publico)
+    # Presupuestos con aprobación del cliente (feature). NULL = sin presupuesto
+    # enviado. Estados: 'enviado'|'aprobado'|'rechazado'|'cambios_solicitados'|
+    # 'caducado'. Sin server_default: el estado lo siembra el código al enviar.
+    presupuesto_estado = Column(Text)
+    presupuesto_enviado_en = Column(Text)
+    presupuesto_caduca_en = Column(Text)
+    presupuesto_respondido_en = Column(Text)
+    presupuesto_comentario_cliente = Column(Text)
 
     __table_args__ = (
         # El dashboard agrupa/filtra por (taller_id, estado) constantemente.

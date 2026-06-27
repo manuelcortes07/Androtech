@@ -262,6 +262,7 @@ from migrations import (
     asegurar_cliente_acepta_emails,
     asegurar_codigo_publico,
     asegurar_es_superadmin,
+    asegurar_presupuesto_campos,
     asegurar_taller_1,
     asegurar_taller_nif,
     crear_esquema_sqlite_defensivo,
@@ -291,6 +292,8 @@ asegurar_es_superadmin()
 asegurar_taller_nif()
 # Notificaciones (B3): opt-out de avisos por email a nivel de cliente.
 asegurar_cliente_acepta_emails()
+# Presupuestos con aprobación del cliente: columnas de estado en reparaciones.
+asegurar_presupuesto_campos()
 # Rebranding: normaliza el taller demo (id 1) si una BD existente sigue con la
 # marca vieja (AndroTech/Huelva) → datos demo genéricos (idempotente).
 normalizar_taller_demo()
