@@ -262,6 +262,7 @@ from migrations import (
     asegurar_cliente_acepta_emails,
     asegurar_codigo_publico,
     asegurar_es_superadmin,
+    asegurar_fks_cascade,
     asegurar_presupuesto_campos,
     asegurar_taller_1,
     asegurar_taller_nif,
@@ -294,6 +295,8 @@ asegurar_taller_nif()
 asegurar_cliente_acepta_emails()
 # Presupuestos con aprobación del cliente: columnas de estado en reparaciones.
 asegurar_presupuesto_campos()
+# C1: ON DELETE CASCADE en las FKs hijas de reparaciones (no-op en SQLite).
+asegurar_fks_cascade()
 # Rebranding: normaliza el taller demo (id 1) si una BD existente sigue con la
 # marca vieja (AndroTech/Huelva) → datos demo genéricos (idempotente).
 normalizar_taller_demo()

@@ -354,9 +354,23 @@ def exportar_historial_cliente_pdf(id):
 def borrar_cliente(id):
     with get_session() as s:
         cliente = s.get(Cliente, id)
-        if cliente:
-            s.delete(cliente)
-            s.commit()
+        if not cliente:
+            return redirect(url_for("clientes.clientes"))
+        # C1 — DECISIÓN DE PRODUCTO: IMPEDIR borrar un cliente con reparaciones.
+        # Más seguro que el cascada: no se pierde el historial de reparaciones
+        # (registro valioso) por borrar una ficha de cliente. Además evita la
+        # violación de FK en Postgres (reparaciones.cliente_id NO es cascade, a
+        # propósito). El conteo va auto-scoped al taller (Reparacion con scope).
+        n = s.scalar(
+            select(func.count(Reparacion.id)).where(Reparacion.cliente_id == id)
+        )
+        if n:
+            flash(f"No se puede eliminar: este cliente tiene {n} reparación(es). "
+                  "Bórralas o reasígnalas primero.", "danger")
+            return redirect(url_for("clientes.clientes"))
+        s.delete(cliente)
+        s.commit()
+    flash("Cliente eliminado.", "success")
     return redirect(url_for("clientes.clientes"))
 
 

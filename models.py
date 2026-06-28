@@ -365,7 +365,10 @@ class PiezaReparacion(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
                        server_default="1", index=True)
-    reparacion_id = Column(Integer, ForeignKey("reparaciones.id"), nullable=False)
+    # ON DELETE CASCADE (C1): al borrar la reparación, Postgres limpia sus piezas
+    # consumidas. En SQLite (FKs OFF) el handler las borra a mano (cross-motor).
+    reparacion_id = Column(Integer, ForeignKey("reparaciones.id", ondelete="CASCADE"),
+                           nullable=False)
     pieza_id = Column(Integer, ForeignKey("inventario_piezas.id"), nullable=False)
     cantidad = Column(Integer, default=1, server_default=text("1"))
     fecha_uso = Column(Text, nullable=False)
@@ -433,7 +436,10 @@ class RepairHistorial(Base):
     # propio para que el filtro automático no tenga que hacer JOIN.
     taller_id = Column(Integer, ForeignKey("talleres.id"), nullable=False,
                        server_default="1", index=True)
-    reparacion_id = Column(Integer, ForeignKey("reparaciones.id"), nullable=False)
+    # ON DELETE CASCADE (C1): al borrar la reparación, Postgres limpia su
+    # historial. En SQLite (FKs OFF) el handler lo borra a mano (cross-motor).
+    reparacion_id = Column(Integer, ForeignKey("reparaciones.id", ondelete="CASCADE"),
+                           nullable=False)
     estado_anterior = Column(Text)
     estado_nuevo = Column(Text, nullable=False)
     fecha_cambio = Column(Text, nullable=False)

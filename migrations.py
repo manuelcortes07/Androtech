@@ -216,6 +216,54 @@ def asegurar_presupuesto_campos() -> None:
                     )
 
 
+def asegurar_fks_cascade() -> None:
+    """C1: garantiza ON DELETE CASCADE en las FKs hijas de `reparaciones` que no
+    lo tenían (`piezas_reparacion`, `reparaciones_historial`).
+
+    - SQLite: NO-OP. El CASCADE va en la definición del modelo (esquemas nuevos)
+      y, sobre todo, los handlers de borrado limpian los hijos A MANO — ese es el
+      mecanismo cross-motor real (en SQLite las FKs están OFF). Reescribir tablas
+      existentes sería innecesario.
+    - Postgres: recrea la constraint con ON DELETE CASCADE SÓLO si su delete_rule
+      actual no es CASCADE (idempotente). Defensivo: si algo falla, se loguea y se
+      sigue — la limpieza manual del handler ya hace el borrado seguro.
+    """
+    from database import is_postgres
+
+    if not is_postgres():
+        return
+    objetivos = [("piezas_reparacion", "reparacion_id"),
+                 ("reparaciones_historial", "reparacion_id")]
+    engine = get_engine()
+    with engine.begin() as conn:
+        for tabla, col in objetivos:
+            try:
+                rows = conn.exec_driver_sql(
+                    "SELECT tc.constraint_name "
+                    "FROM information_schema.table_constraints tc "
+                    "JOIN information_schema.key_column_usage kcu "
+                    "  ON kcu.constraint_name = tc.constraint_name "
+                    "JOIN information_schema.referential_constraints rc "
+                    "  ON rc.constraint_name = tc.constraint_name "
+                    "WHERE tc.constraint_type = 'FOREIGN KEY' "
+                    f"  AND tc.table_name = '{tabla}' "
+                    f"  AND kcu.column_name = '{col}' "
+                    "  AND rc.delete_rule <> 'CASCADE'"
+                ).fetchall()
+                for (cname,) in rows:
+                    conn.exec_driver_sql(
+                        f'ALTER TABLE {tabla} DROP CONSTRAINT IF EXISTS "{cname}"')
+                    conn.exec_driver_sql(
+                        f'ALTER TABLE {tabla} ADD CONSTRAINT "{cname}" '
+                        f'FOREIGN KEY ({col}) REFERENCES reparaciones(id) '
+                        'ON DELETE CASCADE')
+            except Exception as e:  # pragma: no cover (sólo Postgres en CI)
+                import logging
+                logging.getLogger("androtech").warning(
+                    '{"event": "fk_cascade_migracion_fallo", "tabla": "%s", '
+                    '"error": %r}' % (tabla, str(e)))
+
+
 def normalizar_taller_demo() -> None:
     """Rebranding: si el taller DEMO (id 1) de una BD EXISTENTE todavía tiene la
     marca vieja (nombre 'AndroTech' o ciudad 'Huelva'), lo pasa a los datos demo

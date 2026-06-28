@@ -780,6 +780,22 @@ def borrar_reparacion(id):
                 os.remove(filepath)
             s.delete(foto)
 
+        # C1 — limpiar el resto de hijos ANTES del padre (cross-motor: en SQLite
+        # las FKs están OFF, así que el CASCADE no salta; en Postgres esto evita
+        # la violación de FK al borrar la reparación con historial/piezas/notas).
+        for hijo in s.scalars(
+            select(NotaReparacion).where(NotaReparacion.reparacion_id == id)
+        ).all():
+            s.delete(hijo)
+        for hijo in s.scalars(
+            select(PiezaReparacion).where(PiezaReparacion.reparacion_id == id)
+        ).all():
+            s.delete(hijo)
+        for hijo in s.scalars(
+            select(RepairHistorial).where(RepairHistorial.reparacion_id == id)
+        ).all():
+            s.delete(hijo)
+
         if rep:
             s.delete(rep)
         s.commit()
