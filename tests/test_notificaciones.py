@@ -140,6 +140,7 @@ class TestGuardiaAntiFuga:
     _CLIENTE_TEMPLATES = [
         "repair_status_update.html", "payment_confirmation.html",
         "nueva_reparacion.html", "bienvenida_cliente.html",
+        "presupuesto_enviado.html",
     ]
     # Contacto personal del desarrollador + cualquier @gmail hardcodeado.
     _PROHIBIDO = ["633 234 395", "633234395", "manuelcortescontreras11", "@gmail.com"]
