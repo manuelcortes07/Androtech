@@ -29,6 +29,7 @@
                         <th class="text-end">Usuarios</th>
                         <th>Alta</th>
                         <th>Última actividad</th>
+                        <th class="text-end">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -56,9 +57,24 @@
                         <td class="text-end">{{ t.n_usuarios }}</td>
                         <td class="small">{{ (t.fecha_alta or '')[:10] }}</td>
                         <td class="small">{{ (t.ultima_actividad or '—')[:10] if t.ultima_actividad else '—' }}</td>
+                        <td class="text-end">
+                            {% if t.estado == 'suspendido' %}
+                            <form method="POST" action="{{ url_for('plataforma.reactivar', tid=t.id) }}" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-play-circle"></i> Reactivar
+                                </button>
+                            </form>
+                            {% else %}
+                            <a href="{{ url_for('plataforma.suspender', tid=t.id) }}"
+                               class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-pause-circle"></i> Suspender
+                            </a>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="7" class="text-center text-muted py-4">No hay talleres que coincidan.</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted py-4">No hay talleres que coincidan.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

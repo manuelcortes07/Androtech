@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Suspender taller{% endblock %}
+
+{% block content %}
+<div class="at-card" style="max-width:560px;">
+    <div class="at-card__head">
+        <span class="at-u124"><i class="bi bi-pause-circle"></i> Suspender taller</span>
+    </div>
+    <div class="at-card__body">
+        <p>Vas a suspender el taller <strong>«{{ taller.nombre }}»</strong>.</p>
+        <ul class="text-muted small">
+            <li>Sus usuarios quedarán <strong>bloqueados</strong> al entrar (verán la
+                página de suscripción).</li>
+            <li>Sus <strong>datos se conservan</strong> intactos; suspender no borra nada.</li>
+            <li>Podrás <strong>reactivarlo</strong> en cualquier momento.</li>
+        </ul>
+        <div class="d-flex gap-2 mt-3">
+            <form method="POST" action="{{ url_for('plataforma.suspender', tid=taller.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-danger">
+                    <i class="bi bi-pause-circle"></i> Sí, suspender
+                </button>
+            </form>
+            <a href="{{ url_for('plataforma.panel') }}" class="btn btn-outline-secondary">
+                Cancelar
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

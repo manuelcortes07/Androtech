@@ -17,14 +17,24 @@ from __future__ import annotations
 import logging
 import urllib.parse
 
-from flask import Blueprint, render_template, request
+from flask import (
+    Blueprint,
+    flash,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from sqlalchemy import func, or_, select
 
+from audit import registrar_auditoria
 from auth import superadmin_requerido
 from database import get_session
 from models import Reparacion, Taller, Usuario
 from pagination import paginar
 from tenancy import sin_filtro_taller
+from utils.security import csrf_protect
 
 logger = logging.getLogger("androtech")
 
@@ -73,3 +83,59 @@ def panel():
     filters_query = urllib.parse.urlencode({"q": q}) if q else ""
     return render_template("plataforma_talleres.html", talleres=filas, pagina=pag,
                            q=q, filters_query=filters_query)
+
+
+def _taller_simple(tid):
+    """(id, nombre, estado) del taller, o None. Taller no lleva taller_id, así
+    que no lo alcanza el filtro automático: el acceso es cross-taller por diseño."""
+    with get_session() as s:
+        row = s.execute(
+            select(Taller.id, Taller.nombre, Taller.estado).where(Taller.id == tid)
+        ).first()
+    return row
+
+
+@bp.route("/plataforma/talleres/<int:tid>/suspender", methods=["GET", "POST"])
+@superadmin_requerido
+@csrf_protect
+def suspender(tid):
+    """Suspende un taller (estado='suspendido'). GET = página de confirmación;
+    POST = aplica. Reutiliza la PUERTA de suscripción: un taller suspendido queda
+    bloqueado al entrar (sus datos se conservan, no se borran)."""
+    row = _taller_simple(tid)
+    if not row:
+        flash("Taller no encontrado.", "danger")
+        return redirect(url_for("plataforma.panel"))
+    if request.method == "GET":
+        return render_template("plataforma_suspender.html",
+                               taller={"id": row[0], "nombre": row[1]})
+    with get_session() as s:
+        taller = s.get(Taller, tid)
+        if taller:
+            taller.estado = "suspendido"
+            s.commit()
+    registrar_auditoria("taller_suspendido", session.get("usuario"),
+                        {"taller_id": tid, "nombre": row[1]}, taller_id=tid)
+    flash(f"Taller «{row[1]}» suspendido. Sus datos se conservan.", "warning")
+    return redirect(url_for("plataforma.panel"))
+
+
+@bp.route("/plataforma/talleres/<int:tid>/reactivar", methods=["POST"])
+@superadmin_requerido
+@csrf_protect
+def reactivar(tid):
+    """Reactiva un taller suspendido (estado='activo'). Acción reversible y no
+    destructiva → POST directo (sin página de confirmación)."""
+    row = _taller_simple(tid)
+    if not row:
+        flash("Taller no encontrado.", "danger")
+        return redirect(url_for("plataforma.panel"))
+    with get_session() as s:
+        taller = s.get(Taller, tid)
+        if taller:
+            taller.estado = "activo"
+            s.commit()
+    registrar_auditoria("taller_reactivado", session.get("usuario"),
+                        {"taller_id": tid, "nombre": row[1]}, taller_id=tid)
+    flash(f"Taller «{row[1]}» reactivado.", "success")
+    return redirect(url_for("plataforma.panel"))

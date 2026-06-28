@@ -50,3 +50,45 @@ class TestListadoCrossTaller:
     def test_busqueda_filtra(self, superadmin):
         body = superadmin.get("/plataforma?q=Rival").get_data(as_text=True)
         assert "Rival" in body
+
+
+class TestSuspenderReactivar:
+    def test_admin_normal_no_puede_suspender_ni_reactivar(self, admin_A, dos_talleres):
+        assert admin_A.post("/plataforma/talleres/2/suspender",
+                            data={"csrf_token": "tk"}).status_code == 403
+        assert admin_A.post("/plataforma/talleres/2/reactivar",
+                            data={"csrf_token": "tk"}).status_code == 403
+
+    def test_superadmin_suspende_y_reactiva(self, superadmin, dos_talleres, db_conn):
+        r = superadmin.post("/plataforma/talleres/2/suspender",
+                            data={"csrf_token": "tk"}, follow_redirects=False)
+        assert r.status_code in (302, 303)
+        estado = db_conn.execute(
+            "SELECT estado FROM talleres WHERE id = 2").fetchone()["estado"]
+        assert estado == "suspendido"
+        # queda constancia en auditoría
+        n = db_conn.execute(
+            "SELECT COUNT(*) FROM audit_log WHERE event_type = 'taller_suspendido'"
+        ).fetchone()[0]
+        assert n >= 1
+        # reactivar revierte
+        superadmin.post("/plataforma/talleres/2/reactivar",
+                        data={"csrf_token": "tk"}, follow_redirects=False)
+        estado = db_conn.execute(
+            "SELECT estado FROM talleres WHERE id = 2").fetchone()["estado"]
+        assert estado == "activo"
+
+    def test_taller_suspendido_queda_bloqueado(self, client, dos_talleres, db_conn):
+        # Con el taller B suspendido, un admin de B queda bloqueado por la PUERTA.
+        db_conn.execute("UPDATE talleres SET estado = 'suspendido' WHERE id = 2")
+        db_conn.commit()
+        with client.session_transaction() as s:
+            s["usuario"] = "admin"
+            s["rol"] = "admin"
+            s["permisos"] = PERMISOS_ADMIN
+            s["taller_id"] = 2
+            s["taller_slug"] = "rival"
+            s["csrf_token"] = "tk"
+        r = client.get("/dashboard", follow_redirects=False)
+        # La puerta de suscripción bloquea (redirige al bloqueo o 402).
+        assert r.status_code in (302, 402)
