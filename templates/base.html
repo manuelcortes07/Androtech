@@ -106,6 +106,9 @@
                     {% if session.rol == 'admin' %}
                     <a href="{{ url_for('suscripcion.suscripcion') }}"><i class="bi bi-credit-card-2-front"></i>Suscripción</a>
                     {% endif %}
+                    {% if session.es_superadmin %}
+                    <a href="{{ url_for('plataforma.panel') }}"><i class="bi bi-buildings"></i>Plataforma Kintsu</a>
+                    {% endif %}
                     <hr>
                     <a href="/logout" class="is-danger"><i class="bi bi-box-arrow-right"></i>Cerrar sesión</a>
                 </div>

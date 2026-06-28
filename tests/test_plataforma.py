@@ -52,6 +52,17 @@ class TestListadoCrossTaller:
         assert "Rival" in body
 
 
+class TestNavegacion:
+    def test_superadmin_ve_el_enlace(self, superadmin):
+        body = superadmin.get("/dashboard").get_data(as_text=True)
+        assert "Plataforma Kintsu" in body
+        assert "/plataforma" in body
+
+    def test_admin_normal_no_ve_el_enlace(self, admin_A):
+        body = admin_A.get("/dashboard").get_data(as_text=True)
+        assert "Plataforma Kintsu" not in body
+
+
 class TestMetricas:
     def test_mrr_cuadra_con_activos(self, superadmin, dos_talleres, db_conn):
         db_conn.execute("UPDATE talleres SET estado = 'activo' WHERE id IN (1, 2)")
