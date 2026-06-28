@@ -392,6 +392,10 @@ def puerta_suscripcion():
         return
     if request.endpoint in _GATE_EXENTAS:
         return
+    # El panel de PLATAFORMA (superadmin) nunca se bloquea por la suscripción del
+    # taller propio del superadmin: gestiona el SaaS por encima de los talleres.
+    if (request.endpoint or "").startswith("plataforma."):
+        return
     if es_ruta_plataforma(request.path):
         return
     tid = session.get("taller_id")
@@ -575,6 +579,12 @@ app.register_blueprint(publico_bp)
 from blueprints.dashboard import bp as dashboard_bp  # noqa: E402
 
 app.register_blueprint(dashboard_bp)
+
+# Panel de PLATAFORMA (superadmin de Kintsu): cross-taller, tras
+# @superadmin_requerido + sin_filtro_taller auditado.
+from blueprints.plataforma import bp as plataforma_bp  # noqa: E402
+
+app.register_blueprint(plataforma_bp)
 
 #  SECCIÓN CLIENTES
 
