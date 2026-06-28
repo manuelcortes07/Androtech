@@ -25,6 +25,10 @@ from datetime import datetime, timedelta
 # Plan único de producto (Fase 3b): 24,99 €/mes, prueba de 14 días con tarjeta
 # requerida por adelantado.
 TRIAL_DIAS = 14
+# Precio del plan (€/mes). Fuente única para el MRR del panel de plataforma.
+# El cobro real lo define el Price de Stripe (STRIPE_SAAS_PRICE_ID); esto es la
+# referencia para la estimación de negocio.
+PRECIO_PLAN_EUR = 24.99
 
 STRIPE_SAAS_SECRET_KEY = os.environ.get("STRIPE_SAAS_SECRET_KEY", "")
 STRIPE_SAAS_WEBHOOK_SECRET = os.environ.get("STRIPE_SAAS_WEBHOOK_SECRET", "")

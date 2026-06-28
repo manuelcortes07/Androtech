@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import urllib.parse
+from datetime import datetime
 
 from flask import (
     Blueprint,
@@ -28,6 +29,7 @@ from flask import (
 )
 from sqlalchemy import func, or_, select
 
+import saas_billing
 from audit import registrar_auditoria
 from auth import superadmin_requerido
 from database import get_session
@@ -71,6 +73,32 @@ def panel():
             ult_actividad = dict(s.execute(
                 select(Reparacion.taller_id, func.max(Reparacion.fecha_entrada))
                 .group_by(Reparacion.taller_id)).all())
+            # ── Métricas de negocio (B3) — agregado por estado, mismo escape ──
+            estados_count = dict(s.execute(
+                select(Taller.estado, func.count(Taller.id)).group_by(Taller.estado)
+            ).all())
+            _mes = datetime.now().strftime("%Y-%m")
+            altas_mes = s.scalar(
+                select(func.count(Taller.id))
+                .where(Taller.fecha_alta.like(_mes + "%"))
+            ) or 0
+            activos = estados_count.get("activo", 0)
+            metricas = {
+                "total": sum(estados_count.values()),
+                "activos": activos,
+                "trial": estados_count.get("trial", 0),
+                "suspendidos": estados_count.get("suspendido", 0),
+                "cancelados": estados_count.get("cancelado", 0),
+                # MRR: sólo los 'activo' pagan (el trial aún no factura).
+                "mrr": round(activos * saas_billing.PRECIO_PLAN_EUR, 2),
+                "precio_plan": saas_billing.PRECIO_PLAN_EUR,
+                "altas_mes": altas_mes,
+                # Churn mensual NO calculable: no guardamos fecha de cancelación.
+                # Mostramos el total de cancelados y marcamos el churn como no
+                # disponible (haría falta una columna fecha_cancelacion).
+                "churn_mes_disponible": False,
+            }
+
             # Materializar a dicts simples (válidos tras cerrar la sesión).
             filas = [{
                 "id": t.id, "nombre": t.nombre, "slug": t.slug,
@@ -82,7 +110,7 @@ def panel():
             } for t in talleres]
     filters_query = urllib.parse.urlencode({"q": q}) if q else ""
     return render_template("plataforma_talleres.html", talleres=filas, pagina=pag,
-                           q=q, filters_query=filters_query)
+                           q=q, filters_query=filters_query, metricas=metricas)
 
 
 def _taller_simple(tid):

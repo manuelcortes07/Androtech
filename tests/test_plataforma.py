@@ -52,6 +52,25 @@ class TestListadoCrossTaller:
         assert "Rival" in body
 
 
+class TestMetricas:
+    def test_mrr_cuadra_con_activos(self, superadmin, dos_talleres, db_conn):
+        db_conn.execute("UPDATE talleres SET estado = 'activo' WHERE id IN (1, 2)")
+        db_conn.commit()
+        body = superadmin.get("/plataforma").get_data(as_text=True)
+        assert "49.98" in body  # 2 activos × 24,99
+
+    def test_trial_no_cuenta_en_mrr(self, superadmin, dos_talleres, db_conn):
+        db_conn.execute("UPDATE talleres SET estado = 'activo' WHERE id = 1")
+        db_conn.execute("UPDATE talleres SET estado = 'trial' WHERE id = 2")
+        db_conn.commit()
+        body = superadmin.get("/plataforma").get_data(as_text=True)
+        assert "24.99" in body  # sólo 1 activo paga
+
+    def test_churn_marcado_no_disponible(self, superadmin, dos_talleres):
+        body = superadmin.get("/plataforma").get_data(as_text=True)
+        assert "No disponible" in body  # honesto: falta fecha de cancelación
+
+
 class TestSuspenderReactivar:
     def test_admin_normal_no_puede_suspender_ni_reactivar(self, admin_A, dos_talleres):
         assert admin_A.post("/plataforma/talleres/2/suspender",
