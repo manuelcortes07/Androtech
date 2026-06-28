@@ -31,6 +31,8 @@ from sqlalchemy import (
     text,
 )
 
+from database import Base
+
 
 def generar_codigo_publico() -> str:
     """Código público NO adivinable para el seguimiento de una reparación.
@@ -40,8 +42,6 @@ def generar_codigo_publico() -> str:
     iterando ids (hallazgo de seguridad H3). Único e indexado.
     """
     return secrets.token_urlsafe(9)
-
-from database import Base
 
 
 class Taller(Base):
