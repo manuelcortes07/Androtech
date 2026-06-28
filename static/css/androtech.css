@@ -909,3 +909,6 @@
 
 /* Código de seguimiento del cliente en la ficha (theme-aware) */
 .at-track-code{display:inline-block;background:var(--surface-2);color:var(--accent);border:1px solid var(--line);border-radius:8px;padding:.4rem .8rem;font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:600;letter-spacing:.08em}
+
+/* Tarjeta estrecha (p. ej. confirmación de suspender taller en el panel) */
+.at-card--narrow{max-width:560px}
